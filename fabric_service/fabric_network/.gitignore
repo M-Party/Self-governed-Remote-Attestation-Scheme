@@ -1,0 +1,13 @@
+# IDE
+.vscode/
+
+#
+venv/
+
+# python
+*.py[co]
+__pycache__
+.pytest_cache
+
+fabric_sdk_py.egg-info/*
+__pycache__
