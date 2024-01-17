@@ -1,0 +1,33 @@
+version: '3.5'
+
+services:
+    RPE:
+        container_name: rpe
+        hostname: rpe
+        image: rpe
+        build:
+           context: .
+           dockerfile: ./Dockerfile
+           args:
+               - http_proxy
+               - https_proxy
+               - no_proxy
+        security_opt:
+            - seccomp:unconfined
+        devices:
+            - "/dev/sgx/enclave:/dev/sgx/enclave"
+            - "/dev/sgx/provision:/dev/sgx/provision"
+            - "/dev/sgx_enclave:/dev/sgx_enclave"
+            - "/dev/sgx_provision:/dev/sgx_provision"
+        working_dir: "/root"
+        ports:
+            - "4455:4455"
+        volumes:
+            - /tmp:/tmp
+            - /var/run/aesmd:/var/run/aesmd
+            - ./config.toml:/root/config.toml
+            - ./collaterals:/root/collaterals
+        entrypoint: "bash -c \" \
+            /root/startup.sh start\""
+        stop_signal: SIGKILL
+

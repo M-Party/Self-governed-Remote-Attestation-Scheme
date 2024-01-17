@@ -1,0 +1,24 @@
+version: '3.5'
+
+services:
+    fabric_client:
+        container_name: fabric-client
+        hostname: fabric-client
+        image: fabric-client
+        build:
+           context: .
+           dockerfile: ./Dockerfile
+           args:
+               - http_proxy
+               - https_proxy
+               - no_proxy
+        volumes:
+            - ./config:/root/config
+        working_dir: "/root"
+        ports:
+            - "50051:50051"
+        entrypoint: "bash -c \" \
+                   /root/startup.sh start \""
+
+        stop_signal: SIGKILL
+

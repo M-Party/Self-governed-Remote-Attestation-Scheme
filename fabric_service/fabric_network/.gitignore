@@ -1,0 +1,19 @@
+# IDE
+.vscode/
+
+#
+bin/
+build/
+ci/
+dist/
+venv/
+fixtures/network/channel-artifacts/
+fixtures/network/crypto-config/
+
+# python
+*.py[co]
+__pycache__
+.pytest_cache
+
+fabric_sdk_py.egg-info/*
+__pycache__
