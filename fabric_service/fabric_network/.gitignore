@@ -9,6 +9,7 @@ dist/
 venv/
 fixtures/network/channel-artifacts/
 fixtures/network/crypto-config/
+*.tar.gz
 
 # python
 *.py[co]
