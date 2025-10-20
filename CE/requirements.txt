@@ -1,0 +1,8 @@
+colorlog
+ecdsa
+grpcio
+numpy
+protobuf
+cryptography == 40.0
+pycryptodomex
+toml

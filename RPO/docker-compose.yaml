@@ -1,0 +1,36 @@
+version: '3.5'
+
+services:
+    RPO:
+        container_name: rpo
+        hostname: rpo
+        image: rpo
+        build:
+           context: .
+           dockerfile: ./Dockerfile
+           args:
+               - http_proxy
+               - https_proxy
+               - no_proxy
+        security_opt:
+            - seccomp:unconfined
+        devices:
+            - "/dev/sgx/enclave:/dev/sgx/enclave"
+            - "/dev/sgx/provision:/dev/sgx/provision"
+            - "/dev/sgx_enclave:/dev/sgx_enclave"
+            - "/dev/sgx_provision:/dev/sgx_provision"
+        working_dir: "/root"
+        ports:
+            - "4433:4433"
+        volumes:
+            - /tmp:/tmp
+            - /var/run/aesmd:/var/run/aesmd
+            - ./config.toml:/root/config.toml
+            - ./policies.json:/root/policies.json
+            - ./private-signing-key.pem:/root/private-signing-key.pem
+            - ./evidence:/root/evidence
+            - ./collaterals/:/root/collaterals/
+        entrypoint: "bash -c \" \
+            /root/startup.sh start\""
+        stop_signal: SIGKILL
+

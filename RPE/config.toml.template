@@ -1,0 +1,7 @@
+[rpe]
+rpe_id = "rpe-2"
+grpc_server_address = "192.168.122.50:50051"
+rpo_address = "192.168.122.53"
+rpo_port = "4433"
+rpe_port = "4455"
+socket_port = "9001"

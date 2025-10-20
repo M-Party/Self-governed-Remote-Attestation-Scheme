@@ -1,0 +1,7 @@
+[ce]
+local_ce = "ce-2"
+rpe_address = "192.168.122.53"
+rpe_port = "4455"
+collaborative_ce_address = ""
+collaborative_ce_port = ""
+ce_port = ""

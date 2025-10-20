@@ -1,0 +1,33 @@
+version: '3.5'
+
+services:
+    CE:
+        container_name: ce
+        hostname: ce
+        image: ce
+        build:
+           context: .
+           dockerfile: ./Dockerfile
+           args:
+               - http_proxy
+               - https_proxy
+               - no_proxy
+        security_opt:
+            - seccomp:unconfined
+        devices:
+            - "/dev/sgx/enclave:/dev/sgx/enclave"
+            - "/dev/sgx/provision:/dev/sgx/provision"
+            - "/dev/sgx_enclave:/dev/sgx_enclave"
+            - "/dev/sgx_provision:/dev/sgx_provision"
+        working_dir: "/root"
+        ports:
+            - "2333:2333"
+            - "9001:9001"
+        volumes:
+            - /tmp:/tmp
+            - /var/run/aesmd:/var/run/aesmd
+            - ./config.toml:/root/config.toml
+        entrypoint: "bash -c \" \
+            /root/startup.sh start\""
+        stop_signal: SIGKILL
+
