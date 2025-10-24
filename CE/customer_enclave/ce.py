@@ -70,11 +70,11 @@ class RPE:
         #     CECert = crypto_utility.base64_to_byte_array(CECertBase64)
         # logger.info("CE cert: %s", CECert.decode())
 
-        # ################################# DELETE ############################################
+        # ################################# DEBUG ############################################
        
         CECert = certificate.generate_ce_certificate(self.signing_keys["private"], self.signing_keys["public"])
         
-        # ############################### DELETE END ##########################################
+        # ############################### DEBUG END ##########################################
 
         # =============== Phase four ===============
         logger.info("======================= Woker Code Running ... =======================")

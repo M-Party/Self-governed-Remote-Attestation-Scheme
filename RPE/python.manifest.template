@@ -6,6 +6,7 @@ libos.entrypoint = "{{ entrypoint }}"
 loader.log_level = "{{ log_level }}"
 
 loader.env.LD_LIBRARY_PATH = "/lib:/lib:{{ arch_libdir }}:/usr/{{ arch_libdir }}"
+loader.env.PYTHONPATH = "venv/lib/python3.10/site-packages"
 
 loader.env.RA_TLS_CLIENT_INSIDE_SGX = "1"
 #!!!!!!!! Do not use the following configuration in production environment !!!!!!!!
@@ -29,6 +30,8 @@ fs.mounts = [
 {% for path in python.get_sys_path(entrypoint) %}
   { path = "{{ path }}", uri = "file:{{ path }}" },
 {% endfor %}
+  { path = "/venv", uri = "file:venv" },
+  { path = "/venv/lib/python3.10/site-packages", uri = "file:venv/lib/python3.10/site-packages" },
   { path = "{{ entrypoint }}", uri = "file:{{ entrypoint }}" },
   #{ path = "/etc", uri = "file:/etc" },
 
@@ -66,4 +69,5 @@ sgx.allowed_files = [
   #"file:/etc/sgx_default_qcnl.conf",
   "file:config.toml",
   "file:collaterals/",
+  "file:venv/lib/python3.10/site-packages/"
 ]

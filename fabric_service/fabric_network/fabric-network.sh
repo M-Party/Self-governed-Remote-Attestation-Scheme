@@ -22,7 +22,7 @@ fi
 
 function start_network()
 {
-HLF_VERSION=${HLF_VERSION} docker-compose -f fixtures/docker-compose-2orgs-4peers-tls.yaml up -d
+HLF_VERSION=${HLF_VERSION} docker compose -f fixtures/docker-compose-2orgs-4peers-tls.yaml up -d
 source venv/bin/activate
 export PATH=$(pwd)/bin:$PATH
 python3 deploy_fabric.py
@@ -33,7 +33,8 @@ docker ps --format '{{.Names}}'
 
 function stop_network()
 {
-HLF_VERSION=${HLF_VERSION} docker-compose -f fixtures/docker-compose-2orgs-4peers-tls.yaml down
+HLF_VERSION=${HLF_VERSION} docker compose -f fixtures/docker-compose-2orgs-4peers-tls.yaml down -v --remove-orphans
+
 }
 
 function restart_network()

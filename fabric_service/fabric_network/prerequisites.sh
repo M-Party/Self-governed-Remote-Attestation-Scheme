@@ -38,3 +38,24 @@ bin/configtxgen \
     -channelID ${SYS_CHANNEL} \
     -profile ${ORDERER_GENSIS_PROFILE} \
     -outputBlock fixtures/network/${CHANNEL_ARTIFACTS}/${ORDERER_GENSIS}
+
+# NEW NEW NEW
+# Generate channel configuration transaction file
+# 清理并重建目录
+rm -rf fixtures/network/crypto-config fixtures/network/channel-artifacts
+mkdir -p fixtures/network/crypto-config fixtures/network/channel-artifacts
+
+# 生成证书
+./bin/cryptogen generate \
+  --config=fixtures/network/crypto-config.yaml \
+  --output=fixtures/network/crypto-config
+
+# 生成创世块和通道 TX
+export FABRIC_CFG_PATH="$(pwd)/fixtures/network"
+./bin/configtxgen -profile TwoOrgsOrdererGenesis \
+  -channelID byfn-sys-channel \
+  -outputBlock fixtures/network/channel-artifacts/orderer.genesis.block
+
+./bin/configtxgen -profile TwoOrgsChannel \
+  -channelID mychannel \
+  -outputCreateChannelTx fixtures/network/channel-artifacts/mychannel.tx

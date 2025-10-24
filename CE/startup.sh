@@ -2,6 +2,12 @@
 
 function build()
 {
+    python3 -m venv venv
+    source venv/bin/activate
+    python3 -m pip install --upgrade pip
+    python3 -m pip install -r requirements.txt
+    deactivate
+
     cd customer_enclave/keys_generation
     rm generate_key_pair.so
     gcc -shared -o generate_key_pair.so generate_key_pair.c -lssl -lcrypto

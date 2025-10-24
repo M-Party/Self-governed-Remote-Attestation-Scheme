@@ -2,6 +2,12 @@
 
 function build()
 {
+    python3 -m venv venv
+    source venv/bin/activate
+    python3 -m pip install --upgrade pip
+    python3 -m pip install -r requirements.txt
+    deactivate
+
     cd relying_party_enclave/quote_verification
     rm -rf build/ 
     swig -c++ -python verify_dcap_quote.i
