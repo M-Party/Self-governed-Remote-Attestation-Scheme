@@ -71,3 +71,6 @@ customer_enclave/RATLS_Conn/*.so
 customer_enclave/RATLS_Conn/*.manifest
 
 config.toml
+
+RPO/evidences
+RPO/tool-collateral/collateral.dat.bat

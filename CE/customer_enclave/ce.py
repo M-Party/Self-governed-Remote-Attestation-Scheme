@@ -56,24 +56,22 @@ class RPE:
         ratls = RaTLS.RATLS()
         
         # =============== Phase three ===============
-        # logger.info("======================= Starting ... =======================")
-        # # RA-TLS to RPE
-        # ratls.initCEID(self.local_ce)
-        # ratls.initpublickeys(public_signing_key_pem, public_encryption_key_pem)
-        # success = ratls.sendKeys2RPE(self.rpe_address, self.rpe_port)
+        logger.info("======================= Starting ... =======================")
+        # RA-TLS to RPE
+        ratls.initCEID(self.local_ce)
+        ratls.initpublickeys(public_signing_key_pem, public_encryption_key_pem)
+        success = ratls.sendKeys2RPE(self.rpe_address, self.rpe_port)
         
-        # # Get CE certificate
-        # # Get its own certificate signed by local RPE.
-        # CECert = None
-        # if success:
-        #     CECertBase64 = ratls.getCECert()
-        #     CECert = crypto_utility.base64_to_byte_array(CECertBase64)
-        # logger.info("CE cert: %s", CECert.decode())
+        # Get CE certificate
+        # Get its own certificate signed by local RPE.
+        CECert = None
+        if success:
+            CECertBase64 = ratls.getCECert()
+            CECert = crypto_utility.base64_to_byte_array(CECertBase64)
+        logger.info("CE cert: %s", CECert.decode())
 
         # ################################# DEBUG ############################################
-       
-        CECert = certificate.generate_ce_certificate(self.signing_keys["private"], self.signing_keys["public"])
-        
+        # CECert = certificate.generate_ce_certificate(self.signing_keys["private"], self.signing_keys["public"])
         # ############################### DEBUG END ##########################################
 
         # =============== Phase four ===============

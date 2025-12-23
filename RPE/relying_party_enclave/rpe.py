@@ -257,7 +257,7 @@ class RPE:
                 logger.info("Verifying rpe %s quote" % rpe_id)
                 ret = verify_dcap_quote.teeVerifyQuote(base64_encoded_quote, len(quote_bytes), collateral)
                 logger.info("quote verification for rpe %s result: %x" % (rpe_id, ret))
-                if ret != 0 and ret != 0xa002:
+                if ret != 0 and ret != 0xa002 and ret != 0xa008:
                     return
                 logger.info("quote verification finished !")
                 # Verify MR_ENCLAVE, MR_SIGNER, QEID and report_data
