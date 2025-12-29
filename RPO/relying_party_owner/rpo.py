@@ -10,6 +10,16 @@ from cryptography.hazmat.backends.openssl import backend as openssl_backend
 import ratls
 import policies
 
+# CMD definitions 
+CMD_GET_RPE_KEYS = "CMD_GET_KEYS"
+CMD_SEND_MESSAGE = "CMD_SEND_MESSAGE"
+CMD_RECV_MESSAGE = "CMD_RECV_MESSAGE"
+CMD_EXIT         = "CMD_EXIT"
+CMD_SEND_POLICY  = "CMD_SEND_POLICY"
+RESP_OK          = "RESP_OK"
+RESP_ERROR       = "RESP_ERROR"
+RESP_BYE         = "RESP_BYE"
+
 logger = logging.getLogger(__name__)
 
 class RPO:
@@ -68,77 +78,99 @@ class RPO:
         logger.info("======================= Starting phase one... =======================")
 
         # Prepare verfication info that RPO verifies RPE including QEID and tcb info
-        self.ratls.initMeasurements(self.rpe_mr, self.rpe_mrsigner, self.rpe_isvprodid, self.rpe_isvsvn)
-        self.ratls.initQEID(self.rpe_qeid)
-        self.ratls.initTCBInfo(self.collaterals[tcb_ids[0]])
+        self.ratls.init_measurements(self.rpe_mr, self.rpe_mrsigner, self.rpe_isvprodid, self.rpe_isvsvn)
+        self.ratls.init_qeid(self.rpe_qeid)
+        self.ratls.init_tcb_info(self.collaterals[tcb_ids[0]])
 
         # RPO starts server port.
         ret = self.ratls.server_init(self.port)
-        if ret != 1:
-            logger.error("RA-TLS verification failed!")
+        if ret == -1:
+            logger.error(f"RA-TLS server initialization failed on port {self.port}")
             return
-        
-        logger.info("RPO successfully attested RPE")
-        
-        # Get RPE's keys
-        RPESigningkey, RPEEncryptionkey = self.ratls.getRPEPublicKeys()
-        
-        # Sign rpe's key.
-        rpe_keys = {
-            "public_signing_key": RPESigningkey.decode(),
-            "public_encryption_key": RPEEncryptionkey.decode()
-        }
-        signature_bytes = self.signing_keys['private_signing_key'].sign(
-                                    bytes(json.dumps(rpe_keys), "UTF-8"), ec.ECDSA(hashes.SHA384()))
-        signature = crypto_utility.byte_array_to_base64(signature_bytes)
-        rpo_verification_result_json = {
-            "rpe_keys": rpe_keys,
-            "sig": signature
-        }
-        rpo_verification_result = json.dumps(rpo_verification_result_json)
-        logger.info("verify_result sending to rpe: " + rpo_verification_result)
-        # logger.info("lengh: %d", len(rpo_verification_result))
 
-        # Pass policy data, which will pass to RPE if the RPE verification is successful 
-        ret = self.ratls.passPolicyData(self.policies_data, rpo_verification_result)
-
-        # Get rpe_verification_result once phase two is done
-        rpe_verification_result = self.ratls.getSomethingBuf()
-        logger.info("======================= Phase two verification has finished =======================")
-        logger.info("RPEs verifcation result: %s" % rpe_verification_result)
-        
-        if ret == 3:
-            ret = self.ratls.something()
-        else:
-            logger.error("Policies and phase one verification result transform failed")
-            return
-        
-        ce_verification_result = self.ratls.getSomethingBuf() 
-        logger.info("======================= Phase three verification has finished =======================")
-        logger.info("CE verifcation result: %s" % ce_verification_result)
-                
-        # Get CE's keys from RPE once phase three is done
-        verification_result = {
-            "rpo_verification_result": rpo_verification_result,
-            "rpe_verification_result": rpe_verification_result,
-            "ce_verification_result": ce_verification_result
-        }
-        verification_result_bytes = bytes(json.dumps(verification_result), "UTF-8")
-        
-        # Write evidences to file
-        try:
-            with open(self.evidence_path, 'wb') as fd:
-                fd.write(verification_result_bytes)
-        except Exception as e:
-            logger.error(
-                "Write evidence failed!"
-                " Error message %(%s)" % str(e) )
-            
         while True:
-             if ret==3:
-                ret = self.ratls.something()
-             else:
-                 return
+            if self.ratls.wait_for_connection() != 0:
+                logger.info("Waiting for RPE connection failed")
+                continue
+            logger.info("RPE connected")
+
+            if self.ratls.perform_handshake() != 0:
+                logger.info("RA-TLS handshake with RPE failed")
+                self.ratls.close_connection()
+                continue
+            logger.info("RA-TLS handshake with RPE succeeded")
+
+            if self.ratls.verify_peer() != 0:
+                logger.info("RPE attestation failed")
+                self.ratls.close_connection()
+                continue
+
+            # receive commands from RPE
+            rpo_verification_result = None
+            command =self.ratls.receive_commands()
+            if command is None:
+                logger.error("Receive command from RPE failed")
+                self.ratls.close_connection()
+                continue
+            
+            if command == CMD_GET_RPE_KEYS:
+                # Get RPE's keys
+                RPESigningkey, RPEEncryptionkey = self.ratls.get_rpe_public_keys()
+                if RPESigningkey is None or RPEEncryptionkey is None:
+                    logger.error("Get RPE public keys failed")
+                    self.ratls.close_connection()
+                    continue
+                
+                # Sign rpe's key.
+                rpe_keys = {
+                    "public_signing_key": RPESigningkey.decode(),
+                    "public_encryption_key": RPEEncryptionkey.decode()
+                }
+                signature_bytes = self.signing_keys['private_signing_key'].sign(
+                                            bytes(json.dumps(rpe_keys), "UTF-8"), ec.ECDSA(hashes.SHA384()))
+                signature = crypto_utility.byte_array_to_base64(signature_bytes)
+                rpo_verification_result_json = {
+                    "rpe_keys": rpe_keys,
+                    "sig": signature
+                }
+                rpo_verification_result = json.dumps(rpo_verification_result_json)
+                logger.info("RPE public keys sent to RPO")
+            elif command == CMD_SEND_POLICY:
+                logger.info("RPO received policies request from RPE")
+                # RPO attests RPE successfully, send policies to RPE
+                rpo_verification_result = RESP_OK
+                # Pass policy data, which will pass to RPE if the RPE verification is successful 
+                ret = self.ratls.pass_policy_data(self.policies_data, rpo_verification_result)
+                if ret != 0:
+                    logger.error("Pass policy data to RPE failed")
+                    self.ratls.close_connection()
+                    continue
+                logger.info("Policies sent to RPE")
+            else:
+                logger.error(f"Unknown command from RPE: {command}")
+                self.ratls.close_connection()
+                # ce_verification_result = self.ratls.getSomethingBuf() 
+                # logger.info("======================= Phase three verification has finished =======================")
+                # logger.info("CE verifcation result: %s" % ce_verification_result)
+                        
+                # # Get CE's keys from RPE once phase three is done
+                # verification_result = {
+                #     "rpo_verification_result": rpo_verification_result,
+                #     "rpe_verification_result": rpe_verification_result,
+                #     "ce_verification_result": ce_verification_result
+                # }
+                # verification_result_bytes = bytes(json.dumps(verification_result), "UTF-8")
+                
+                # # Write evidences to file
+                # try:
+                #     with open(self.evidence_path, 'wb') as fd:
+                #         fd.write(verification_result_bytes)
+                # except Exception as e:
+                #     logger.error(
+                #         "Write evidence failed!"
+                #         " Error message %(%s)" % str(e) )
+                
+        self.ratls.server_cleanup()    
 
 
     def load_private_signing_key(self):

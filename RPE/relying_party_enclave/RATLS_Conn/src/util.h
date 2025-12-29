@@ -40,7 +40,7 @@ extern endianness_t g_endianness;
 
 #define ERROR(fmt, ...)                                                \
     do {                                                               \
-        dprintf(g_stderr_fd, "%s: " fmt, __FUNCTION__, ##__VA_ARGS__); \
+        dprintf(g_stderr_fd, "%s: " fmt, __func__, ##__VA_ARGS__); \
     } while (0)
 
 /*! Set verbosity level */

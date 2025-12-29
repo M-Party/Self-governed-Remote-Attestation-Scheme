@@ -40,61 +40,6 @@ static char* getenv_critical(const char* name) {
     return value;
 }
 
-static int getenv_enclave_measurements(sgx_measurement_t* mrsigner, bool* validate_mrsigner,
-                                       sgx_measurement_t* mrenclave, bool* validate_mrenclave,
-                                       sgx_prod_id_t* isv_prod_id, bool* validate_isv_prod_id,
-                                       sgx_isv_svn_t* isv_svn, bool* validate_isv_svn) {
-    *validate_mrsigner    = false;
-    *validate_mrenclave   = false;
-    *validate_isv_prod_id = false;
-    *validate_isv_svn     = false;
-
-    const char* mrsigner_hex;
-    const char* mrenclave_hex;
-    const char* isv_prod_id_dec;
-    const char* isv_svn_dec;
-
-    /* any of the below variables may be NULL (and then not used in validation) */
-    mrsigner_hex = getenv_critical(RA_TLS_MRSIGNER);
-    if (mrsigner_hex) {
-        if (parse_hex(mrsigner_hex, mrsigner, sizeof(*mrsigner), NULL) != 0)
-            return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
-        *validate_mrsigner = true;
-    }
-
-    mrenclave_hex = getenv_critical(RA_TLS_MRENCLAVE);
-    if (mrenclave_hex) {
-        if (parse_hex(mrenclave_hex, mrenclave, sizeof(*mrenclave), NULL) != 0)
-            return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
-        *validate_mrenclave = true;
-    }
-
-    isv_prod_id_dec = getenv_critical(RA_TLS_ISV_PROD_ID);
-    if (isv_prod_id_dec) {
-        errno = 0;
-        *isv_prod_id = strtoul(isv_prod_id_dec, NULL, 10);
-        if (errno)
-            return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
-        *validate_isv_prod_id = true;
-    }
-
-    isv_svn_dec = getenv_critical(RA_TLS_ISV_SVN);
-    if (isv_svn_dec) {
-        errno = 0;
-        *isv_svn = strtoul(isv_svn_dec, NULL, 10);
-        if (errno)
-            return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
-        *validate_isv_svn = true;
-    }
-
-    if (!*validate_mrsigner && !*validate_mrenclave) {
-        INFO("WARNING: Neither " RA_TLS_MRSIGNER " nor " RA_TLS_MRENCLAVE " are specified. "
-             "This will accept any enclave and provides no security whatsoever.\n");
-    }
-
-    return 0;
-}
-
 bool getenv_allow_outdated_tcb(void) {
     char* str = getenv(RA_TLS_ALLOW_OUTDATED_TCB_INSECURE);
     return (str && !strcmp(str, "1"));
@@ -252,34 +197,3 @@ out:
     mbedtls_x509_crt_free(&crt);
     return ret;
 }
-
-// int verify_quote_body_against_envvar_measurements(const sgx_quote_body_t* quote_body) {
-//     int ret;
-
-//     sgx_measurement_t expected_mrsigner;
-//     sgx_measurement_t expected_mrenclave;
-//     sgx_prod_id_t expected_isv_prod_id;
-//     sgx_isv_svn_t expected_isv_svn;
-
-//     bool validate_mrsigner    = false;
-//     bool validate_mrenclave   = false;
-//     bool validate_isv_prod_id = false;
-//     bool validate_isv_svn     = false;
-
-//     ret = getenv_enclave_measurements(&expected_mrsigner, &validate_mrsigner,
-//                                       &expected_mrenclave, &validate_mrenclave,
-//                                       &expected_isv_prod_id, &validate_isv_prod_id,
-//                                       &expected_isv_svn, &validate_isv_svn);
-//     if (ret < 0)
-//         return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
-
-//     ret = verify_quote_body(quote_body, validate_mrsigner ? (char*)&expected_mrsigner : NULL,
-//                             validate_mrenclave ? (char*)&expected_mrenclave : NULL,
-//                             validate_isv_prod_id ? (char*)&expected_isv_prod_id : NULL,
-//                             validate_isv_svn ? (char*)&expected_isv_svn : NULL,
-//                             /*report_data=*/NULL, /*expected_as_str=*/false);
-//     if (ret < 0)
-//         return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
-
-//     return 0;
-// }

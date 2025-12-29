@@ -68,3 +68,5 @@ crypto-config/
 channel-artifacts/
 collaterals/
 evidence
+RPO/evidences
+RPO/tool-collateral/collateral.dat.bat
