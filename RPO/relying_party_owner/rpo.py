@@ -146,30 +146,34 @@ class RPO:
                     self.ratls.close_connection()
                     continue
                 logger.info("Policies sent to RPE")
+            elif command == CMD_SEND_MESSAGE:
+                # ce_verification_result = self.ratls.getSomethingBuf() 
+                ce_verification_result, rpe_verification_result = None
+                logger.info("CE verifcation result: %s" % ce_verification_result)
+                        
+                # Get CE's keys from RPE once phase three is done
+                verification_result = {
+                    "rpo_verification_result": rpo_verification_result,
+                    "rpe_verification_result": rpe_verification_result,
+                    "ce_verification_result": ce_verification_result
+                }
+                verification_result_bytes = bytes(json.dumps(verification_result), "UTF-8")
+                
+                # Write evidences to file
+                try:
+                    with open(self.evidence_path, 'wb') as fd:
+                        fd.write(verification_result_bytes)
+                except Exception as e:
+                    logger.error(
+                        "Write evidence failed!"
+                        " Error message %(%s)" % str(e) )
+                    self.ratls.close_connection()
+                    break
             else:
                 logger.error(f"Unknown command from RPE: {command}")
-                self.ratls.close_connection()
-                # ce_verification_result = self.ratls.getSomethingBuf() 
-                # logger.info("======================= Phase three verification has finished =======================")
-                # logger.info("CE verifcation result: %s" % ce_verification_result)
-                        
-                # # Get CE's keys from RPE once phase three is done
-                # verification_result = {
-                #     "rpo_verification_result": rpo_verification_result,
-                #     "rpe_verification_result": rpe_verification_result,
-                #     "ce_verification_result": ce_verification_result
-                # }
-                # verification_result_bytes = bytes(json.dumps(verification_result), "UTF-8")
-                
-                # # Write evidences to file
-                # try:
-                #     with open(self.evidence_path, 'wb') as fd:
-                #         fd.write(verification_result_bytes)
-                # except Exception as e:
-                #     logger.error(
-                #         "Write evidence failed!"
-                #         " Error message %(%s)" % str(e) )
-                
+            
+            self.ratls.close_connection()
+
         self.ratls.server_cleanup()    
 
 
