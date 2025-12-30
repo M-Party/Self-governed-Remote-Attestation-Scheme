@@ -72,16 +72,19 @@ class RPE:
         
         # =============== Phase one ===============
         logger.info("======================= Starting phase one... =======================")
-        if not self.ratls.initpublickeys(public_signing_key_pem, public_encryption_key_pem):
-            logger.error("Failed to init public keys")
-            return
-        # RA-TLS to RPO
+        # Initialize RA-TLS client 
         success = self.ratls.client(self.rpo_address, self.rpo_port)
+        if not success:
+            return
+
+        # Set public keys to RPO
+        # if not self.ratls.set_public_keys(public_signing_key_pem, public_encryption_key_pem):
+        #     logger.error("Failed to init public keys")
+        #     return
         
         # Get policies
         policies = None
-        if not success:
-            return
+        
         policies = self.ratls.getPolicies()
         # logger.info("Policies: %s" % policies)
 

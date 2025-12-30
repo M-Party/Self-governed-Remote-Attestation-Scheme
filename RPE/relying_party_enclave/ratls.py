@@ -12,9 +12,8 @@ class RATLS:
     def __init__(self):
         # self.signing_keys = "aaa"
         # self.encryption_keys = "bbb"
-        # self.rpe_address = '192.168.122.50:50051'
-        # self.local_rpe = None
-        # self.rpes = None
+        self.rpo_address = None
+        self.port = None
         self.policies_data = None
 
     def something_client(self, address, port, something):
@@ -36,12 +35,29 @@ class RATLS:
             raise
             
 
-    def initpublickeys(self, signing_key, encryption_keys):
-        RAtls.init_pubkeys.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+    def set_public_keys(self, signing_key, encryption_keys):
+        RAtls.send_public_keys.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         #RAtlsclient.init_pubkeys.restype = ctypes.c_char_p
 
-        return RAtls.init_pubkeys(ctypes.c_char_p(signing_key), ctypes.c_char_p(encryption_keys))
+        return RAtls.send_public_keys(ctypes.c_char_p(signing_key), ctypes.c_char_p(encryption_keys))
     
+    def client(self, address, port):
+        self.rpo_address = address
+        self.port = port
+        RAtls.ra_tls_client.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
+        RAtls.ra_tls_client.restype = ctypes.c_int
+
+        b_address = address.encode('utf-8')
+        b_port = port.encode('utf-8')
+           
+        ret = RAtls.ra_tls_client(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port))
+        if ret != 0:
+            logger.error("\n")
+            logger.error(" Client initialize failed !")
+            return False
+
+        return True
+
     def client(self, address, port):
         try:
             RAtls.ra_tls_client.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
