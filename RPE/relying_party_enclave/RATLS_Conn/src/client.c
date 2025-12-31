@@ -468,16 +468,23 @@ int ra_tls_client(const char * hostname, const char * port) {
     return 0;
 }
 
-char *get_verification_result(){
-    return (char *)verification_result;
-}
-
-int send_public_keys(const char * signing_key, const char * encryption_keys){
+int send_public_keys(const char * hostname, const char * port, const char * signing_key, const char * encryption_keys){
     int ret;
-    size_t len;
-    char buffer[2048];
 
-    /* send CMD_GET_RPE_KEYS */
+    /* connect server */
+    if (client_connect(hostname, port) != 0) {
+        mbedtls_printf(" Connect RPO failed\n");
+        return -1;
+    }
+
+    /* startup ssl and handshake */
+    if (client_start_ssl(hostname) != 0 || client_perform_handshake() != 0) {
+        mbedtls_printf(" Setup SSL failed\n");
+        client_close_connection();
+        return -1;
+    }
+
+    /* send CMD_GET_RPE_KEYS cmd */
     ret = client_send_data(CMD_GET_RPE_KEYS, strlen(CMD_GET_RPE_KEYS));
     if (ret < 0) {
         return ret;
@@ -495,361 +502,97 @@ int send_public_keys(const char * signing_key, const char * encryption_keys){
         return ret;
     }
 
-    /* receive response */
-    ret = client_receive_data(buffer, sizeof(buffer));
+    /* close connection */
+    client_close_connection();
+
+    return 0;
+}
+
+char *get_policies(const char * hostname, const char * port, 
+    const char * verification_result, size_t verification_result_size) {
+    /* connect server */
+    if (client_connect(hostname, port) != 0) {
+        mbedtls_printf(" Connect RPO failed\n");
+        return NULL;
+    }
+
+    /* startup ssl and handshake */
+    if (client_start_ssl(hostname) != 0 || client_perform_handshake() != 0) {
+        mbedtls_printf(" Setup SSL failed\n");
+        client_close_connection();
+        return NULL;
+    }
+
+    /* send CMD_SEND_POLICY cmd */
+    int ret = client_send_data(CMD_SEND_POLICY, strlen(CMD_SEND_POLICY));
+    if (ret < 0) {
+        return NULL;
+    }
+
+    /* receive policies data */
+    char data_len_str[32];
+    ret = client_receive_data(data_len_str, sizeof(data_len_str));
+    if (ret <= 0) {
+        return NULL;
+    }
+    int data_len = atoi(data_len_str);
+    if (data_len <= 0 || data_len > 8192) {
+        mbedtls_printf(" Invalid policies data length: %d\n", data_len);
+        return NULL;
+    }
+
+    char *policies_data = malloc(data_len + 1);
+    if (policies_data == NULL) {
+        mbedtls_printf(" Failed to allocate memory for policies data\n");
+        return NULL;
+    }
+
+    ret = client_receive_data(policies_data, data_len+1);
+    if (ret <= 0) {
+        free(policies_data);
+        return NULL;
+    }
+
+    /* receive verification result */
+    ret = client_receive_data(verification_result, verification_result_size);
+    if (ret <= 0) {
+        free(policies_data);
+        return NULL;
+    }
+
+    return policies_data;
+}
+
+
+int something_client(const char * hostname, const char * port, const char * something) {
+    /* connect server */
+    if (client_connect(hostname, port) != 0) {
+        mbedtls_printf(" Connect RPO failed\n");
+        return -1;
+    }
+
+    /* startup ssl and handshake */
+    if (client_start_ssl(hostname) != 0 || client_perform_handshake() != 0) {
+        mbedtls_printf(" Setup SSL failed\n");
+        client_close_connection();
+        return -1;
+    }
+
+    /* send CMD_SEND_POLICY cmd */
+    int ret = client_send_data(CMD_SEND_MESSAGE, strlen(CMD_SEND_MESSAGE));
     if (ret < 0) {
         return ret;
     }
 
-    if (strcmp(buffer, RESP_OK) != 0) {
-        mbedtls_printf("  ! send_public_keys failed: server response %s\n", buffer);
-        return -1;
+    /* send something */
+    ret = client_send_data(something, strlen(something));
+    if (ret < 0) {
+        return ret;
     }
+
+    /* close connection */
+    client_close_connection();
 
     return 0;
-}
-
-bool init_pubkeys(const char * signing_key, const char * encryption_keys){
-    if (sizeof(rpe_signing_key_buf) - 1 < strlen(signing_key)) {
-        mbedtls_printf("\n length of rpe_signing_key_buf is less than signing_key");
-        return false;
-    }
-    if (sizeof(rpe_encryption_keys_buf) - 1 < strlen(encryption_keys)) {
-        mbedtls_printf("\n length of rpe_encryption_keys_buf is less than encryption_keys");
-        return false;
-    }
-    strncpy(rpe_signing_key_buf, signing_key, sizeof(rpe_signing_key_buf) - 1);
-    strncpy(rpe_encryption_keys_buf, encryption_keys, sizeof(rpe_encryption_keys_buf) - 1);
-    return true;
-}
-
-int something_client(const char * hostname, const char * port, const char * something) {
-    int ret;
-    size_t len;
-    int exit_code = MBEDTLS_EXIT_FAILURE;
-    mbedtls_net_context server_fd;
-    uint32_t flags;
-    const char* pers = "ssl_client1";
-    bool in_sgx = getenv_client_inside_sgx();
-
-    unsigned char buf[1024];
-
-    char* error;
-    void* ra_tls_verify_lib           = NULL;
-    ra_tls_verify_callback_der_f      = NULL;
-    ra_tls_set_measurement_callback_f = NULL;
-
-    mbedtls_entropy_context entropy;
-    mbedtls_ctr_drbg_context ctr_drbg;
-    mbedtls_ssl_context ssl;
-    mbedtls_ssl_config conf;
-    mbedtls_x509_crt cacert;
-    mbedtls_x509_crt cltcert;
-    mbedtls_pk_context pkey;
-
-#if defined(MBEDTLS_DEBUG_C)
-    mbedtls_debug_set_threshold(DEBUG_LEVEL);
-#endif
-
-    mbedtls_net_init(&server_fd);
-    mbedtls_ssl_init(&ssl);
-    mbedtls_ssl_config_init(&conf);
-    mbedtls_ctr_drbg_init(&ctr_drbg);
-    mbedtls_x509_crt_init(&cacert);
-    mbedtls_x509_crt_init(&cltcert);
-    mbedtls_pk_init(&pkey);
-    mbedtls_entropy_init(&entropy);
-
-    void* ra_tls_attest_lib;
-    uint8_t* der_key = NULL;
-    uint8_t* der_crt = NULL;
-    char attestation_type_str[32] = {0};
-    ret = file_read("/dev/attestation/attestation_type", attestation_type_str,
-                    sizeof(attestation_type_str) - 1);
-    if (ret < 0 && ret != -ENOENT) {
-        mbedtls_printf("User requested RA-TLS attestation but cannot read SGX-specific file "
-                       "/dev/attestation/attestation_type\n");
-        return 1;
-    }
-
-    if (ret == -ENOENT || !strcmp(attestation_type_str, "none")) {
-        ra_tls_attest_lib = NULL;
-        ra_tls_create_key_and_crt_der_f = NULL;
-    } else if (!strcmp(attestation_type_str, "epid") || !strcmp(attestation_type_str, "dcap")) {
-        ra_tls_attest_lib = dlopen("libra_tls_attest.so", RTLD_LAZY);
-        if (!ra_tls_attest_lib) {
-            mbedtls_printf("User requested RA-TLS attestation but cannot find lib\n");
-            return 1;
-        }
-
-        char* error;
-        ra_tls_create_key_and_crt_der_f = dlsym(ra_tls_attest_lib, "ra_tls_create_key_and_crt_der");
-        if ((error = dlerror()) != NULL) {
-            mbedtls_printf("%s\n", error);
-            dlclose(ra_tls_attest_lib);
-            return 1;
-        }
-    } else {
-        mbedtls_printf("Unrecognized remote attestation type: %s\n", attestation_type_str);
-        return 1;
-    }
-
-    mbedtls_printf("\n  . Seeding the random number generator...");
-    fflush(stdout);
-
-    ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
-                                (const unsigned char*)pers, strlen(pers));
-    if (ret != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
-        goto exit;
-    }
-
-    mbedtls_printf(" ok\n");
-
-    if (ra_tls_attest_lib) {
-        mbedtls_printf("\n  . Creating the RA-TLS server cert and key (using \"%s\" as "
-                       "attestation type)...", attestation_type_str);
-        fflush(stdout);
-
-        size_t der_key_size;
-        size_t der_crt_size;
-
-        ret = (*ra_tls_create_key_and_crt_der_f)(&der_key, &der_key_size, &der_crt, &der_crt_size);
-        if (ret != 0) {
-            mbedtls_printf(" failed\n  !  ra_tls_create_key_and_crt_der returned %d\n\n", ret);
-            goto exit;
-        }
-
-        ret = mbedtls_x509_crt_parse(&cltcert, (unsigned char*)der_crt, der_crt_size);
-        if (ret != 0) {
-            mbedtls_printf(" failed\n  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
-            goto exit;
-        }
-
-        ret = mbedtls_pk_parse_key(&pkey, (unsigned char*)der_key, der_key_size, /*pwd=*/NULL, 0,
-                                   mbedtls_ctr_drbg_random, &ctr_drbg);
-        if (ret != 0) {
-            mbedtls_printf(" failed\n  !  mbedtls_pk_parse_key returned %d\n\n", ret);
-            goto exit;
-        }
-
-        mbedtls_printf(" ok\n");
-        dlclose(ra_tls_attest_lib);
-    }
-
-    mbedtls_printf("  . Connecting to tcp/%s/%s...", hostname, port);
-    fflush(stdout);
-
-    ret = mbedtls_net_connect(&server_fd, hostname, port, MBEDTLS_NET_PROTO_TCP);
-    if (ret != 0) {
-        mbedtls_printf(" failed  ! mbedtls_net_connect returned %d\n", ret);
-        goto exit;
-    }
-
-    mbedtls_printf(" ok\n");
-
-    mbedtls_printf("  . Setting up the default SSL configuration...");
-    fflush(stdout);
-
-    ret = mbedtls_ssl_config_defaults(&conf, MBEDTLS_SSL_IS_CLIENT, MBEDTLS_SSL_TRANSPORT_STREAM,
-                                      MBEDTLS_SSL_PRESET_DEFAULT);
-    if (ret != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ssl_config_defaults returned %d\n\n", ret);
-        goto exit;
-    }
-
-    mbedtls_printf(" ok\n");
-
-
-    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_NONE);
-    // mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
-    // mbedtls_printf(" ok\n");
-
-    if (in_sgx) {
-        /*
-            * RA-TLS verification with DCAP inside SGX enclave uses dummies instead of real
-            * functions from libsgx_urts.so, thus we don't need to load this helper library.
-            */
-        ra_tls_verify_lib = dlopen("libra_tls_verify_dcap_gramine.so", RTLD_LAZY);
-        if (!ra_tls_verify_lib) {
-            mbedtls_printf("%s\n", dlerror());
-            mbedtls_printf("User requested RA-TLS verification with DCAP inside SGX but cannot find lib\n");
-            mbedtls_printf("Please make sure that you are using client_dcap.manifest\n");
-            return 1;
-        }
-    } else {
-        ra_tls_verify_lib = dlopen("libra_tls_verify_dcap.so", RTLD_LAZY);
-        if (!ra_tls_verify_lib) {
-            mbedtls_printf("%s\n", dlerror());
-            mbedtls_printf("User requested RA-TLS verification with DCAP but cannot find lib\n");
-            return 1;
-        }
-    }
-
-    if (ra_tls_verify_lib) {
-        ra_tls_verify_callback_der_f = dlsym(ra_tls_verify_lib, "ra_tls_verify_callback_der");
-        if ((error = dlerror()) != NULL) {
-            mbedtls_printf("%s\n", error);
-            dlclose(ra_tls_verify_lib);
-            return 1;
-        }
-
-        ra_tls_set_measurement_callback_f = dlsym(ra_tls_verify_lib, "ra_tls_set_measurement_callback");
-        if ((error = dlerror()) != NULL) {
-            mbedtls_printf("%s\n", error);
-            dlclose(ra_tls_verify_lib);
-            return 1;
-        }
-    }
-    mbedtls_printf("[ using default SGX-measurement verification callback"
-                    " (via RA_TLS_* environment variables) ]\n");
-    (*ra_tls_set_measurement_callback_f)(NULL); /* just to test RA-TLS code */
-
-    if (ra_tls_verify_lib) {
-        /* use RA-TLS verification callback; this will overwrite CA chain set up above */
-        mbedtls_printf("  . Installing RA-TLS callback ...");
-        mbedtls_ssl_conf_verify(&conf, &my_verify_callback, NULL);
-        mbedtls_printf(" ok\n");
-        dlclose(ra_tls_verify_lib);
-    }
-
-    mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
-    mbedtls_ssl_conf_dbg(&conf, my_debug, stdout);
-
-    mbedtls_printf("  . Setting up the SSL data....");
-    ret = mbedtls_ssl_conf_own_cert(&conf, &cltcert, &pkey);
-    if (ret != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
-        goto exit;
-    }
-
-    ret = mbedtls_ssl_setup(&ssl, &conf);
-    if (ret != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ssl_setup returned %d\n\n", ret);
-        goto exit;
-    }
-
-    ret = mbedtls_ssl_set_hostname(&ssl, hostname);
-    if (ret != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ssl_set_hostname returned %d\n\n", ret);
-        goto exit;
-    }
-    mbedtls_printf(" ok\n");
-
-    mbedtls_ssl_set_bio(&ssl, &server_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
-
-    mbedtls_printf("  . Performing the SSL/TLS handshake...");
-    fflush(stdout);
-
-    while ((ret = mbedtls_ssl_handshake(&ssl)) != 0) {
-        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n", -ret);
-            goto exit;
-        }
-    }
-
-    mbedtls_printf(" ...ok\n");
-
-    // mbedtls_printf("  . Verifying peer (rpo) X.509 certificate...");
-
-    // flags = mbedtls_ssl_get_verify_result(&ssl);
-    // if (flags != 0) {
-    //     char vrfy_buf[512];
-    //     mbedtls_printf(" failed\n");
-    //     mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), "  ! ", flags);
-    //     mbedtls_printf("%s\n", vrfy_buf);
-
-    //     /* verification failed for whatever reason, fail loudly */
-    //     goto exit;
-    // } else {
-    //     mbedtls_printf(" ok\n");
-    // }
-
-  
-    /* Write something to rpo */
-    char *buffer1;
-    buffer1 = (char *)malloc(strlen(something)+1);
-    memset(buffer1,0,strlen(something)+1);
-    strcpy(buffer1, something);
-
-    mbedtls_printf("  > Write to rpo:");
-    fflush(stdout);
-    len = strlen(buffer1);
-    while ((ret = mbedtls_ssl_write(&ssl, (unsigned char *)buffer1, len)) <= 0) {
-        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n  ! mbedtls_ssl_write returned %d\n\n", ret);
-            free(buffer1);
-            goto exit;
-        }
-    }
-    len = ret;
-    mbedtls_printf(" %lu bytes written\n\n%s\n", len, (char*)buffer1);
-    free(buffer1);
-   
-    mbedtls_printf("  < Read from rpo:");
-    fflush(stdout);
-    memset(buf, 0, sizeof(buf));
-    do {
-        len = sizeof(buf) - 1;
-        ret = mbedtls_ssl_read(&ssl, buf, len);
-
-        if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE){
-            memset(buf, 0, sizeof(buf));
-            continue;
-        }
-
-        if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
-            mbedtls_printf("This is a test print for getting data.\n\n"); 
-            break;
-        }
-
-        if (ret < 0) {
-            mbedtls_printf("failed\n  ! mbedtls_ssl_read returned %d\n\n", ret); 
-            break;
-        }
-
-        if (ret == 0) {
-            mbedtls_printf("\n\nEOF\n\n");
-            break;
-        }
-
-        len = ret;
-        mbedtls_printf("\n %lu bytes read\n%s", len, (char*)buf);
         
-        // TODO: if read data larger than buf
-        
-    } while (1);
- 
-    return 0;
-
-    // mbedtls_ssl_close_notify(&ssl);
-    // exit_code = MBEDTLS_EXIT_SUCCESS;
-exit:
-#ifdef MBEDTLS_ERROR_C
-    if (exit_code != MBEDTLS_EXIT_SUCCESS) {
-        char error_buf[100];
-        mbedtls_strerror(ret, error_buf, sizeof(error_buf));
-        mbedtls_printf("Last error was: %d - %s\n\n", ret, error_buf);
-    }
-#endif
-
-    if (ra_tls_verify_lib)
-        dlclose(ra_tls_verify_lib);
-    if (ra_tls_attest_lib)
-        dlclose(ra_tls_attest_lib);
-
-    mbedtls_net_free(&server_fd);
-
-    mbedtls_x509_crt_free(&cltcert);
-    mbedtls_pk_free(&pkey);
-    mbedtls_x509_crt_free(&cacert);
-    mbedtls_ssl_free(&ssl);
-    mbedtls_ssl_config_free(&conf);
-    mbedtls_ctr_drbg_free(&ctr_drbg);
-    mbedtls_entropy_free(&entropy);
-
-    free(der_key);
-    free(der_crt);
-
-    return 1;
 }

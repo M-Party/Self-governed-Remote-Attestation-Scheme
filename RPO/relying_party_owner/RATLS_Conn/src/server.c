@@ -316,9 +316,6 @@ static int send_response(const char* response) {
     int ret;
     size_t len = strlen(response);
     
-    mbedtls_printf("  > Sending response: %s\n", response);
-    fflush(stdout);
-    
     while ((ret = mbedtls_ssl_write(&ssl, (unsigned char*)response, len)) <= 0) {
         if (ret == MBEDTLS_ERR_NET_CONN_RESET) {
             mbedtls_printf(" failed\n  ! peer closed the connection\n\n");
@@ -635,59 +632,33 @@ int handle_get_keys(char* signing_key_buf, size_t signing_key_buf_size,
 
 /* send policy to client */
 int pass_policy_data(const char* data, const char* verification_result) {
-    char *buffer;
-    char *buffer1;
     int ret;
-    size_t len;
-
-    buffer = (char *)malloc(strlen(data) + 1);
-    memset(buffer, 0, strlen(data) + 1);
-    strcpy(buffer, data);
+    char len_str[32];
+    
+    /* send policy data length */
+    int data_len = strlen(data);
+    snprintf(len_str, sizeof(len_str), "%d", data_len);
+    mbedtls_printf("  > Policy data length: %d\n", data_len);
+    fflush(stdout);
+    ret = send_response(data_len);
+    if(ret < 0){
+        return -1;
+    }
     
     mbedtls_printf("  > Sending policy data to client:");
     fflush(stdout);
-    
-    len = strlen(buffer);
-    while ((ret = mbedtls_ssl_write(&ssl, (unsigned char *)buffer, len)) <= 0) {
-        if (ret == MBEDTLS_ERR_NET_CONN_RESET) {
-            mbedtls_printf(" failed\n  ! peer closed the connection\n\n");
-            free(buffer);
-            return -1;
-        }
-        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n  ! mbedtls_ssl_write returned %d\n\n", ret);
-            free(buffer);
-            return -1;
-        }
+    ret = send_response(data);
+    if(ret < 0){
+        return -1;
     }
-    len = ret;
-    mbedtls_printf(" %lu bytes sent\n\n%s\n", len, (char*)buffer);
-    free(buffer);
-
-    /* send verification results */
-    buffer1 = (char *)malloc(strlen(verification_result) + 1);
-    memset(buffer1, 0, strlen(verification_result) + 1);
-    strcpy(buffer1, verification_result);
     
+    /* send verification results */
     mbedtls_printf("  > Sending verification result to client:");
     fflush(stdout);
-    
-    len = strlen(buffer1);
-    while ((ret = mbedtls_ssl_write(&ssl, (unsigned char *)buffer1, len)) <= 0) {
-        if (ret == MBEDTLS_ERR_NET_CONN_RESET) {
-            mbedtls_printf(" failed\n  ! peer closed the connection\n\n");
-            free(buffer1);
-            return -1;
-        }
-        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n  ! mbedtls_ssl_write returned %d\n\n", ret);
-            free(buffer1);
-            return -1;
-        }
+    ret = send_response(verification_result);
+    if(ret < 0){
+        return -1;
     }
-    len = ret;
-    mbedtls_printf(" %lu bytes sent\n\n%s\n", len, (char*)buffer1);
-    free(buffer1);
 
     return 0;
 }

@@ -78,23 +78,16 @@ class RPE:
             return
 
         # Set public keys to RPO
-        # if not self.ratls.set_public_keys(public_signing_key_pem, public_encryption_key_pem):
-        #     logger.error("Failed to init public keys")
+        # if self.ratls.set_public_keys(public_signing_key_pem, public_encryption_key_pem) != 0:
+        #     logger.error("Failed to pass public keys")
         #     return
         
-        # Get policies
-        policies = None
-        
-        policies = self.ratls.getPolicies()
-        # logger.info("Policies: %s" % policies)
-
-        # Get verification result
+        # Get policies from RPO
+        policies, self.rpo_verification_result = self.ratls.get_policies()
         if policies is None:
             logger.error("Get policies from RPO failed")
             return
-        self.rpo_verification_result = self.ratls.getVerificaitionResult()
         logger.info("RPE successfully attested by RPO, verification result: %s" % self.rpo_verification_result)
-        # logger.info("RPO verification result length : %d" % len(self.rpo_verification_result))
 
         # Parse policies
         policies_json = json.loads(policies)

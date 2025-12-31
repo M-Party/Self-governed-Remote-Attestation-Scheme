@@ -14,7 +14,6 @@ class RATLS:
         # self.encryption_keys = "bbb"
         self.rpo_address = None
         self.port = None
-        self.policies_data = None
 
     def something_client(self, address, port, something):
         try:
@@ -36,11 +35,13 @@ class RATLS:
             
 
     def set_public_keys(self, signing_key, encryption_keys):
-        RAtls.send_public_keys.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
-        #RAtlsclient.init_pubkeys.restype = ctypes.c_char_p
+        RAtls.send_public_keys.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+        RAtls.send_public_keys.restype = ctypes.c_int
+        b_address = self.rpo_address.encode('utf-8')
+        b_port = self.port.encode('utf-8')
+        return RAtls.send_public_keys(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port), 
+                                      ctypes.c_char_p(signing_key), ctypes.c_char_p(encryption_keys))
 
-        return RAtls.send_public_keys(ctypes.c_char_p(signing_key), ctypes.c_char_p(encryption_keys))
-    
     def client(self, address, port):
         self.rpo_address = address
         self.port = port
@@ -58,41 +59,19 @@ class RATLS:
 
         return True
 
-    def client(self, address, port):
-        try:
-            RAtls.ra_tls_client.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
-            RAtls.ra_tls_client.restype = ctypes.c_char_p
+    def get_policies(self, verification_result_size=100):
+        RAtls.get_policies.argtypes = [ctypes.c_char_p, ctypes.c_char_p, 
+                                       ctypes.c_char_p, ctypes.c_size_t]
+        RAtls.get_policies.restype = ctypes.c_char_p
 
-            b_address = address.encode('utf-8')
-            b_port = port.encode('utf-8')
-           
-            result = RAtls.ra_tls_client(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port))
-            self.policies_data = ctypes.string_at(result).decode()
-            # RAtlsclient.free(result)
-            if self.policies_data == "None":
-                logger.error("\n")
-                logger.error(" RA connection failed !")
-                return False
-
-            return True
-
-        except Exception as e:
-            logger.error(
-                "client error"
-                " Error message %(message)" % 
-                {"message": str(e) })
-            raise
-            
-    def getPolicies(self):
-        return self.policies_data
-    
-    def getVerificaitionResult(self):
-        RAtls.get_verification_result.argtypes = []
-        RAtls.get_verification_result.restype = ctypes.c_char_p
-
-        result = RAtls.get_verification_result()
-        return ctypes.string_at(result).decode()
-    
+        b_address = self.rpo_address.encode('utf-8')
+        b_port = self.port.encode('utf-8')
+        verification_result = ctypes.create_string_buffer(verification_result_size)
+        
+        policies_data = RAtls.get_policies(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port), 
+                                           verification_result, verification_result_size)
+        
+        return policies_data.value.decode(), verification_result.value.decode()
 
     def getCEMR(self):
         RAtls.get_ce_mr.argtypes = []
