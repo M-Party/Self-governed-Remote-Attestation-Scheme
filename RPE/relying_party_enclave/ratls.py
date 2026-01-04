@@ -45,13 +45,9 @@ class RATLS:
     def client(self, address, port):
         self.rpo_address = address
         self.port = port
-        RAtls.ra_tls_client.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
         RAtls.ra_tls_client.restype = ctypes.c_int
 
-        b_address = address.encode('utf-8')
-        b_port = port.encode('utf-8')
-           
-        ret = RAtls.ra_tls_client(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port))
+        ret = RAtls.ra_tls_client()
         if ret != 0:
             logger.error("\n")
             logger.error(" Client initialize failed !")
@@ -71,7 +67,7 @@ class RATLS:
         policies_data = RAtls.get_policies(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port), 
                                            verification_result, verification_result_size)
         
-        return policies_data.value.decode(), verification_result.value.decode()
+        return ctypes.string_at(policies_data).decode(), verification_result.value.decode()
 
     def getCEMR(self):
         RAtls.get_ce_mr.argtypes = []

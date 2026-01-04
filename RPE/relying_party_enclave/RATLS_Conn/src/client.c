@@ -34,18 +34,15 @@
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/ssl.h"
 
-# CMD definitions 
-CMD_GET_RPE_KEYS = "CMD_GET_KEYS"
-CMD_SEND_MESSAGE = "CMD_SEND_MESSAGE"
-CMD_RECV_MESSAGE = "CMD_RECV_MESSAGE"
-CMD_EXIT         = "CMD_EXIT"
-CMD_SEND_POLICY  = "CMD_SEND_POLICY"
-RESP_OK          = "RESP_OK"
-RESP_ERROR       = "RESP_ERROR"
-RESP_BYE         = "RESP_BYE"
-
-static char rpe_signing_key_buf[375];
-static char rpe_encryption_keys_buf[651];
+/* CMD definitions */
+#define CMD_GET_RPE_KEYS "CMD_GET_KEYS"
+#define CMD_SEND_MESSAGE "CMD_SEND_MESSAGE"
+#define CMD_RECV_MESSAGE "CMD_RECV_MESSAGE"
+#define CMD_EXIT         "CMD_EXIT"
+#define CMD_SEND_POLICY  "CMD_SEND_POLICY"
+#define RESP_OK          "RESP_OK"
+#define RESP_ERROR       "RESP_ERROR"
+#define RESP_BYE         "RESP_BYE"
 
 /* RA-TLS: on client, only need to register ra_tls_verify_callback_der() for cert verification */
 int (*ra_tls_verify_callback_der_f)(uint8_t* der_crt, size_t der_crt_size);
@@ -385,6 +382,7 @@ int client_send_data(const char* data, size_t len) {
     }
 
     mbedtls_printf(" ok (%d bytes)\n", ret);
+    mbedtls_printf("  > Content: %s\n", data);
     return ret;
 }
 
@@ -456,7 +454,7 @@ void client_cleanup() {
     free(der_crt);
 }
 
-int ra_tls_client(const char * hostname, const char * port) {
+int ra_tls_client() {
     if (client_init() != 0) {
         return -1;
     }
@@ -509,7 +507,7 @@ int send_public_keys(const char * hostname, const char * port, const char * sign
 }
 
 char *get_policies(const char * hostname, const char * port, 
-    const char * verification_result, size_t verification_result_size) {
+    char * verification_result, size_t verification_result_size) {
     /* connect server */
     if (client_connect(hostname, port) != 0) {
         mbedtls_printf(" Connect RPO failed\n");

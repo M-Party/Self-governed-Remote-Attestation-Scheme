@@ -331,6 +331,25 @@ static int send_response(const char* response) {
     return 0;
 }
 
+static int send_response1(const char* response, size_t len) {
+    int ret;
+    // size_t len = strlen(response);
+    
+    while ((ret = mbedtls_ssl_write(&ssl, (unsigned char*)response, len)) <= 0) {
+        if (ret == MBEDTLS_ERR_NET_CONN_RESET) {
+            mbedtls_printf(" failed\n  ! peer closed the connection\n\n");
+            return -1;
+        }
+        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+            mbedtls_printf(" failed\n  ! mbedtls_ssl_write returned %d\n\n", ret);
+            return -1;
+        }
+    }
+    
+    mbedtls_printf(" %lu bytes sent\n", (long unsigned int)ret);
+    return 0;
+}
+
 /* receive message */
 int receive_message(char* buffer, size_t buffer_size) {
     int ret;
@@ -638,16 +657,16 @@ int pass_policy_data(const char* data, const char* verification_result) {
     /* send policy data length */
     int data_len = strlen(data);
     snprintf(len_str, sizeof(len_str), "%d", data_len);
-    mbedtls_printf("  > Policy data length: %d\n", data_len);
+    mbedtls_printf("  > Policy data length: %d ", data_len);
     fflush(stdout);
-    ret = send_response(data_len);
+    ret = send_response(len_str);
     if(ret < 0){
         return -1;
     }
     
     mbedtls_printf("  > Sending policy data to client:");
     fflush(stdout);
-    ret = send_response(data);
+    ret = send_response1(data, data_len);
     if(ret < 0){
         return -1;
     }

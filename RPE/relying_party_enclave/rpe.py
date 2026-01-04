@@ -120,7 +120,7 @@ class RPE:
             "session_id_hash": str(session_id_hash_bytes),
             "rpe_public_signing_key": public_signing_key_pem.decode(),
             "rpe_public_encryption_key": public_encryption_key_pem.decode(),
-            "rpo_verification_result": json.loads(self.rpo_verification_result)
+            "rpo_verification_result": self.rpo_verification_result
         }
         rpe_verification_info = {
             "rpe_id": self.local_rpe["rpe_id"],

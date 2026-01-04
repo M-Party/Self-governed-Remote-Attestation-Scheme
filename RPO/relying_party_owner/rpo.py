@@ -136,7 +136,7 @@ class RPO:
                 rpo_verification_result = json.dumps(rpo_verification_result_json)
                 logger.info("RPE public keys sent to RPO")
             elif command == CMD_SEND_POLICY:
-                logger.info("RPO received policies request from RPE")
+                logger.info("RPO has received policies request from RPE")
                 # RPO attests RPE successfully, send policies to RPE
                 rpo_verification_result = RESP_OK
                 # Pass policy data, which will pass to RPE if the RPE verification is successful 

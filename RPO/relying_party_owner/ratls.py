@@ -96,12 +96,11 @@ class RATLS:
         return signing_key_buf.value, encryption_keys_buf.value
 
     def receive_commands(self, buffer_size=1024):
-        RAtlsserver.receive_commands.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
-        RAtlsserver.receive_commands.restype = ctypes.c_int
+        RAtlsserver.receive_message.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+        RAtlsserver.receive_message.restype = ctypes.c_int
 
         buffer = ctypes.create_string_buffer(buffer_size)
-        ret = RAtlsserver.receive_commands(buffer, buffer_size)
-
+        ret = RAtlsserver.receive_message(buffer, buffer_size)
         if ret > 0:
             return buffer.value.decode('utf-8')
         else:
