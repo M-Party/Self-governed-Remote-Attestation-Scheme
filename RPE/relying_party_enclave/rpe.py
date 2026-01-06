@@ -127,71 +127,52 @@ class RPE:
             "details": self.local_rpe["details"]
         }
         
-        # Send rpe verification info to fabric-service
-        logger.info("Sending verification result and RPO's signature to blockchian...")
-        rpe_verification_info = json.dumps(rpe_verification_info)
-        if not grpc_client.sendRPEVerificationInfo(self.grpc_server_address, rpe_verification_info):
-            logger.error("Send RPE verification info to blockchain failed !")
+        # Build rpes from policies 
+        logger.info("Building RPEs information from policies...")
+        rpes = dict()
+        # Get all RPE IDs from policies
+        policies_data_json = self.policies_obj.policies_data_json
+        all_rpe_ids = [rpe["id"] for rpe in policies_data_json["rpe"]]
+        if len(all_rpe_ids) == 0:
+            logger.error("Failed to get all RPE IDs from plocies")
             return
-        logger.info("Done.")
         
-        # Continiously get the other rpe's verification info from fabric-service, and if the number of 
-        # rpes is equal to that in the policies and the cert(RPOs' identity) is valid, we will 
-        # start the phase two verification.
-        status, rpes_from_fabric = grpc_client.queryRPEs(self.grpc_server_address, self.num_rpes_in_policies)
-        if not status:
-            logger.error("Get other RPE info failed !")
-            return
-
-        # Store the rpes
-        if rpes_from_fabric is not None:
-            logger.info("RPEs' verification result attested by RPOs from blockchain: %s", rpes_from_fabric)
-            rpes_from_fabric_list = json.loads(rpes_from_fabric)
-            rpes = dict()
-            logger.info("Verify signature of counter-part...")
-            for rpe in rpes_from_fabric_list:
-                rpe_id = rpe["worker_id"]
-                rpo_public_signing_key = self.policies_obj.getPublicSigningKey(rpe_id)
-                qeids = self.policies_obj.getRPEQEID(rpe_id)
-                tcb_ids, tcb_infos = self.policies_obj.getRPETCBInfo(rpe_id)
-                tcb_id = tcb_ids[0]
-                collateral_base64_hash_from_policies = tcb_infos[tcb_id]
-                for id, collateral in self.collaterals.items():
-                    if id ==  tcb_id:
-                        collateral_base64 = collateral
-                        break
-                
-                # Verify the collateral read from file is the same as that in policies
-                collateral_hash_compute = self.compute_message_hash(collateral_base64.encode('UTF-8'), SHA384)
-                collateral_base64_hash_compute = crypto_utility.byte_array_to_base64(collateral_hash_compute)
-                if collateral_base64_hash_from_policies != collateral_base64_hash_compute:
-                    logger.error("Collateral hash computed for rpe %s is not the same as that in policies", rpe_id)
-                    logger.info("collateral_base64_hash_from_policies: %s", collateral_base64_hash_from_policies)
-                    logger.info("collateral_base64_hash_compute: %s", collateral_base64_hash_compute)
-                    return
-                
-                details = json.loads(rpe["details"])
-                rpes[rpe_id] = {
-                    "rpe_id": rpe_id,
-                    "rpo_public_signing_key": rpo_public_signing_key,
-                    "rpo_verification_result": details["rpo_verification_result"],
-                    "collateral": collateral_base64,
-                    "qeid": qeids,
-                    "details": details
+        logger.info("Verify hash of all TCBs' collateral from policies...")
+        for rpe_id in all_rpe_ids:
+            rpo_public_signing_key = self.policies_obj.getPublicSigningKey(rpe_id)
+            qeids = self.policies_obj.getRPEQEID(rpe_id)
+            tcb_ids, tcb_infos = self.policies_obj.getRPETCBInfo(rpe_id)
+            tcb_id = tcb_ids[0]
+            collateral_base64_hash_from_policies = tcb_infos[tcb_id]
+            for id, collateral in self.collaterals.items():
+                if id ==  tcb_id:
+                    collateral_base64 = collateral
+                    break
+            
+            # Verify the collateral read from file is the same as that in policies
+            collateral_hash_compute = self.compute_message_hash(collateral_base64.encode('UTF-8'), SHA384)
+            collateral_base64_hash_compute = crypto_utility.byte_array_to_base64(collateral_hash_compute)
+            if collateral_base64_hash_from_policies != collateral_base64_hash_compute:
+                logger.error("Collateral hash computed for rpe %s is not the same as that in policies", rpe_id)
+                logger.info("collateral_base64_hash_from_policies: %s", collateral_base64_hash_from_policies)
+                logger.info("collateral_base64_hash_compute: %s", collateral_base64_hash_compute)
+                return
+            
+            # Build rpes details from policies
+            rpes[rpe_id] = {
+                "rpe_id": rpe_id,
+                "rpo_public_signing_key": rpo_public_signing_key,
+                "collateral": collateral_base64,
+                "qeid": qeids,
+                "details": {
+                    "rpe_public_signing_key": None,
+                    "rpe_public_encryption_key": None,
+                    "rpo_verification_result": None
                 }
-                # Verify rpos' signature for rpe to make sure the rpe is valid
-                rpo_public_signing_key_obj = serialization.load_pem_public_key(rpo_public_signing_key.encode(), backend=openssl_backend)
-                signature_bytes = crypto_utility.base64_to_byte_array(details["rpo_verification_result"]["sig"])
-                try:
-                    rpo_public_signing_key_obj.verify(signature_bytes, 
-                                        bytes(json.dumps(details["rpo_verification_result"]["rpe_keys"]), "UTF-8"),
-                                        ec.ECDSA(hashes.SHA384()))
-                except InvalidSignature:
-                    logger.error("rpo's sig verification failed, rpe_id is %s" % rpe_id)
-                    return
-            self.rpes = rpes
-        
-        logger.info("Verify signature Succeed! ")
+            }
+        self.rpes = rpes
+
+        logger.info("Verify TCBs' collateral Succeed! ")
         logger.info("======================= Phase one finished =======================\n")
         
         # =============== Phase two ===============
@@ -209,59 +190,72 @@ class RPE:
         else:
             logger.error(" Get policies failed ! Can't generate quote !")
         
-        # Send quote to fabric-service
+        # Build Evidence Quote: combine quote with public keys
         if quote is not None:
-            logger.info("Sending quote to blockchain...")
-            if not grpc_client.sendQuote(self.grpc_server_address, self.local_rpe["rpe_id"], quote):
-                logger.error(" Send quote to fabric failed !")
+            # Create Evidence Quote JSON
+            evidence_quote = {
+                "quote": quote,
+                "rpe_public_signing_key": public_signing_key_pem.decode(),
+                "rpe_public_encryption_key": public_encryption_key_pem.decode()
+            }
+            evidence_quote_json = json.dumps(evidence_quote)
+            # Base64 encode the Evidence Quote JSON for transmission
+            evidence_quote_base64 = crypto_utility.byte_array_to_base64(evidence_quote_json.encode('UTF-8'))
+
+            logger.info("Sending Evidence Quote (quote + public keys) to blockchain...")
+            if not grpc_client.sendQuote(self.grpc_server_address, self.local_rpe["rpe_id"], evidence_quote_base64):
+                logger.error(" Send Evidence Quote to fabric failed !")
                 return
             logger.info("Done")
         else:
             logger.error(" Generate qoute failed !")
             return
         
-        # Waiting for blockchain update
-        time.sleep(1)
-        
-        if self.rpes is None:
-            logger.error("self.rpes is none")
-            return
-        
-        # Get the other rpes' quote from fabric-service and do RA for them
+        # Get the other rpes' Evidence Quote from fabric-service and do RA for them
         rpe_id_dict_to_be_verified = set()
         for rpe_id in self.rpes.keys():
             rpe_id_dict_to_be_verified.add(rpe_id)
-        
+
         while True:
             rpe_ids = ""
             for rpe_id in rpe_id_dict_to_be_verified:
                 rpe_ids += rpe_id + ","
             rpe_ids = rpe_ids[:len(rpe_ids)-1]
-            status, quotes = grpc_client.queryQuoteByIds(self.grpc_server_address, rpe_ids)
+            status, evidence_quotes_base64 = grpc_client.queryQuoteByIds(self.grpc_server_address, rpe_ids)
             if not status:
                 return
-            quotes_dict = json.loads(quotes)
-            for rpe_id, base64_encoded_quote in quotes_dict.items():
+            evidence_quotes_dict = json.loads(evidence_quotes_base64)
+            for rpe_id, evidence_quote_base64 in evidence_quotes_dict.items():
                 rpe_id_dict_to_be_verified.remove(rpe_id)
                 rpe_info = self.rpes[rpe_id]
-                rpe_details = rpe_info["details"]
-                if policies is None:
-                    break
+
+                # Parse Evidence Quote: decode and extract quote and public keys
+                try:
+                    evidence_quote_json = crypto_utility.base64_to_byte_array(evidence_quote_base64).decode('UTF-8')
+                    evidence_quote = json.loads(evidence_quote_json)
+                    base64_encoded_quote = evidence_quote["quote"]
+                    rpe_public_signing_key = evidence_quote["rpe_public_signing_key"]
+                    rpe_public_encryption_key = evidence_quote["rpe_public_encryption_key"]
+                except Exception as e:
+                    logger.error(" Failed to parse Evidence Quote for rpe %s: %s", (rpe_id, str(e)))
+                    return
+                
+                # Verify quote using DCAP
                 quote_bytes = crypto_utility.base64_to_byte_array(base64_encoded_quote)
                 collateral = rpe_info["collateral"]
-                # Dcap attestation
                 logger.info("Verifying rpe %s quote" % rpe_id)
                 ret = verify_dcap_quote.teeVerifyQuote(base64_encoded_quote, len(quote_bytes), collateral)
                 logger.info("quote verification for rpe %s result: %x" % (rpe_id, ret))
                 if ret != 0 and ret != 0xa002 and ret != 0xa008:
+                    logger.error("Quote verification failed for rpe %s", rpe_id)
                     return
                 logger.info("quote verification finished !")
-                # Verify MR_ENCLAVE, MR_SIGNER, QEID and report_data
+
+                # Generate report_data using public keys from Evidence Quote and local policies
                 report_data = self.generate_report_data(
-                    rpe_details["rpe_public_signing_key"],
-                    rpe_details["rpe_public_encryption_key"],
+                    rpe_public_signing_key,
+                    rpe_public_encryption_key,
                     policies)
-                # logger.info("report_data: %s", report_data.hex())
                 base64_encoded_report_data = crypto_utility.byte_array_to_base64(report_data)
                 rpe_policies_to_verify = {
                     "mr_enclave": self.rpe_mr,
@@ -273,63 +267,24 @@ class RPE:
                 }
                 rpe_policies_to_verify = json.dumps(rpe_policies_to_verify)
                 ret = verify_dcap_quote.sgxVerifyQuoteBody(base64_encoded_quote, rpe_policies_to_verify)
-                logger.info("quote body verification finished !")
+                logger.info("quote body verification for rpe %s result: %x" % (rpe_id, ret))
                 if ret != 0:
+                    logger.error("Quote body verification failed for rpe %s", rpe_id)
                     return
-            if len(rpe_id_dict_to_be_verified) == 0:
-                break
-            
-        # Sign the verification result
-        signature_bytes = self.signing_keys['private'].sign(bytes("true", "UTF-8"), ec.ECDSA(hashes.SHA384()))
-        signature = crypto_utility.byte_array_to_base64(signature_bytes)
-        verification_result_json = {
-            "result": "true",
-            "sig": signature
-        }
-        verification_result = json.dumps(verification_result_json)
-        
-        # logger.info("verify_result before upload: %s" % verification_result)
-        
-        # Send verification_result to RPO
-        self.ratls.something_client(self.rpo_address, self.rpo_port, verification_result)
 
-        # Send verification result to fabric service
-        logger.info("Sending verification result to fabric service...")
-        status = grpc_client.sendVerificationResult(self.grpc_server_address, self.local_rpe["rpe_id"], verification_result)
-        if not status:
-            logger.error(" Sending verification result to fabric failed !")
-            return
-        logger.info("Done")
-        # Waiting for blockchain update
-        time.sleep(1)
+                # Verification successful, update public keys in self.rpes
+                logger.info("Verification successful for rpe %s, updating public keys", rpe_id)
+                rpe_info["details"]["rpe_public_signing_key"] = rpe_public_signing_key
+                rpe_info["details"]["rpe_public_encryption_key"] = rpe_public_encryption_key
+                
+            # if len(rpe_id_dict_to_be_verified) == 0:
+            #     break
+
+            if len(rpe_id_dict_to_be_verified) == 0 or \
+               self.local_rpe["rpe_id"] not in rpe_id_dict_to_be_verified:
+                break
         
-        # Get verify final result from fabric service
-        logger.info("Getting other verification result from fabric service...")
-        status, verification_final_result = grpc_client.queryVerificationFinalResult(self.grpc_server_address, self.rpe_ids)
-        if not status:
-            logger.error(" Get other verification result from fabric failed !")
-            return
-        logger.info("Done")
-        
-        # Verify the others' verification result
-        if verification_final_result is not None:
-            logger.info("RPEs's mutual verification result: %s", verification_final_result)
-            logger.info("Verify the signature")
-            verification_final_result_json = json.loads(verification_final_result)
-            for rpe_id, verification_result_json in verification_final_result_json.items():
-                if verification_result_json["result"] != "true":
-                    logger.error(" Get verify result failed: rpe %s!" % rpe_id)
-                    return
-                public_signing_key = self.rpes[rpe_id]["details"]["rpe_public_signing_key"]
-                public_signing_key_obj = serialization.load_pem_public_key(public_signing_key.encode(), backend=openssl_backend)
-                signature_bytes = crypto_utility.base64_to_byte_array(verification_result_json["sig"])
-                try:
-                    public_signing_key_obj.verify(signature_bytes, bytes("true", "UTF-8"), ec.ECDSA(hashes.SHA384()))
-                except InvalidSignature:
-                    logger.error(" Verify verification result sig failed: rpe %s!" % rpe_id)
-                    return
-            logger.info("Done.")
-            logger.info("======================= Phase two finished =======================\n")
+        logger.info("======================= Phase two finished =======================\n")
 
         # =============== Phase three ===============
         logger.info("======================= Starting phase three... =======================")
@@ -358,79 +313,20 @@ class RPE:
             
             logger.info("RPE successfully attested CE")
             
-            # Sign CE's jobId
-            signature_bytes = self.signing_keys['private'].sign(job_id.encode(), ec.ECDSA(hashes.SHA384()))
-            signature = crypto_utility.byte_array_to_base64(signature_bytes)
             
-            # Send CE's jobId and signature to fabric client
-            logger.info("Sending CE's jobId and signature to blockchain")
-            ce_dict = dict()
-            ce = {
-                "jobId": job_id,
-                "sig": signature
-            }
-            ce_dict[job_id] = json.dumps(ce)
-            status = grpc_client.sendCEsInfo(self.grpc_server_address, json.dumps(ce_dict))
-            if not status:
-                logger.error(" send CE info failed !")
             
-            logger.info("Done")
-            # Waiting for blockchain update
-            time.sleep(1)
             
-        # Get other's CE RA info and verify these RA info
+            
         # Find the ce to connect
         jobs = self.policies_obj.getCorrespondingJobs(job_id)
         logger.info("jobs: %s" % jobs)
         if jobs is None:
             return
         
-        # Get corresponding CE info from fabric service
-        job_ids_str = ""
-        for job_dict in jobs:
-            for job_id in job_dict["jobs"]:
-                job_ids_str += job_id + ","
-        job_ids_str = job_ids_str[:len(job_ids_str)-1]
-        logger.info("job_ids_str: %s" % job_ids_str)
-        status, CEsInfo = grpc_client.queryCEsInfo(self.grpc_server_address, job_ids_str)
-        if not status:
-            return
-        logger.info("Got counter-part CEs: %s" % CEsInfo)
-        logger.info("Verify CEs signature")
         
-        # Verify signature of CE
-        CEsInfo_json = json.loads(CEsInfo)
-        for job_id, ce in CEsInfo_json.items():
-            ce_json = json.loads(ce)
-            if ce_json["jobId"] != job_id:
-                logger.error("CE info get from blockchain is not match the job id, expected %s, but %s" % {job_id, ce_json["job_id"]})
-                return
-            rpe_id = self.policies_obj.getCorrespondingRPE(job_id)
-            public_signing_key = self.rpes[rpe_id]["details"]["rpe_public_signing_key"]
-            public_signing_key_obj = serialization.load_pem_public_key(public_signing_key.encode(), backend=openssl_backend)
-            signature_bytes = crypto_utility.base64_to_byte_array(ce_json["sig"])
-            # gramine = ce_json["gramines"][0]
-            # ce_public_keys = gramine["public_signing_key"].encode() + gramine["public_encryption_key"].encode()
-            try:
-                public_signing_key_obj.verify(signature_bytes, job_id.encode(), ec.ECDSA(hashes.SHA384()))
-            except InvalidSignature:
-                logger.error(" Verify ce sig failed: job id is %s!" % job_id)
-                return
-        logger.info("Done")
         logger.info("======================= Phase three finished =======================\n")
         
-        # Sign yes for CE cuccessful verification
-        signature_bytes = self.signing_keys['private'].sign(bytes("true", "UTF-8"), ec.ECDSA(hashes.SHA384()))
-        signature = crypto_utility.byte_array_to_base64(signature_bytes)
-        ce_verification_result = {
-            "result": "true",
-            "sig": signature
-        }
-    
-        # Send ce_verification_result to RPO
-        ce_verification_result = json.dumps(ce_verification_result)
-        # logger.info("verify_result before sending to rpo: " + ce_verification_result)
-        self.ratls.something_client(self.rpo_address, self.rpo_port, ce_verification_result)
+        
         
         # =============== Phase four ===============
         logger.info("======================= Starting phase four... =======================")
