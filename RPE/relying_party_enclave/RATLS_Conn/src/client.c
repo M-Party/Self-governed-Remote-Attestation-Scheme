@@ -561,36 +561,3 @@ char *get_policies(const char * hostname, const char * port,
     return policies_data;
 }
 
-
-int something_client(const char * hostname, const char * port, const char * something) {
-    /* connect server */
-    if (client_connect(hostname, port) != 0) {
-        mbedtls_printf(" Connect RPO failed\n");
-        return -1;
-    }
-
-    /* startup ssl and handshake */
-    if (client_start_ssl(hostname) != 0 || client_perform_handshake() != 0) {
-        mbedtls_printf(" Setup SSL failed\n");
-        client_close_connection();
-        return -1;
-    }
-
-    /* send CMD_SEND_POLICY cmd */
-    int ret = client_send_data(CMD_SEND_MESSAGE, strlen(CMD_SEND_MESSAGE));
-    if (ret < 0) {
-        return ret;
-    }
-
-    /* send something */
-    ret = client_send_data(something, strlen(something));
-    if (ret < 0) {
-        return ret;
-    }
-
-    /* close connection */
-    client_close_connection();
-
-    return 0;
-        
-}

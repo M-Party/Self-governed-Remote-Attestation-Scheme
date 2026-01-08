@@ -32,6 +32,10 @@ lib.generate_ecdsa_keypair.restype = None
 
 logger = logging.getLogger(__name__)
 
+# CMD definitions 
+REQ_CERT = "REQ_CERT"
+VERIFY_CERT = "VERIFY_CERT"
+
 class RPE:
     def __init__(self):
         self.conf = self.load_conf()
@@ -141,23 +145,26 @@ class RPE:
         for rpe_id in all_rpe_ids:
             rpo_public_signing_key = self.policies_obj.getPublicSigningKey(rpe_id)
             qeids = self.policies_obj.getRPEQEID(rpe_id)
-            tcb_ids, tcb_infos = self.policies_obj.getRPETCBInfo(rpe_id)
-            tcb_id = tcb_ids[0]
-            collateral_base64_hash_from_policies = tcb_infos[tcb_id]
+            rpe_tcb_ids, tcb_infos = self.policies_obj.getRPETCBInfo(rpe_id)
+            for tcb_id in rpe_tcb_ids:
+                collateral_base64_hash_from_policies = tcb_infos[tcb_id]
+                for id, collateral in self.collaterals.items():
+                    if id ==  tcb_id:
+                        collateral_base64 = collateral
+                        break
+                # Verify the collateral read from file is the same as that in policies
+                collateral_hash_compute = self.compute_message_hash(collateral_base64.encode('UTF-8'), SHA384)
+                collateral_base64_hash_compute = crypto_utility.byte_array_to_base64(collateral_hash_compute)
+                if collateral_base64_hash_from_policies != collateral_base64_hash_compute:
+                    logger.error("Collateral hash computed for rpe %s is not the same as that in policies", rpe_id)
+                    logger.info("collateral_base64_hash_from_policies: %s", collateral_base64_hash_from_policies)
+                    logger.info("collateral_base64_hash_compute: %s", collateral_base64_hash_compute)
+                    return
+            
             for id, collateral in self.collaterals.items():
-                if id ==  tcb_id:
+                if id ==  rpe_tcb_ids[0]:
                     collateral_base64 = collateral
                     break
-            
-            # Verify the collateral read from file is the same as that in policies
-            collateral_hash_compute = self.compute_message_hash(collateral_base64.encode('UTF-8'), SHA384)
-            collateral_base64_hash_compute = crypto_utility.byte_array_to_base64(collateral_hash_compute)
-            if collateral_base64_hash_from_policies != collateral_base64_hash_compute:
-                logger.error("Collateral hash computed for rpe %s is not the same as that in policies", rpe_id)
-                logger.info("collateral_base64_hash_from_policies: %s", collateral_base64_hash_from_policies)
-                logger.info("collateral_base64_hash_compute: %s", collateral_base64_hash_compute)
-                return
-            
             # Build rpes details from policies
             rpes[rpe_id] = {
                 "rpe_id": rpe_id,
@@ -280,86 +287,107 @@ class RPE:
             # if len(rpe_id_dict_to_be_verified) == 0:
             #     break
 
+            ####################################################################
             if len(rpe_id_dict_to_be_verified) == 0 or \
                self.local_rpe["rpe_id"] not in rpe_id_dict_to_be_verified:
                 break
+            ####################################################################
         
         logger.info("======================= Phase two finished =======================\n")
 
         # =============== Phase three ===============
         logger.info("======================= Starting phase three... =======================")
+        
+        # get TCB collateral data according to the policies
         ce_tcb_ids = self.policies_obj.getCETcbIds(self.local_rpe["rpe_id"])
         ce_collateral_dict = dict()
         for ce_tcb_id in ce_tcb_ids:
             ce_collateral_dict[ce_tcb_id] = json.loads(self.collaterals[ce_tcb_id])
         ce_collaterals = json.dumps(ce_collateral_dict)
-        self.ratls.initTCBInfo(ce_collaterals)
+        # initialize TCB info for verifying CE
+        self.ratls.init_tcb_info(ce_collaterals)
         
         # RPE starts server port.
         ret = self.ratls.server_init(self.rpe_port)
         if ret != 1:
-            logger.error("RA-TLS verification failed!")
-        tcb_id = self.ratls.getTCBid()
-        ce_id = self.ratls.getCEid()
-        ces_info = self.policies_obj.getCEinfo(self.local_rpe["rpe_id"], ce_id)
-        logger.info("ces info managed by local rpe: %s" % ces_info)
-        ret, job_id = self.ratls.verifyCE(ces_info)
-        
-        if ret == 1:
-            # Check if tcb id is in the job
-            if not self.policies_obj.checkTcbId(job_id, tcb_id):
-                logger.error("RA-TLS verification failed! The tcb is not match")
-                return
-            
-            logger.info("RPE successfully attested CE")
-            
-            
-            
-            
-            
-        # Find the ce to connect
-        jobs = self.policies_obj.getCorrespondingJobs(job_id)
-        logger.info("jobs: %s" % jobs)
-        if jobs is None:
+            logger.error(f"RA-TLS server initialization failed on port {self.rpe_port}")
             return
-        
-        
-        logger.info("======================= Phase three finished =======================\n")
-        
-        
-        
-        # =============== Phase four ===============
-        logger.info("======================= Starting phase four... =======================")
-        
-        ################################# DELETE ############################################
-       
-        # ret = self.ratls.server_init(self.rpe_port)
-        
-        ############################### DELETE END ##########################################
 
-        # Get CE public keys
-        CESigningkey, CEEncryptionkey = self.ratls.getCEPubKeys()
-        ce_public_signing_key_obj = serialization.load_pem_public_key(CESigningkey, backend=openssl_backend)
-        
-        # Sign CE's public signing key and generate a cert.
-        ce_cert = certificate.generate_ce_certificate(self.signing_keys["private"], ce_public_signing_key_obj, self.local_rpe["rpe_id"])
-        
-        # Send CE's Certificate signed by RPE to CE
-        ce_cert_base64 = crypto_utility.byte_array_to_base64(ce_cert)
-
-        verification_result = None
         while True:
-            if ret==1:
-                ret = self.ratls.passData(ce_cert_base64)
-                collaborativeCERT = self.ratls.getData()
+            if self.ratls.wait_for_connection() !=0:
+                logger.info("CE connection failed")
+                continue
+            logger.info("CE connected")
+
+            if self.ratls.perform_handshake() != 0:
+                logger.info("RA-TLS handshake with CE failed")
+                self.ratls.close_connection()
+                continue
+            logger.info("RA-TLS handshake with CE succeeded")
+
+            if self.ratls.verify_peer() != 0:
+                logger.info("CE attestation failed")
+                self.ratls.close_connection()
+                continue
+
+            # receive commands from CE
+            command = self.ratls.receive_commands()
+            if command is None:
+                logger.error("Receive command from CE failed")
+                self.ratls.close_connection()
+                continue
+
+            if command == REQ_CERT:
+                ret = self.ratls.get_ce_info()
+                if ret != 0:
+                    logger.error("Get CE info failed")
+                    self.ratls.close_connection()
+                    continue
+                # verify ce quote body
+                ce_id = self.ratls.get_ce_id()
+                ces_info = self.policies_obj.getCEinfo(self.local_rpe["rpe_id"], ce_id)
+                if ces_info is None:
+                    logger.error("Cannot resolve ces info of ce %s", ce_id)
+                    self.ratls.close_connection()
+                    continue
+                ret = self.ratls.verify_ce_body(ces_info)
+                if ret < 0:
+                    logger.error("CE body verification failed")
+                    self.ratls.close_connection()
+                    continue
+                # Get CE public keys
+                CESigningkey = self.ratls.get_ce_cert_pubkey_pem()
+                ce_public_signing_key_obj = serialization.load_pem_public_key(CESigningkey, backend=openssl_backend)
+                
+                # Sign CE's public signing key and generate a cert.
+                ce_cert = certificate.generate_ce_certificate(self.signing_keys["private"], ce_public_signing_key_obj, self.local_rpe["rpe_id"])
+                ce_cert_base64 = crypto_utility.byte_array_to_base64(ce_cert)
+                
+                # Send CE's Certificate signed by RPE to CE
+                ret = self.ratls.send_ce_cert(ce_cert_base64)
+                if ret != 0:
+                    logger.error("Send CE's Certificate signed by RPE to CE failed")
+                    self.ratls.close_connection()
+                    continue
+            elif command == VERIFY_CERT:
+                collaborativeCERT = self.ratls.get_collaborative_ce_cert()
+                if collaborativeCERT is None:
+                    logger.error("Get collaborative CE certificate failed")
+                    self.ratls.close_connection()
+                    continue
                 cert = certificate.parse_ce_certificate(collaborativeCERT)
                 collaborativeRPEid = certificate.get_ce_certificate_rpeid(cert)
                 collaborativeRPEkey = self.get_collaborativeRPEkey(collaborativeRPEid)
                 verification_result = certificate.verify_ce_certificate(cert,collaborativeRPEkey)
-            if ret==2:
-                logger.info("key+__+_______________d" )
-            if ret==3:
-                ret = self.ratls.something(verification_result)
+                ret = self.ratls.send_verification_result(verification_result)
+                if ret != 0:
+                    logger.error("Send verification result to CE failed")
+                    self.ratls.close_connection()
+                    continue
+            else:
+                logger.error("Unknown command from CE: %s", command)
+    
+            self.ratls.close_connection()           
 
     def get_collaborativeRPEkey(self, collaborativeRPEid):
         if type(collaborativeRPEid) != str:
