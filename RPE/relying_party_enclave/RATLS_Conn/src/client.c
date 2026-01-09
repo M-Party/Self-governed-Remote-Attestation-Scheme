@@ -500,9 +500,6 @@ int send_public_keys(const char * hostname, const char * port, const char * sign
         return ret;
     }
 
-    /* close connection */
-    client_close_connection();
-
     return 0;
 }
 

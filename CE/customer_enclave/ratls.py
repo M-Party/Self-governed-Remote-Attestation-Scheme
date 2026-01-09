@@ -12,64 +12,49 @@ class RATLS:
     def __init__(self):
         # self.signing_keys = "aaa"
         # self.encryption_keys = "bbb"
-        # self.rpe_address = '192.168.122.50:50051'
-        # self.local_rpe = None
+        self.rpe_address = None
+        self.port = None
         # self.rpes = None
-        self.data = None
 
-    def initpublickeys(self, signing_key, encryption_keys):
-        RAtlsclient.init_pubkeys.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
-        #RAtlsclient.init_pubkeys.restype = ctypes.c_char_p
+    def client(self, address, port):
+        self.rpe_address = address
+        self.port = port
+        RAtlsclient.ra_tls_client.restype = ctypes.c_int
 
-        RAtlsclient.init_pubkeys(ctypes.c_char_p(signing_key), ctypes.c_char_p(encryption_keys))
+        ret = RAtlsclient.ra_tls_client()
+        if ret != 0:
+            logger.error("\n")
+            logger.error(" RA-TLS client initialization failed !")
+            return False
 
-    def initCEID(self, ce_id):
-        RAtlsclient.init_ce_id.argtypes = [ctypes.c_char_p]
-        #RAtlsclient.init_pubkeys.restype = ctypes.c_char_p
-        b_ce_id = ce_id.encode('utf-8')  
+        return True
 
-        RAtlsclient.init_ce_id(ctypes.c_char_p(b_ce_id))
-    
-    def sendKeys2RPE(self, address, port):
-        try:
-            RAtlsclient.ra_tls_client.argtypes = [ctypes.c_char_p, ctypes.c_char_p]
-            RAtlsclient.ra_tls_client.restype = ctypes.c_char_p
+    def get_cert_from_rpe(self, ce_id):
+        RAtlsclient.get_cert_from_rpe.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+        RAtlsclient.get_cert_from_rpe.restype = ctypes.c_char_p
 
-            b_address = address.encode('utf-8')
-            b_port = port.encode('utf-8')
-           
-            result = RAtlsclient.ra_tls_client(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port))
-            self.data = ctypes.string_at(result).decode()
-            # RAtlsclient.free(result)
-            if self.data == "None":
-                logger.error(" RA connection failed !")
-                return False
+        b_address = self.rpe_address.encode('utf-8')
+        b_port = self.port.encode('utf-8')
+        b_ce_id = ce_id.encode('utf-8')
 
-            return True
+        result = RAtlsclient.get_cert_from_rpe(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port),
+                                               ctypes.c_char_p(b_ce_id))
+        if result is None:
+            logger.error(" Get cert from RPE failed !")
+            return None
 
-        except Exception as e:
-            logger.error(
-                "Send keys to RPE error"
-                " Error message %(message)" % 
-                {"message": str(e) })
-            raise
-            
-    def getCECert(self):
-        return self.data
-    
-    def veritfy_ce_server_cert(self,ServerCERT):
-        return self.read_write_data_from(ServerCERT)
-    def veritfy_ce_client_cert(self,ClientCERT):
-        return self.read_write_data_from(ClientCERT)
-
-    def read_write_data_from(self,data):
-        RAtlsclient.read_write_data_from.argtypes = [ctypes.c_char_p]
-        RAtlsclient.read_write_data_from.restype = ctypes.c_char_p
-
-        b_data = data.encode('utf-8')
-           
-        result = RAtlsclient.read_write_data_from(ctypes.c_char_p(b_data))
         return ctypes.string_at(result).decode()
+
+    def veritfy_peer_cert(self, peer_cert, verification_result_size=100):
+        RAtlsclient.veritfy_peer_cert.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_size_t]
+        RAtlsclient.veritfy_peer_cert.restype = ctypes.c_char_p
+
+        b_data = peer_cert.encode('utf-8')
+        verification_result = ctypes.create_string_buffer(verification_result_size)
+           
+        ret = RAtlsclient.veritfy_peer_cert(ctypes.c_char_p(b_data), 
+                                               verification_result, verification_result_size)
+        return ret, verification_result.value.decode()
 
     
     def ce_client_init(self, CECert, CEKey, address, port):

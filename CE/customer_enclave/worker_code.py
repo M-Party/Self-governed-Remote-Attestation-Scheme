@@ -10,7 +10,7 @@ from crypto_utils import crypto_utility
 logger = logging.getLogger(__name__)
 
 class WorkerCode:
-    def __init__(self,ratls,rpe_address,rpe_port,collaborative_ce_address,collaborative_ce_port,ce_port,CECert, CEKey):
+    def __init__(self,ratls,rpe_address,rpe_port,collaborative_ce_address,collaborative_ce_port,ce_port,CECert, CEPrivateKey):
         self.rpe_ratls = ratls
         self.rpe_address = rpe_address
         self.rpe_port = rpe_port
@@ -18,7 +18,7 @@ class WorkerCode:
         self.collaborative_ce_port = collaborative_ce_port
         self.ce_port = ce_port
         self.CECert = CECert
-        self.CEKey = CEKey
+        self.CEPrivateKey = CEPrivateKey
 
     def test(self):
         # Here is the logic of customer's work code.
@@ -39,10 +39,13 @@ class WorkerCode:
         # if result=="Agree to build the secure channel!":
         #     collaborative_tls.ce_client_exchange_data("test ID test")
 
-        collaborative_tls.ce_server_init(self.CECert, self.CEKey, self.ce_port)
+        collaborative_tls.ce_server_init(self.CECert, self.CEPrivateKey, self.ce_port)
         ClientCERT = collaborative_tls.get_ce_cert_from_server()
-        certificate.parse_ce_certificate(ClientCERT)
-        result = self.rpe_ratls.veritfy_ce_client_cert(crypto_utility.hex_to_base64(ClientCERT))
+        
+        ret, result = self.rpe_ratls.veritfy_peer_cert(crypto_utility.hex_to_base64(ClientCERT))
+        if ret <0:
+            logger.error(" Pass peer cert to RPE failed !")
+            return
         if result=="Agree to build the secure channel!":
           data = collaborative_tls.ce_server_exchange_data()
           logger.info("%s",data)
