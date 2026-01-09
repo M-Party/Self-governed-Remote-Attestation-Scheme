@@ -549,14 +549,14 @@ int server_verify_peer() {
     mbedtls_printf(" ok\n");
 
     // get ce cert pubkey pem
-    const mbedtls_x509_crt* *peer_crt = mbedtls_ssl_get_peer_cert(&ssl);
+    const mbedtls_x509_crt *peer_crt = mbedtls_ssl_get_peer_cert(&ssl);
     if (peer_crt == NULL) {
         mbedtls_printf("  ! Failed to get peer certificate\n");
         return -1;
     }
 
     memset(ce_cert_pubkey_pem, 0, sizeof(ce_cert_pubkey_pem));
-    int ret = mbedtls_pk_write_pubkey_pem(peer_crt->pk, 
+    int ret = mbedtls_pk_write_pubkey_pem(&peer_crt->pk, 
         (unsigned char*)ce_cert_pubkey_pem, sizeof(ce_cert_pubkey_pem));
     if (ret != 0) {
         mbedtls_printf("  ! Failed to extract peer public key from certificate: -0x%x\n", ret);

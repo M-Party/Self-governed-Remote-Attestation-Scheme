@@ -309,7 +309,7 @@ class RPE:
         
         # RPE starts server port.
         ret = self.ratls.server_init(self.rpe_port)
-        if ret != 1:
+        if ret != 0:
             logger.error(f"RA-TLS server initialization failed on port {self.rpe_port}")
             return
 
