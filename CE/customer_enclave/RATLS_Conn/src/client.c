@@ -432,14 +432,6 @@ void client_close_connection() {
 void client_cleanup() {
     mbedtls_printf("  . Cleaning up client resources...\n");
 
-#ifdef MBEDTLS_ERROR_C
-    if (exit_code != MBEDTLS_EXIT_SUCCESS) {
-        char error_buf[100];
-        mbedtls_strerror(ret, error_buf, sizeof(error_buf));
-        mbedtls_printf("Last error was: %d - %s\n\n", ret, error_buf);
-    }
-#endif
-    
     if (ra_tls_verify_lib)
         dlclose(ra_tls_verify_lib);
     if (ra_tls_attest_lib)
@@ -531,7 +523,7 @@ char *get_cert_from_rpe(const char * hostname, const char * port, const char * c
     
 
 
-int veritfy_peer_cert(const char * peer_cert, char * verification_result, size_t verification_result_size) {
+int veritfy_peer_cert(const char * hostname, const char * port, const char * peer_cert, char * verification_result, size_t verification_result_size) {
     int ret;
     if (client_connect(hostname, port) != 0) {
         mbedtls_printf(" Connect RPE failed\n");

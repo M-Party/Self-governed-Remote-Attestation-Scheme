@@ -599,7 +599,7 @@ void server_cleanup() {
 }
 
 /* CE sends ce_id and public keys to RPE */
-static int handle_ce_info(void) {
+int handle_ce_info(void) {
     int ret;
 
     mbedtls_printf("  . Processing SEND_CE_INFO command...\n");
@@ -616,7 +616,7 @@ static int handle_ce_info(void) {
 }
 
 /* handle command: REQ_CERT - CE requests RPE-signed certificate */
-static int handle_issue_cert(const char* cert) {
+int handle_issue_cert(const char* cert) {
     int ret;
     char len_str[32];
 
@@ -642,7 +642,7 @@ static int handle_issue_cert(const char* cert) {
 }
 
 /* handle command: VERIFY_CERT - CE requests RPE to verify received certificate */
-static char* handle_get_cert(void) {
+char* handle_get_cert(void) {
     int ret;
     char len_str[32];
 
@@ -671,7 +671,7 @@ static char* handle_get_cert(void) {
     return cert;
 }
 
-static int handle_verification_result(const char* verification_result) {
+int handle_verification_result(const char* verification_result) {
     int ret;
 
     ret = send_response(verification_result, strlen(verification_result));

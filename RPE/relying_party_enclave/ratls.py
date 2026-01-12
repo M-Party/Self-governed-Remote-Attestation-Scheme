@@ -124,6 +124,18 @@ class RATLS:
                 " Error message %(message)" % 
                 {"message": str(e) })
             raise
+    
+    def receive_commands(self, buffer_size=1024):
+        RAtls.receive_message.argtypes = [ctypes.c_char_p, ctypes.c_size_t]
+        RAtls.receive_message.restype = ctypes.c_int
+
+        buffer = ctypes.create_string_buffer(buffer_size)
+        ret = RAtls.receive_message(buffer, buffer_size)
+        if ret > 0:
+            return buffer.value.decode('utf-8')
+        else:
+            logger.error(f"receive_message failed with error code: {ret}")
+            return None
 
     def wait_for_connection(self):
         RAtls.server_accept_connection.argtypes = []

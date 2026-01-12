@@ -46,13 +46,15 @@ class RATLS:
         return ctypes.string_at(result).decode()
 
     def veritfy_peer_cert(self, peer_cert, verification_result_size=100):
-        RAtlsclient.veritfy_peer_cert.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_size_t]
+        RAtlsclient.veritfy_peer_cert.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_size_t]
         RAtlsclient.veritfy_peer_cert.restype = ctypes.c_char_p
 
+        b_address = self.rpe_address.encode('utf-8')
+        b_port = self.port.encode('utf-8')
         b_data = peer_cert.encode('utf-8')
         verification_result = ctypes.create_string_buffer(verification_result_size)
            
-        ret = RAtlsclient.veritfy_peer_cert(ctypes.c_char_p(b_data), 
+        ret = RAtlsclient.veritfy_peer_cert(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port), ctypes.c_char_p(b_data), 
                                                verification_result, verification_result_size)
         return ret, verification_result.value.decode()
 
