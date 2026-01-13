@@ -31,7 +31,6 @@
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/x509.h"
-// #include "ra_tls.h"
 
 #include "sgx_quote_3.h"
 
@@ -40,103 +39,9 @@ static char collaborative_data[1024];
 static uint8_t * client_cert = NULL;
 static size_t client_cert_size = 0;
 
-// /* RA-TLS: on client, only need to register ra_tls_verify_callback_der() for cert verification */
-// int (*ra_tls_verify_callback_der_f)(uint8_t* der_crt, size_t der_crt_size);
-
-// /* RA-TLS: if specified in command-line options, use our own callback to verify SGX measurements */
-// void (*ra_tls_set_measurement_callback_f)(int (*f_cb)(const char* mrenclave, const char* mrsigner,
-//                                           const char* isv_prod_id, const char* isv_svn));
-
-/* RA-TLS: on server, only need ra_tls_create_key_and_crt_der() to create keypair and X.509 cert */
-int (*ra_tls_create_key_and_crt_der_f_server)(uint8_t** der_key, size_t* der_key_size, uint8_t** der_crt,
-                                       size_t* der_crt_size);
-
 void server_free_mbedtls(int ret);
 
-#define HTTP_RESPONSE      \
-    "    hello world\r\n"      \
-    "    Successful connection using: %s\r\n"
-
-
-#define HTTP_RESPONSE1                                    \
-    "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n" \
-    "<h2>mbed TLS Test Server</h2>\r\n"                  \
-    "<p>Successful connection using: %s</p>\r\n"
-
 #define DEBUG_LEVEL 0
-
-#define MALICIOUS_STR "MALICIOUS DATA"
-
-// #define CA_CRT_PATH "ssl/ca.crt"
-// #define SRV_CRT_PATH "ssl/server.crt"
-// #define SRV_KEY_PATH "ssl/server.key"
-
-
-/*! searches for specific \p oid among \p exts and returns pointer to its value in \p out_val;
- *  tailored for SGX quotes with size strictly from 128 to 65535 bytes (fails on other sizes) */
-// static int find_oid(const uint8_t* exts, size_t exts_size, const uint8_t* oid, size_t oid_size,
-//                     uint8_t** out_val, size_t* out_size) {
-//     /* TODO: searching with memmem is not robust (what if some extension contains exactly these
-//      *       chars?), but mbedTLS has nothing generic enough for our purposes; this is still
-//      *       secure because this func is used for extracting the SGX quote which is verified
-//      *       later, but may lead to unexpected failures (hardly possible in real world though) */
-//     uint8_t* p = memmem(exts, exts_size, oid, oid_size);
-//     if (!p)
-//         return MBEDTLS_ERR_X509_INVALID_EXTENSIONS;
-
-//     const uint8_t* exts_end = exts + exts_size;
-
-//     /* move pointer past OID string and to the OID value (which is encoded in ASN.1 DER) */
-//     p += oid_size;
-
-//     if (p >= exts_end)
-//         return MBEDTLS_ERR_X509_INVALID_EXTENSIONS;
-
-//     if (*p == 0x01) {
-//         /* some TLS libs generate a BOOLEAN (ASN.1 tag 1) for the criticality of the extension
-//          * before the extension value itself; check its value and skip it */
-//         p++;
-//         if (p >= exts_end || *p++ != 0x01) {
-//             /* BOOLEAN length must be 0x01 */
-//             return MBEDTLS_ERR_X509_INVALID_EXTENSIONS;
-//         }
-//         if (p >= exts_end || *p++ != 0x00) {
-//             /* BOOLEAN value must be 0x00 (non-critical extension) */
-//             return MBEDTLS_ERR_X509_INVALID_EXTENSIONS;
-//         }
-//     }
-
-//     /* now comes the octet string containing the SGX quote (ASN.1 tag 4) */
-//     if (p >= exts_end || *p++ != 0x04) {
-//         return MBEDTLS_ERR_X509_INVALID_EXTENSIONS;
-//     }
-//     if (p >= exts_end || *p++ != 0x82) {
-//         /* length of octet string must be 0x82 = 0b10000010 (the long form, with bit 8 set and bits
-//          * 7-0 indicating how many more bytes are in the length field); SGX quotes always have
-//          * lengths of 128 to 65535 bytes, so length must be encoded in exactly two bytes */
-//         return MBEDTLS_ERR_X509_INVALID_EXTENSIONS;
-//     }
-//     static_assert(sizeof(sgx_quote_t) >= 128, "need to change ASN.1 length-of-octet-string limit");
-//     static_assert(SGX_QUOTE_MAX_SIZE <= 65535, "need to change ASN.1 length-of-octet-string limit");
-
-//     if (p + 2 > exts_end)
-//         return MBEDTLS_ERR_X509_INVALID_EXTENSIONS;
-
-//     size_t val_size;
-//     val_size = *p++;
-//     val_size <<= 8;
-//     val_size += *p++;
-
-//     uint8_t* val = p;
-
-//     assert(val <= exts_end);
-//     if (val_size < 128 || val_size > SGX_QUOTE_MAX_SIZE || val_size > (size_t)(exts_end - val))
-//         return MBEDTLS_ERR_X509_INVALID_EXTENSIONS;
-
-//     *out_size = val_size;
-//     *out_val  = val;
-//     return 0;
-// }
 
 static int parse_hex(uint8_t* hex, size_t hex_size, uint8_t* buffer, size_t buffer_size) {
     if (hex_size != (buffer_size * 2+1))
@@ -241,68 +146,6 @@ static ssize_t file_read(const char* path, char* buf, size_t count) {
     return bytes;
 }
 
-static bool getenv_client_inside_sgx() {
-    char* str = getenv("RA_TLS_CLIENT_INSIDE_SGX");
-    if (!str)
-        return false;
-
-    return !strcmp(str, "1") || !strcmp(str, "true") || !strcmp(str, "TRUE");
-}
-
-// int ra_verify_init(){
-//     char* error;
-//     void* ra_tls_verify_lib           = NULL;
-//     ra_tls_verify_callback_der_f      = NULL;
-//     ra_tls_set_measurement_callback_f = NULL;
-//     bool in_sgx = getenv_client_inside_sgx();
-
-//     if (in_sgx) {
-//         /*
-//         * RA-TLS verification with DCAP inside SGX enclave uses dummies instead of real
-//         * functions from libsgx_urts.so, thus we don't need to load this helper library.
-//         */
-//         ra_tls_verify_lib = dlopen("libra_tls_verify_dcap_gramine.so", RTLD_LAZY);
-//         if (!ra_tls_verify_lib) {
-//             mbedtls_printf("%s\n", dlerror());
-//             mbedtls_printf("User requested RA-TLS verification with DCAP inside SGX but cannot find lib\n");
-//             mbedtls_printf("Please make sure that you are using client_dcap.manifest\n");
-//             return 1;
-//         }
-//     } else {
-//         void* helper_sgx_urts_lib = dlopen("libsgx_urts.so", RTLD_NOW | RTLD_GLOBAL);
-//         if (!helper_sgx_urts_lib) {
-//             mbedtls_printf("%s\n", dlerror());
-//             mbedtls_printf("User requested RA-TLS verification with DCAP but cannot find helper"
-//                             " libsgx_urts.so lib\n");
-//             return 1;
-//         }
-
-//         ra_tls_verify_lib = dlopen("libra_tls_verify_dcap.so", RTLD_LAZY);
-//         if (!ra_tls_verify_lib) {
-//             mbedtls_printf("%s\n", dlerror());
-//             mbedtls_printf("User requested RA-TLS verification with DCAP but cannot find lib\n");
-//             return 1;
-//         }
-//     }
-
-//     ra_tls_verify_callback_der_f = dlsym(ra_tls_verify_lib, "ra_tls_verify_callback_der");
-//     if ((error = dlerror()) != NULL) {
-//         mbedtls_printf("%s\n", error);
-//         return 1;
-//     }
-//     ra_tls_set_measurement_callback_f = dlsym(ra_tls_verify_lib, "ra_tls_set_measurement_callback");
-//     if ((error = dlerror()) != NULL) {
-//         mbedtls_printf("%s\n", error);
-//         return 1;
-//     }
-
-//     (*ra_tls_set_measurement_callback_f)(set_CE_measurements);
-
-//     return 0;
-// }
-
-
-void* server_ra_tls_attest_lib;
 mbedtls_net_context server_listen_fd;
 mbedtls_net_context server_client_fd;
 
@@ -318,7 +161,6 @@ int ce_server_init(uint8_t* der_crt, uint8_t* der_key, const char * port) {
     size_t len;
     const char* pers = "ssl_server";
     
-
     mbedtls_net_init(&server_listen_fd);
     mbedtls_net_init(&server_client_fd);
     mbedtls_ssl_init(&server_ssl);
@@ -328,50 +170,10 @@ int ce_server_init(uint8_t* der_crt, uint8_t* der_key, const char * port) {
     mbedtls_entropy_init(&server_entropy);
     mbedtls_ctr_drbg_init(&server_ctr_drbg);
 
-    // ra_tls_verify_callback_der_f      = NULL;
-
 #if defined(MBEDTLS_DEBUG_C)
     mbedtls_debug_set_threshold(DEBUG_LEVEL);
 #endif
 
-    char attestation_type_str[32] = {0};
-    ret = file_read("/dev/attestation/attestation_type", attestation_type_str,
-                    sizeof(attestation_type_str) - 1);
-    
-    if (ret < 0 && ret != -ENOENT) {
-        mbedtls_printf("User requested RA-TLS attestation but cannot read SGX-specific file "
-                       "/dev/attestation/attestation_type\n");
-        return -1;
-    }
-
-    if (ret == -ENOENT || !strcmp(attestation_type_str, "none")) {
-        server_ra_tls_attest_lib = NULL;
-        ra_tls_create_key_and_crt_der_f_server = NULL;
-    } else if (!strcmp(attestation_type_str, "epid") || !strcmp(attestation_type_str, "dcap")) {
-        server_ra_tls_attest_lib = dlopen("libra_tls_attest.so", RTLD_LAZY);
-        if (!server_ra_tls_attest_lib) {
-            mbedtls_printf("User requested RA-TLS attestation but cannot find lib\n");
-            return -1;
-        }
-
-        char* error;
-        ra_tls_create_key_and_crt_der_f_server = dlsym(server_ra_tls_attest_lib, "ra_tls_create_key_and_crt_der");
-        if ((error = dlerror()) != NULL) {
-            mbedtls_printf("%s\n", error);
-            return -1;
-        }
-    } else {
-        mbedtls_printf("Unrecognized remote attestation type: %s\n", attestation_type_str);
-        return -1;
-    }
-
-    //====================================================================================
-    // ret = ra_verify_init();
-    // if (ret != 0) {
-    //     mbedtls_printf(" Failed to initial the ra verification function handler!\n");
-    //     goto exit;
-    // }
-    //====================================================================================
 
     mbedtls_printf("  . Seeding the random number generator...");
     fflush(stdout);
@@ -386,65 +188,28 @@ int ce_server_init(uint8_t* der_crt, uint8_t* der_key, const char * port) {
 
     mbedtls_printf(" ok\n");
 
-    if (server_ra_tls_attest_lib) {
-        mbedtls_printf("\n  . Parsing the TLS server CE cert and key ...");
-        fflush(stdout);
+    mbedtls_printf("\n  . Parsing the TLS server CE cert and key ...");
+    fflush(stdout);
 
-        size_t der_key_size = strlen(der_key)+1;
-        size_t der_crt_size = strlen(der_crt)+1;
+    size_t der_key_size = strlen(der_key)+1;
+    size_t der_crt_size = strlen(der_crt)+1;
 
-        // ret = (*ra_tls_create_key_and_crt_der_f)(&der_key, &der_key_size, &der_crt, &der_crt_size);
-        // if (ret != 0) {
-        //     mbedtls_printf(" failed\n  !  ra_tls_create_key_and_crt_der returned %d\n\n", ret);
-        //     server_free_mbedtls(ret);
-        //     return -1;
-        // }
-
-        ret = mbedtls_x509_crt_parse(&server_srvcert, (unsigned char*)der_crt, der_crt_size);
-        if (ret != 0) {
-            mbedtls_printf(" failed\n  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
-            server_free_mbedtls(ret);
-            return -1;
-        }
-
-        ret = mbedtls_pk_parse_key(&server_pkey, (unsigned char*)der_key, der_key_size, /*pwd=*/NULL, 0,
-                                   mbedtls_ctr_drbg_random, &server_ctr_drbg);
-        if (ret != 0) {
-            mbedtls_printf(" failed\n  !  mbedtls_pk_parse_key returned %d\n\n", ret);
-            server_free_mbedtls(ret);
-            return -1;
-        }
-
-        mbedtls_printf(" ok\n");
-
-    } else {
-        // mbedtls_printf("\n  . Creating normal server cert and key...");
-        // fflush(stdout);
-
-        // ret = mbedtls_x509_crt_parse_file(&server_srvcert, SRV_CRT_PATH);
-        // if (ret != 0) {
-        //     mbedtls_printf(" failed\n  !  mbedtls_x509_crt_parse_file returned %d\n\n", ret);
-        //     server_free_mbedtls(ret);
-        //     return -1;
-        // }
-
-        // ret = mbedtls_x509_crt_parse_file(&server_srvcert, CA_CRT_PATH);
-        // if (ret != 0) {
-        //     mbedtls_printf(" failed\n  !  mbedtls_x509_crt_parse_file returned %d\n\n", ret);
-        //     server_free_mbedtls(ret);
-        //     return -1;
-        // }
-
-        // ret = mbedtls_pk_parse_keyfile(&server_pkey, SRV_KEY_PATH, /*password=*/NULL,
-        //                                mbedtls_ctr_drbg_random, &server_ctr_drbg);
-        // if (ret != 0) {
-        //     mbedtls_printf(" failed\n  !  mbedtls_pk_parse_keyfile returned %d\n\n", ret);
-        //     server_free_mbedtls(ret);
-        //     return -1;
-        // }
-
-        // mbedtls_printf(" ok\n");
+    ret = mbedtls_x509_crt_parse(&server_srvcert, (unsigned char*)der_crt, der_crt_size);
+    if (ret != 0) {
+        mbedtls_printf(" failed\n  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
+        server_free_mbedtls(ret);
+        return -1;
     }
+
+    ret = mbedtls_pk_parse_key(&server_pkey, (unsigned char*)der_key, der_key_size, /*pwd=*/NULL, 0,
+                            mbedtls_ctr_drbg_random, &server_ctr_drbg);
+    if (ret != 0) {
+        mbedtls_printf(" failed\n  !  mbedtls_pk_parse_key returned %d\n\n", ret);
+        server_free_mbedtls(ret);
+        return -1;
+    }
+
+    mbedtls_printf(" ok\n");
 
     mbedtls_printf("  . Bind on https://localhost:%s/ ...", port);
     fflush(stdout);
@@ -477,11 +242,6 @@ int ce_server_init(uint8_t* der_crt, uint8_t* der_key, const char * port) {
 
     mbedtls_ssl_conf_rng(&server_conf, mbedtls_ctr_drbg_random, &server_ctr_drbg);
     mbedtls_ssl_conf_dbg(&server_conf, my_debug, stdout);
-
-    // if (!server_ra_tls_attest_lib) {
-    //     /* no RA-TLS attest library present, use embedded CA chain */
-    //     mbedtls_ssl_conf_ca_chain(&server_conf, server_srvcert.next, NULL);
-    // }
 
     mbedtls_printf("  . Setting up the SSL data....");
     ret = mbedtls_ssl_conf_own_cert(&server_conf, &server_srvcert, &server_pkey);
@@ -610,9 +370,6 @@ void server_free_mbedtls(int ret){
     }
 #endif
 
-    if (server_ra_tls_attest_lib)
-        dlclose(server_ra_tls_attest_lib);
-
     mbedtls_net_free(&server_client_fd);
     mbedtls_net_free(&server_listen_fd);
 
@@ -637,7 +394,6 @@ int waiting(const char* data){
     mbedtls_printf("  > Write to client:");
     fflush(stdout);
 
-    //len = sprintf((char*)buffer, HTTP_RESPONSE, mbedtls_ssl_get_ciphersuite(&server_ssl));
     len = strlen(buffer);
 
     while ((ret = mbedtls_ssl_write(&server_ssl, (unsigned char *)buffer, len)) <= 0) {
