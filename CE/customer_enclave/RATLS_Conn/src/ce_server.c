@@ -148,7 +148,6 @@ static ssize_t file_read(const char* path, char* buf, size_t count) {
 
 mbedtls_net_context server_listen_fd;
 mbedtls_net_context server_client_fd;
-
 mbedtls_entropy_context server_entropy;
 mbedtls_ctr_drbg_context server_ctr_drbg;
 mbedtls_ssl_context server_ssl;
