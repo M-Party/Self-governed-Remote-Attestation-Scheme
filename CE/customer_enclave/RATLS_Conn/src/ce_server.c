@@ -333,18 +333,29 @@ char *ce_server_exchange_data(void){
             continue;
 
         if (ret <= 0) {
-            switch (ret) {
-                case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
-                    mbedtls_printf(" connection was closed gracefully\n");
-                    break;
+            if (ret == 0) {
+                mbedtls_printf(" connection closed (EOF)\n");
+            } else {
+                switch (ret) {
+                    case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
+                        mbedtls_printf(" connection was closed gracefully\n");
+                        break;
 
-                case MBEDTLS_ERR_NET_CONN_RESET:
-                    mbedtls_printf(" connection was reset by peer\n");
-                    break;
+                    case MBEDTLS_ERR_NET_CONN_RESET:
+                        mbedtls_printf(" connection was reset by peer\n");
+                        break;
 
-                default:
-                    mbedtls_printf(" mbedtls_ssl_read returned -0x%x\n", ret);
-                    break;
+                    default: {
+#ifdef MBEDTLS_ERROR_C
+                        char error_buf[200];
+                        mbedtls_strerror(ret, error_buf, sizeof(error_buf));
+                        mbedtls_printf(" mbedtls_ssl_read returned %d - %s\n", ret, error_buf);
+#else
+                        mbedtls_printf(" mbedtls_ssl_read returned %d\n", ret);
+#endif
+                        break;
+                    }
+                }
             }
 
             break;

@@ -284,13 +284,13 @@ class RPE:
                 rpe_info["details"]["rpe_public_signing_key"] = rpe_public_signing_key
                 rpe_info["details"]["rpe_public_encryption_key"] = rpe_public_encryption_key
                 
-            # if len(rpe_id_dict_to_be_verified) == 0:
-            #     break
+            if len(rpe_id_dict_to_be_verified) == 0:
+                break
 
             ####################################################################
-            if len(rpe_id_dict_to_be_verified) == 0 or \
-               self.local_rpe["rpe_id"] not in rpe_id_dict_to_be_verified:
-                break
+            # if len(rpe_id_dict_to_be_verified) == 0 or \
+            #    self.local_rpe["rpe_id"] not in rpe_id_dict_to_be_verified:
+            #     break
             ####################################################################
         
         logger.info("======================= Phase two finished =======================\n")
@@ -377,7 +377,15 @@ class RPE:
                     continue
                 cert = certificate.parse_ce_certificate(collaborativeCERT)
                 collaborativeRPEid = certificate.get_ce_certificate_rpeid(cert)
+                logger.info("Certificate signed by RPE: %s", collaborativeRPEid)
+                logger.info("Available RPEs: %s", list(self.rpes.keys()) if self.rpes else "None")
+
                 collaborativeRPEkey = self.get_collaborativeRPEkey(collaborativeRPEid)
+                if collaborativeRPEkey is None:
+                    logger.error("Failed to get collaborative RPE key for RPE: %s", collaborativeRPEid)
+                    self.ratls.close_connection()
+                    continue
+                
                 verification_result = certificate.verify_ce_certificate(cert,collaborativeRPEkey)
                 ret = self.ratls.send_verification_result(verification_result)
                 if ret != 0:
@@ -392,9 +400,28 @@ class RPE:
     def get_collaborativeRPEkey(self, collaborativeRPEid):
         if type(collaborativeRPEid) != str:
             collaborativeRPEid = collaborativeRPEid.decode()
-        collaborative_rpe_public_signing_key = self.rpes[collaborativeRPEid]["details"]["rpe_public_signing_key"]
-        collaborative_rpe_public_signing_key_obj = serialization.load_pem_public_key(collaborative_rpe_public_signing_key.encode(), backend=openssl_backend)
-        return collaborative_rpe_public_signing_key_obj
+        
+        if collaborativeRPEid not in self.rpes:
+            logger.error("RPE %s not found in self.rpes", collaborativeRPEid)
+            return None
+
+        rpe_info = self.rpes[collaborativeRPEid]
+        if "details" not in rpe_info:
+            logger.error("RPE %s has no 'details' field", collaborativeRPEid)
+            return None
+
+        collaborative_rpe_public_signing_key = rpe_info["details"].get("rpe_public_signing_key")
+        if collaborative_rpe_public_signing_key is None:
+            logger.error("RPE %s public signing key is None. Phase2 may not have completed successfully.", collaborativeRPEid)
+            return None
+              
+        try:
+            collaborative_rpe_public_signing_key_obj = serialization.load_pem_public_key(
+                collaborative_rpe_public_signing_key.encode(), backend=openssl_backend)
+            return collaborative_rpe_public_signing_key_obj
+        except Exception as e:
+            logger.error("Failed to load public key for RPE %s: %s", collaborativeRPEid, str(e))
+            return None
 
     def generate_keys(self):
         private_signing_key = ec.generate_private_key(

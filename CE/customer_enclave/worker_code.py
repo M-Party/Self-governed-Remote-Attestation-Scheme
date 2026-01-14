@@ -33,9 +33,7 @@ class WorkerCode:
 
         # collaborative_tls.ce_client_init(self.CECert, self.signing_private_key, self.collaborative_ce_address, self.collaborative_ce_port)
         # ServerCERT = collaborative_tls.get_ce_cert_from_client()
-        # cert = certificate.parse_ce_certificate(ServerCERT)
-        # # certificate.verify_ce_certificate(cert)
-        # result = self.rpe_ratls.veritfy_ce_server_cert(crypto_utility.hex_to_base64(ServerCERT))
+        # result = self.rpe_ratls.veritfy_peer_cert(crypto_utility.hex_to_base64(ServerCERT))
         # if result=="Agree to build the secure channel!":
         #     collaborative_tls.ce_client_exchange_data("test ID test")
 
