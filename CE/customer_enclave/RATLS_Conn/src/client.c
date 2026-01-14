@@ -56,6 +56,8 @@ static void* ra_tls_attest_lib = NULL;
 static void* ra_tls_verify_lib = NULL;
 static uint8_t* der_key = NULL;
 static uint8_t* der_crt = NULL;
+static size_t der_key_size = 0;
+static size_t der_crt_size = 0;
 
 static mbedtls_net_context server_fd;
 static mbedtls_entropy_context entropy;
@@ -194,9 +196,6 @@ int client_init() {
                        "attestation type)...", attestation_type_str);
         fflush(stdout);
 
-        size_t der_key_size;
-        size_t der_crt_size;
-
         ret = (*ra_tls_create_key_and_crt_der_f)(&der_key, &der_key_size, &der_crt, &der_crt_size);
         if (ret != 0) {
             mbedtls_printf(" failed\n  ! ra_tls_create_key_and_crt_der returned %d\n", ret);
@@ -207,7 +206,7 @@ int client_init() {
             mbedtls_printf(" failed\n  ! mbedtls_x509_crt_parse returned %d\n", ret);
             return -1;
         }
-
+              
         ret = mbedtls_pk_parse_key(&pkey, (unsigned char*)der_key, der_key_size, NULL, 0,
                                    mbedtls_ctr_drbg_random, &ctr_drbg);
         if (ret != 0) {
@@ -575,4 +574,29 @@ int veritfy_peer_cert(const char * hostname, const char * port, const char * pee
     /* close connection */
     client_close_connection();
     return 0;    
+}
+
+char *get_der_key(void) {
+    if (der_key == NULL || der_key_size == 0) {
+        mbedtls_printf(" ! der_key is not initialized\n");
+        return NULL;
+    }
+
+    // Allocate buffer for PEM
+    size_t pem_size = der_key_size * 2 + 512;
+    char *pem_key = malloc(pem_size);
+    if (pem_key == NULL) {
+        mbedtls_printf(" ! Failed to allocate memory for PEM key\n");
+        return NULL;
+    }
+
+    // Write PEM format using pkey
+    in ret = mbedtls_pk_write_key_pem(&pkey, (unsigned char*)pem_key, pem_size);
+    if (ret != 0) {
+        mbedtls_printf(" ! Failed to write PEM key: -0x%x\n", -ret);
+        free(pem_key);
+        return NULL;
+    }
+
+    return pem_key;
 }

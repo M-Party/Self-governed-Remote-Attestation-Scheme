@@ -38,18 +38,6 @@ class RPE:
         self.ce_port = conf["ce_port"]
     
     def start(self):
-        # Generate signing keys and encryption keys
-        logger.info("Generating keys...")
-        self.generate_keys()
-        public_signing_key_pem = self.signing_keys["public"].public_bytes(encoding=serialization.Encoding.PEM,
-                                                                          format=serialization.PublicFormat.SubjectPublicKeyInfo)
-        private_signing_key_pem = self.signing_keys["private"].private_bytes(encoding=serialization.Encoding.PEM,
-                                                             format=serialization.PrivateFormat.TraditionalOpenSSL,
-                                                             encryption_algorithm=serialization.NoEncryption())
-        logger.info("public signing key:\n%s" % public_signing_key_pem.decode())
-        logger.info("public signing key size:%d" % len(public_signing_key_pem))
-        logger.info("done.")
-
         # =============== Phase three ===============
         # Initialize RA-TLS clent
         ratls = RaTLS.RATLS()
@@ -65,7 +53,7 @@ class RPE:
         logger.info("======================= Woker Code Running ... =======================")
         # Get peer certificate and send to RPE to verify.
         wc = worker_code.WorkerCode(ratls, self.rpe_address, self.rpe_port, self.collaborative_ce_address, 
-                                    self.collaborative_ce_port, self.ce_port, CECert, private_signing_key_pem)
+                                    self.collaborative_ce_port, self.ce_port, CECert)
         wc.test()
 
     def generate_keys(self):
