@@ -48,12 +48,12 @@ class RPE:
         # Get CE certificate from RPE
         CECertBase64 = ratls.get_cert_from_rpe(self.local_ce)
         CECert = crypto_utility.base64_to_byte_array(CECertBase64)
-        logger.info("CE cert: %s", CECert.decode())
+        # logger.info("CE cert: %s", CECert.decode())
         
         logger.info("======================= Woker Code Running ... =======================")
         # Get peer certificate and send to RPE to verify.
         wc = worker_code.WorkerCode(ratls, self.rpe_address, self.rpe_port, self.collaborative_ce_address, 
-                                    self.collaborative_ce_port, self.ce_port, CECert)
+                                    self.collaborative_ce_port, self.ce_port, CECert, ratls.signing_private_key)
         wc.test()
 
     def generate_keys(self):

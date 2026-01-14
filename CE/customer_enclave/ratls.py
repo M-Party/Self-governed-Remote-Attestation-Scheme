@@ -27,6 +27,7 @@ class RATLS:
             logger.error(" RA-TLS client initialization failed !")
             return False
         self.signing_private_key = self.get_der_key()
+        
         return True
 
     def get_cert_from_rpe(self, ce_id):
@@ -61,17 +62,15 @@ class RATLS:
     def get_der_key(self):
         RAtlsclient.get_der_key.restype = ctypes.c_char_p
 
-        result = RAtlsclient.get_der_key()
-        return ctypes.string_at(result).decode()
+        return RAtlsclient.get_der_key()
     
-    def ce_client_init(self, CECert, address, port):
+    def ce_client_init(self, CECert, CEKey, address, port):
         if address == "" or port == "":
             logger.error("collaborative_ce_address or collaborative_ce_port is not null value!")
             exit()
-        if self.signing_private_key is None:
+        if CEKey is None:
             logger.error(" CE signing private key is not initialized! Please call client() first!")
             exit()
-        CEKey = self.signing_private_key
 
         RAtlsclient.ce_client_init.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
         RAtlsclient.ce_client_init.restype = ctypes.c_int
@@ -99,14 +98,13 @@ class RATLS:
             logger.error(" Exchange data failed !")
             exit()
 
-    def ce_server_init(self, CECert, port):
+    def ce_server_init(self, CECert, CEKey, port):
         if port == "":
             logger.error("ce_port is not null value!")
             exit()
-        if self.signing_private_key is None:
+        if CEKey is None:
             logger.error(" CE signing private key is not initialized! Please call client() first!")
             exit()
-        CEKey = self.signing_private_key
 
         RAtlsclient.ce_server_init.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
         RAtlsclient.ce_server_init.restype = ctypes.c_int

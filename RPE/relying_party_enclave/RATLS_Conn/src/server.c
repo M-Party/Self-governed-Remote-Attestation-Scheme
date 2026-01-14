@@ -537,7 +537,7 @@ int server_perform_handshake() {
 
 /* verify client certificate */
 int server_verify_peer() {
-    mbedtls_printf("  . Verifying peer (rpe) X.509 certificate...");
+    mbedtls_printf("  . Verifying peer X.509 certificate...");
     uint32_t flags = mbedtls_ssl_get_verify_result(&ssl);
     if (flags != 0) {
         char vrfy_buf[512];

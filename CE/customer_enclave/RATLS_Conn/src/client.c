@@ -591,7 +591,7 @@ char *get_der_key(void) {
     }
 
     // Write PEM format using pkey
-    in ret = mbedtls_pk_write_key_pem(&pkey, (unsigned char*)pem_key, pem_size);
+    int ret = mbedtls_pk_write_key_pem(&pkey, (unsigned char*)pem_key, pem_size);
     if (ret != 0) {
         mbedtls_printf(" ! Failed to write PEM key: -0x%x\n", -ret);
         free(pem_key);
