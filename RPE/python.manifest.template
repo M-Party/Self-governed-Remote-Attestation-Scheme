@@ -69,5 +69,6 @@ sgx.allowed_files = [
   #"file:/etc/sgx_default_qcnl.conf",
   "file:config.toml",
   "file:collaterals/",
+  "file:performance_data/",
   "file:venv/lib/python3.10/site-packages/"
 ]

@@ -63,6 +63,18 @@ class RPE:
         self.ratls = ratls.RATLS()
     
     def start(self):
+        # =============== 性能测试：记录初始化开始时间 ===============
+        init_start_time = time.time()
+        perf_timestamps = {
+            "rpe_id": self.local_rpe["rpe_id"],
+            "init_start": init_start_time,
+            "phase1_start": None,
+            "phase1_end": None,
+            "phase2_start": None,
+            "phase2_end": None,
+            "init_complete": None
+        }
+        
         # Generate signing keys and encryption keys
         logger.info("Generating keys...")
         self.generate_keys()
@@ -75,6 +87,7 @@ class RPE:
         logger.info("done.")
         
         # =============== Phase one ===============
+        perf_timestamps["phase1_start"] = time.time()
         logger.info("======================= Starting phase one... =======================")
         # Initialize RA-TLS client 
         success = self.ratls.client(self.rpo_address, self.rpo_port)
@@ -141,6 +154,13 @@ class RPE:
             logger.error("Failed to get all RPE IDs from plocies")
             return
         
+        logger.info("Pre-computing collateral hashes...")
+        collateral_hashes = {}
+        for tcb_id, collateral in self.collaterals.items():
+            collateral_hash_compute = self.compute_message_hash(collateral.encode('UTF-8'), SHA384)
+            collateral_base64_hash_compute = crypto_utility.byte_array_to_base64(collateral_hash_compute)
+            collateral_hashes[tcb_id] = collateral_base64_hash_compute
+        
         logger.info("Verify hash of all TCBs' collateral from policies...")
         for rpe_id in all_rpe_ids:
             rpo_public_signing_key = self.policies_obj.getPublicSigningKey(rpe_id)
@@ -148,17 +168,12 @@ class RPE:
             rpe_tcb_ids, tcb_infos = self.policies_obj.getRPETCBInfo(rpe_id)
             for tcb_id in rpe_tcb_ids:
                 collateral_base64_hash_from_policies = tcb_infos[tcb_id]
-                for id, collateral in self.collaterals.items():
-                    if id ==  tcb_id:
-                        collateral_base64 = collateral
-                        break
-                # Verify the collateral read from file is the same as that in policies
-                collateral_hash_compute = self.compute_message_hash(collateral_base64.encode('UTF-8'), SHA384)
-                collateral_base64_hash_compute = crypto_utility.byte_array_to_base64(collateral_hash_compute)
-                if collateral_base64_hash_from_policies != collateral_base64_hash_compute:
-                    logger.error("Collateral hash computed for rpe %s is not the same as that in policies", rpe_id)
-                    logger.info("collateral_base64_hash_from_policies: %s", collateral_base64_hash_from_policies)
-                    logger.info("collateral_base64_hash_compute: %s", collateral_base64_hash_compute)
+                if tcb_id in collateral_hashes:
+                    if collateral_base64_hash_from_policies != collateral_hashes[tcb_id]:
+                        logger.error("Collateral hash mismatch for rpe %s, tcb %s", rpe_id, tcb_id)
+                        return
+                else:
+                    logger.error("Collateral %s not found", tcb_id)
                     return
             
             for id, collateral in self.collaterals.items():
@@ -180,9 +195,13 @@ class RPE:
         self.rpes = rpes
 
         logger.info("Verify TCBs' collateral Succeed! ")
+        perf_timestamps["phase1_end"] = time.time()
+        phase1_duration = perf_timestamps["phase1_end"] - perf_timestamps["phase1_start"]
+        logger.info("Phase 1 duration: %.3f seconds" % phase1_duration)
         logger.info("======================= Phase one finished =======================\n")
         
         # =============== Phase two ===============
+        perf_timestamps["phase2_start"] = time.time()
         logger.info("======================= Starting phase two... =======================")
         if self.rpes is not None:
             rpe_ids = ""
@@ -294,6 +313,27 @@ class RPE:
             ####################################################################
         
         logger.info("======================= Phase two finished =======================\n")
+        perf_timestamps["phase2_end"] = time.time()
+        perf_timestamps["init_complete"] = perf_timestamps["phase2_end"]
+        phase2_duration = perf_timestamps["phase2_end"] - perf_timestamps["phase2_start"]
+        total_duration = perf_timestamps["init_complete"] - perf_timestamps["init_start"]
+        logger.info("Phase 2 duration: %.3f seconds" % phase2_duration)
+        logger.info("Total initialization duration: %.3f seconds" % total_duration)
+
+        # =============== 性能测试：保存时间戳到文件 ===============
+        perf_data = {
+            "rpe_id": perf_timestamps["rpe_id"],
+            "timestamps": perf_timestamps,
+            "durations": {
+                "phase1": phase1_duration,
+                "phase2": phase2_duration,
+                "total": total_duration
+            }
+        }
+        perf_file = f"./performance_data/rpe_perf_{self.local_rpe['rpe_id']}.json"
+        with open(perf_file, 'w') as f:
+            json.dump(perf_data, f, indent=2)
+        logger.info("Performance data saved to %s" % perf_file)
 
         # =============== Phase three ===============
         logger.info("======================= Starting phase three... =======================")

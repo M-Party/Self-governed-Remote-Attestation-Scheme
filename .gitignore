@@ -70,3 +70,6 @@ collaterals/
 evidence
 RPO/evidences
 RPO/tool-collateral/collateral.dat.bat
+RPE-*
+RPE/performance_data/
+performance/performance_data
