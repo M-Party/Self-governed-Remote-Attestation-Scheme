@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 import base64
 import binascii
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
 logger = logging.getLogger(__name__)
 
 def generate_ce_certificate(private_key, public_key, rpe_id):

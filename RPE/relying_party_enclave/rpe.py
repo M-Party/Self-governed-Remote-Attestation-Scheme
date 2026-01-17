@@ -82,8 +82,6 @@ class RPE:
                                                                           format=serialization.PublicFormat.SubjectPublicKeyInfo)
         public_encryption_key_pem = self.encryption_keys["public"].public_bytes(encoding=serialization.Encoding.PEM,
                                                             format=serialization.PublicFormat.SubjectPublicKeyInfo)
-        logger.info("public signing key:\n%s" % public_signing_key_pem.decode())
-        logger.info("public encryption key:\n%s" % public_encryption_key_pem.decode())
         logger.info("done.")
         
         # =============== Phase one ===============
@@ -160,6 +158,7 @@ class RPE:
             collateral_hash_compute = self.compute_message_hash(collateral.encode('UTF-8'), SHA384)
             collateral_base64_hash_compute = crypto_utility.byte_array_to_base64(collateral_hash_compute)
             collateral_hashes[tcb_id] = collateral_base64_hash_compute
+            logger.info("------Collateral hash for tcb %s: %s", tcb_id, collateral_base64_hash_compute)
         
         logger.info("Verify hash of all TCBs' collateral from policies...")
         for rpe_id in all_rpe_ids:
@@ -176,10 +175,10 @@ class RPE:
                     logger.error("Collateral %s not found", tcb_id)
                     return
             
-            for id, collateral in self.collaterals.items():
-                if id ==  rpe_tcb_ids[0]:
-                    collateral_base64 = collateral
-                    break
+            collateral_base64 = self.collaterals.get(rpe_tcb_ids[0])
+            if collateral_base64 is None:
+                logger.error("Collateral %s not found", rpe_tcb_ids[0])
+                return
             # Build rpes details from policies
             rpes[rpe_id] = {
                 "rpe_id": rpe_id,
@@ -303,13 +302,13 @@ class RPE:
                 rpe_info["details"]["rpe_public_signing_key"] = rpe_public_signing_key
                 rpe_info["details"]["rpe_public_encryption_key"] = rpe_public_encryption_key
                 
-            if len(rpe_id_dict_to_be_verified) == 0:
-                break
+            # if len(rpe_id_dict_to_be_verified) == 0:
+            #     break
 
             ####################################################################
-            # if len(rpe_id_dict_to_be_verified) == 0 or \
-            #    self.local_rpe["rpe_id"] not in rpe_id_dict_to_be_verified:
-            #     break
+            if len(rpe_id_dict_to_be_verified) == 0 or \
+               self.local_rpe["rpe_id"] not in rpe_id_dict_to_be_verified:
+                break
             ####################################################################
         
         logger.info("======================= Phase two finished =======================\n")
@@ -599,6 +598,15 @@ class RPE:
         return hash_obj.digest()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
+    logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
+    logging.getLogger().setLevel(logging.ERROR)
+    logging.getLogger('__main__').setLevel(logging.ERROR)
+    logging.getLogger('rpe').setLevel(logging.ERROR)
+    logging.getLogger('certificate').setLevel(logging.ERROR)
+    logging.getLogger('ratls').setLevel(logging.ERROR)
+    logging.getLogger('policies').setLevel(logging.ERROR)
+    for name in logging.Logger.manager.loggerDict:
+        logging.getLogger(name).setLevel(logging.ERROR)
+        
     rpe = RPE()
     rpe.start()

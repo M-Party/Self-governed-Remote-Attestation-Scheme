@@ -66,7 +66,6 @@ int teeVerifyQuote(std::string base64_encoded_quote, size_t quote_size, std::str
 
     // Parse collateral
     uint8_t* p_quote_collateral = parseCollateral(std::move(base64_encoded_collateral));
-    std::cout << "Parse collateral finished" << std::endl;
 
     /* call into libsgx_dcap_quoteverify to verify ECDSA-based SGX quote */
     ret = tee_verify_quote(
@@ -122,7 +121,6 @@ int sgxVerifyQuote(std::string base64_encoded_quote, size_t quote_size, std::str
     }
     // Parse collateral
     uint8_t* p_quote_collateral = parseCollateral(std::move(base64_encoded_collateral));
-    std::cout << "Parse collateral finished" << std::endl;
     sgx_ql_qve_collateral_t* p_quote_collateral_struct = reinterpret_cast<sgx_ql_qve_collateral_t*>(p_quote_collateral);
     
     std::vector<uint8_t> quote = base64_decode(base64_encoded_quote);

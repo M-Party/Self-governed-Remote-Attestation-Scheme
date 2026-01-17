@@ -257,7 +257,6 @@ uint8_t* parseCollateral(const char* base64_encoded_collateral) {
     uint32_t qe_identity_size = json_integer_value(json_object_get(collateral_object, "qe_identity_size"));
 
     // Construct p_quote_collater
-    printf("\nCollateral size: %d\n", collateral_size);
     sgx_ql_qve_collateral_t* p_quote_collateral_struct = (sgx_ql_qve_collateral_t*)malloc(sizeof(sgx_ql_qve_collateral_t));
     if (p_quote_collateral_struct == NULL) {
         printf("Allocate p_quote_collateral_struct failed\n");
@@ -309,8 +308,6 @@ uint8_t* parseCollateral(const char* base64_encoded_collateral) {
     p_quote_collateral_struct->qe_identity_size = qe_identity_size;
 
     uint8_t* p_quote_collateral = (uint8_t*)(p_quote_collateral_struct);
-
-    printf("Construct collateral finished\n");
 
     return p_quote_collateral;
 }
