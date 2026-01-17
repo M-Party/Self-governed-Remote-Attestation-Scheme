@@ -203,17 +203,20 @@ class RPE:
         perf_timestamps["phase2_start"] = time.time()
         logger.info("======================= Starting phase two... =======================")
         if self.rpes is not None:
-            rpe_ids = ""
-            for rpe_id in self.rpes.keys():
-                rpe_ids += rpe_id + ","
-            self.rpe_ids = rpe_ids[:len(rpe_ids)-1]
+            self.rpe_ids = ",".join(self.rpes.keys())
         
+        policies_hash = None
+        if policies is not None:
+            policies_hash_bytes = self.compute_message_hash(policies.encode('UTF-8'), SHA384)
+            policies_hash = bytes(policies_hash_bytes)
+
         # Generate quote
         quote = None
         if policies is not None:
             quote = self.generate_quote(policies)
         else:
             logger.error(" Get policies failed ! Can't generate quote !")
+            return
         
         # Build Evidence Quote: combine quote with public keys
         if quote is not None:
@@ -237,19 +240,19 @@ class RPE:
             return
         
         # Get the other rpes' Evidence Quote from fabric-service and do RA for them
-        rpe_id_dict_to_be_verified = set()
-        for rpe_id in self.rpes.keys():
-            rpe_id_dict_to_be_verified.add(rpe_id)
-
+        rpe_id_dict_to_be_verified = set(self.rpes.keys())
         while True:
-            rpe_ids = ""
-            for rpe_id in rpe_id_dict_to_be_verified:
-                rpe_ids += rpe_id + ","
-            rpe_ids = rpe_ids[:len(rpe_ids)-1]
+            rpe_ids = ",".join(rpe_id_dict_to_be_verified)
+
             status, evidence_quotes_base64 = grpc_client.queryQuoteByIds(self.grpc_server_address, rpe_ids)
             if not status:
+                logger.error("Failed to query quotes from blockchain")
                 return
+
             evidence_quotes_dict = json.loads(evidence_quotes_base64)
+            if not evidence_quotes_dict:
+                continue
+            
             for rpe_id, evidence_quote_base64 in evidence_quotes_dict.items():
                 rpe_id_dict_to_be_verified.remove(rpe_id)
                 rpe_info = self.rpes[rpe_id]
@@ -268,20 +271,18 @@ class RPE:
                 # Verify quote using DCAP
                 quote_bytes = crypto_utility.base64_to_byte_array(base64_encoded_quote)
                 collateral = rpe_info["collateral"]
-                logger.info("Verifying rpe %s quote" % rpe_id)
                 ret = verify_dcap_quote.teeVerifyQuote(base64_encoded_quote, len(quote_bytes), collateral)
                 logger.info("quote verification for rpe %s result: %x" % (rpe_id, ret))
                 if ret != 0 and ret != 0xa002 and ret != 0xa008:
                     logger.error("Quote verification failed for rpe %s", rpe_id)
                     return
-                logger.info("quote verification finished !")
 
                 # Generate report_data using public keys from Evidence Quote and local policies
-                report_data = self.generate_report_data(
-                    rpe_public_signing_key,
-                    rpe_public_encryption_key,
-                    policies)
+                worker_data = rpe_public_signing_key + rpe_public_encryption_key
+                keys_bytes = self.compute_message_hash(worker_data.encode('UTF-8'), SHA384)
+                report_data = bytes(keys_bytes) + policies_hash
                 base64_encoded_report_data = crypto_utility.byte_array_to_base64(report_data)
+        
                 rpe_policies_to_verify = {
                     "mr_enclave": self.rpe_mr,
                     "mr_signer": self.rpe_mrsigner,
@@ -290,8 +291,8 @@ class RPE:
                     "base64_encoded_report_data": base64_encoded_report_data,
                     "qeid": rpe_info["qeid"][0]
                 }
-                rpe_policies_to_verify = json.dumps(rpe_policies_to_verify)
-                ret = verify_dcap_quote.sgxVerifyQuoteBody(base64_encoded_quote, rpe_policies_to_verify)
+                rpe_policies_to_verify_json = json.dumps(rpe_policies_to_verify)
+                ret = verify_dcap_quote.sgxVerifyQuoteBody(base64_encoded_quote, rpe_policies_to_verify_json)
                 logger.info("quote body verification for rpe %s result: %x" % (rpe_id, ret))
                 if ret != 0:
                     logger.error("Quote body verification failed for rpe %s", rpe_id)
@@ -332,7 +333,7 @@ class RPE:
         perf_file = f"./performance_data/rpe_perf_{self.local_rpe['rpe_id']}.json"
         with open(perf_file, 'w') as f:
             json.dump(perf_data, f, indent=2)
-        logger.info("Performance data saved to %s" % perf_file)
+        logger.error("Performance data saved to %s" % perf_file)
 
         # =============== Phase three ===============
         logger.info("======================= Starting phase three... =======================")
@@ -601,7 +602,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
     logging.getLogger().setLevel(logging.ERROR)
     logging.getLogger('__main__').setLevel(logging.ERROR)
-    logging.getLogger('rpe').setLevel(logging.ERROR)
+    logging.getLogger('rpe').setLevel(logging.INFO)
     logging.getLogger('certificate').setLevel(logging.ERROR)
     logging.getLogger('ratls').setLevel(logging.ERROR)
     logging.getLogger('policies').setLevel(logging.ERROR)
