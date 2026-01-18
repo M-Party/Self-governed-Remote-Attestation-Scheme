@@ -34,7 +34,7 @@ class RPEPerformanceTest:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         rpe_dirs = []
         # 查找所有 RPE 开头的目录
-        for path in glob.glob(os.path.join(base_dir, "RPE*")):
+        for path in glob.glob(os.path.join(base_dir, "RPE_party*")):
             if os.path.isdir(path):
                 perf_data_dir = os.path.join(path, "performance_data")
                 if os.path.exists(perf_data_dir):
