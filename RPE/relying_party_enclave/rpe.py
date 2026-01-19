@@ -303,13 +303,13 @@ class RPE:
                 rpe_info["details"]["rpe_public_signing_key"] = rpe_public_signing_key
                 rpe_info["details"]["rpe_public_encryption_key"] = rpe_public_encryption_key
                 
-            # if len(rpe_id_dict_to_be_verified) == 0:
-            #     break
+            if len(rpe_id_dict_to_be_verified) == 0:
+                break
 
             ####################################################################
-            if len(rpe_id_dict_to_be_verified) == 0 or \
-               self.local_rpe["rpe_id"] not in rpe_id_dict_to_be_verified:
-                break
+            # if len(rpe_id_dict_to_be_verified) == 0 or \
+            #    self.local_rpe["rpe_id"] not in rpe_id_dict_to_be_verified:
+            #     break
             ####################################################################
         
         logger.info("======================= Phase two finished =======================\n")

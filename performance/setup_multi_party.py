@@ -194,10 +194,10 @@ class MultiPartySetup:
             rpo_dir = self.copy_and_config_rpo(i, rpe_id, rpo_port)
             
             # 复制统一的 policies.json 到每个 RPO 目录
-            policies_file = os.path.join(rpo_dir, "policies.json")
+            policies_file = os.path.join(rpo_dir, f"policies-{self.num_parties}.json")
             with open(policies_file, 'w') as f:
                 json.dump(policies_json, f, indent=4)
-            logger.info("Generated policies.json for RPO Party %d with all %d RPEs" % (i, self.num_parties))
+            logger.info("Generated policies-%d.json for RPO Party %d with all %d RPEs" % (self.num_parties, i, self.num_parties))
             
             party_dirs['rpos'].append(rpo_dir)
             

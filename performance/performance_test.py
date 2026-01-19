@@ -44,10 +44,13 @@ class RPEPerformanceTest:
     def wait_for_all_rpes_complete(self, rpe_ids, timeout=300):
         """
         等待所有 RPE 完成初始化（Phase 2 完成）
+        如果性能文件被删除，会重新从所有 RPE 目录查找
         """
         logger.info("Waiting for all RPEs to complete initialization...")
         start_time = time.time()
         completed_rpes = set()
+        # 记录每个 RPE 找到的性能文件路径，用于检测文件是否被删除
+        rpe_perf_files = {}
         
         while len(completed_rpes) < len(rpe_ids):
             if time.time() - start_time > timeout:
@@ -55,18 +58,34 @@ class RPEPerformanceTest:
                 return False
                 
             for rpe_id in rpe_ids:
-                if rpe_id in completed_rpes:
-                    continue
-                
-                # 从所有 RPE 目录中查找性能文件
+                # 每次循环都重新从所有 RPE 目录查找性能文件
                 perf_file = self._find_perf_file(rpe_id)
+                
+                # 如果之前找到的文件被删除了，从 completed_rpes 中移除，重新查找
+                if rpe_id in completed_rpes:
+                    if rpe_id in rpe_perf_files:
+                        old_file = rpe_perf_files[rpe_id]
+                        if not os.path.exists(old_file):
+                            logger.warning("Performance file for RPE %s was deleted, re-searching..." % rpe_id)
+                            completed_rpes.remove(rpe_id)
+                            del rpe_perf_files[rpe_id]
+                            # 继续查找新的文件
+                            perf_file = self._find_perf_file(rpe_id)
+                    else:
+                        # 如果之前没有记录文件路径，重新查找
+                        perf_file = self._find_perf_file(rpe_id)
+                
+                # 如果找到了性能文件
                 if perf_file and os.path.exists(perf_file):
                     try:
                         with open(perf_file, 'r') as f:
                             perf_data = json.load(f)
                             if perf_data.get("timestamps", {}).get("init_complete") is not None:
-                                completed_rpes.add(rpe_id)
-                                logger.info("RPE %s completed initialization" % rpe_id)
+                                # 记录找到的文件路径
+                                rpe_perf_files[rpe_id] = perf_file
+                                if rpe_id not in completed_rpes:
+                                    completed_rpes.add(rpe_id)
+                                    logger.info("RPE %s completed initialization" % rpe_id)
                     except Exception as e:
                         logger.warning("Error reading perf file for %s: %s" % (rpe_id, e))
             
@@ -246,10 +265,55 @@ class RPEPerformanceTest:
         
         return all_results
     
+   
     def generate_summary_report(self, all_results):
         """
         生成汇总报告，展示初始化时间随 RPE 数量变化的趋势
+        生成 CSV 文件，不包含 system_total_time
         """
+        import csv
+        
+        # 生成 CSV 文件
+        csv_file = os.path.join(self.perf_dir, "summary_report.csv")
+        
+        with open(csv_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            
+            # 写入表头
+            writer.writerow([
+                "Number of RPEs",
+                "Phase1 Avg (s)",
+                "Phase1 Min (s)",
+                "Phase1 Max (s)",
+                "Phase2 Avg (s)",
+                "Phase2 Min (s)",
+                "Phase2 Max (s)",
+                "Total Avg (s)",
+                "Total Min (s)",
+                "Total Max (s)"
+            ])
+            
+            # 写入数据
+            for result in all_results:
+                num_rpes = result["num_rpes"]
+                phase1_stats = result["statistics"]["phase1"]
+                phase2_stats = result["statistics"]["phase2"]
+                total_stats = result["statistics"]["total"]
+                
+                writer.writerow([
+                    num_rpes,
+                    "%.3f" % phase1_stats["avg"],
+                    "%.3f" % phase1_stats["min"],
+                    "%.3f" % phase1_stats["max"],
+                    "%.3f" % phase2_stats["avg"],
+                    "%.3f" % phase2_stats["min"],
+                    "%.3f" % phase2_stats["max"],
+                    "%.3f" % total_stats["avg"],
+                    "%.3f" % total_stats["min"],
+                    "%.3f" % total_stats["max"]
+                ])
+        
+        # 同时生成文本格式的汇总报告（可选，不包含 system_total_time）
         report_file = os.path.join(self.perf_dir, "summary_report.txt")
         
         with open(report_file, 'w') as f:
@@ -257,39 +321,46 @@ class RPEPerformanceTest:
             f.write("RPE Initialization Performance Test Summary\n")
             f.write("=" * 80 + "\n\n")
             
-            f.write("Number of RPEs | System Total Time | Phase1 Avg | Phase2 Avg | Total Avg\n")
-            f.write("-" * 80 + "\n")
+            f.write("Number of RPEs | Phase1 Avg | Phase1 Min | Phase1 Max | "
+                   "Phase2 Avg | Phase2 Min | Phase2 Max | "
+                   "Total Avg | Total Min | Total Max\n")
+            f.write("-" * 120 + "\n")
             
             for result in all_results:
                 num_rpes = result["num_rpes"]
-                system_time = result["system_total_time"]
-                phase1_avg = result["statistics"]["phase1"]["avg"]
-                phase2_avg = result["statistics"]["phase2"]["avg"]
-                total_avg = result["statistics"]["total"]["avg"]
+                phase1_stats = result["statistics"]["phase1"]
+                phase2_stats = result["statistics"]["phase2"]
+                total_stats = result["statistics"]["total"]
                 
-                f.write("%14d | %17.3f | %10.3f | %10.3f | %9.3f\n" % (
-                    num_rpes, system_time, phase1_avg, phase2_avg, total_avg
+                f.write("%14d | %10.3f | %10.3f | %10.3f | "
+                       "%10.3f | %10.3f | %10.3f | "
+                       "%9.3f | %9.3f | %9.3f\n" % (
+                    num_rpes,
+                    phase1_stats["avg"], phase1_stats["min"], phase1_stats["max"],
+                    phase2_stats["avg"], phase2_stats["min"], phase2_stats["max"],
+                    total_stats["avg"], total_stats["min"], total_stats["max"]
                 ))
             
             f.write("\n" + "=" * 80 + "\n")
             f.write("Trend Analysis:\n")
             f.write("=" * 80 + "\n")
             
-            # 计算趋势
+            # 计算趋势（基于 Total Avg）
             if len(all_results) > 1:
-                first_time = all_results[0]["system_total_time"]
-                last_time = all_results[-1]["system_total_time"]
-                time_increase = last_time - first_time
+                first_avg = all_results[0]["statistics"]["total"]["avg"]
+                last_avg = all_results[-1]["statistics"]["total"]["avg"]
+                avg_increase = last_avg - first_avg
                 rpe_increase = all_results[-1]["num_rpes"] - all_results[0]["num_rpes"]
                 
-                f.write("Time increase: %.3f seconds (from %d to %d RPEs)\n" % (
-                    time_increase, all_results[0]["num_rpes"], all_results[-1]["num_rpes"]
+                f.write("Total Avg increase: %.3f seconds (from %d to %d RPEs)\n" % (
+                    avg_increase, all_results[0]["num_rpes"], all_results[-1]["num_rpes"]
                 ))
                 f.write("Average time per additional RPE: %.3f seconds\n" % (
-                    time_increase / rpe_increase if rpe_increase > 0 else 0
+                    avg_increase / rpe_increase if rpe_increase > 0 else 0
                 ))
         
-        logger.info("Summary report saved to: %s" % report_file)
+        logger.info("Summary report (CSV) saved to: %s" % csv_file)
+        logger.info("Summary report (TXT) saved to: %s" % report_file)
 
 
 if __name__ == "__main__":

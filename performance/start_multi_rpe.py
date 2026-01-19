@@ -21,8 +21,11 @@ class RPEStarter:
         self.processes = []
     
     def start_all(self):
-        """启动所有 RPE"""
+        """启动所有 RPE（并行启动）"""
         logger.info("Starting RPEs...")
+        
+        # 先收集所有需要启动的 RPE 信息
+        rpe_configs = []
         for i in range(1, self.num_parties + 1):
             rpe_dir = os.path.join(self.base_dir, f"RPE_party{i}")
             if not os.path.exists(rpe_dir):
@@ -37,6 +40,23 @@ class RPEStarter:
             log_dir = os.path.join(rpe_dir, "logs")
             os.makedirs(log_dir, exist_ok=True)
             
+            rpe_configs.append((i, rpe_dir, log_dir, startup_script))
+            
+        # 清理所有 RPE 的性能文件（启动前清理）
+        import glob
+        logger.info("Cleaning up performance data files...")
+        for i, rpe_dir, log_dir, startup_script in rpe_configs:
+            perf_data_dir = os.path.join(rpe_dir, "performance_data")
+            if os.path.exists(perf_data_dir):
+                for perf_file in glob.glob(os.path.join(perf_data_dir, "rpe_perf_*.json")):
+                    try:
+                        os.remove(perf_file)
+                        logger.debug("Removed performance file: %s" % perf_file)
+                    except Exception as e:
+                        logger.warning("Failed to remove performance file %s: %s" % (perf_file, e))
+        
+        # 并行启动所有 RPE
+        for i, rpe_dir, log_dir, startup_script in rpe_configs:
             try:
                 rpe_id = f"rpe-{i}"
                 log_file = open(os.path.join(log_dir, f"rpe_party{i}.log"), "w")
@@ -48,9 +68,13 @@ class RPEStarter:
                 )
                 self.processes.append((f"rpe_party{i}", process, log_file))
                 logger.info("RPE Party %d (%s) started (PID: %d)" % (i, rpe_id, process.pid))
-                time.sleep(2)  # 等待启动
             except Exception as e:
                 logger.error("Failed to start RPE Party %d: %s" % (i, str(e)))
+        
+        # 所有 RPE 启动后，等待一小段时间确保启动完成
+        if self.processes:
+            logger.info("Waiting for all RPEs to initialize...")
+            time.sleep(3)  # 等待所有 RPE 完成启动初始化
         
         logger.info("=" * 60)
         logger.info("All RPEs started!")

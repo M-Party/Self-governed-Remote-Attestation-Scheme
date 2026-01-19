@@ -70,10 +70,11 @@ collaterals/
 evidence
 RPO/evidences
 RPO/tool-collateral/collateral.dat.bat
-RPE-*
 RPE/performance_data/
 performance/performance_data
 
- fabric_client_party*
- RPO_party*
- RPE_party*
+fabric_client_party*
+RPO_party*
+RPE_party*
+
+RPO/policies.json.template.bak

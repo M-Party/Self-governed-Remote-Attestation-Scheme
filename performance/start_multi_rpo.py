@@ -8,6 +8,7 @@ import time
 import subprocess
 import signal
 import logging
+import configparser
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -20,8 +21,36 @@ class RPOStarter:
         self.num_parties = num_parties
         self.processes = []
     
+    def update_policies_path(self):
+        """根据参与方数量更新所有 RPO 的 config.toml 中的 policies_path"""
+        policies_filename = f"policies-{self.num_parties}.json"
+        logger.info("Updating policies_path to '%s' for all RPOs..." % policies_filename)
+        
+        for i in range(1, self.num_parties + 1):
+            rpo_dir = os.path.join(self.base_dir, f"RPO_party{i}")
+            if not os.path.exists(rpo_dir):
+                logger.warning("RPO Party %d not found: %s" % (i, rpo_dir))
+                continue
+            
+            config_file = os.path.join(rpo_dir, "config.toml")
+            if not os.path.exists(config_file):
+                logger.warning("Config file not found: %s" % config_file)
+                continue
+            
+            try:
+                config = configparser.ConfigParser()
+                config.read(config_file)
+                if 'rpo' in config:
+                    config['rpo']['policies_path'] = f'"{policies_filename}"'
+                    with open(config_file, 'w') as f:
+                        config.write(f)
+                    logger.info("Updated RPO Party %d: policies_path = %s" % (i, policies_filename))
+            except Exception as e:
+                logger.error("Failed to update config for RPO Party %d: %s" % (i, str(e)))
+
     def start_all(self):
         """启动所有 RPO"""
+        self.update_policies_path()
         logger.info("Starting RPOs...")
         for i in range(1, self.num_parties + 1):
             rpo_dir = os.path.join(self.base_dir, f"RPO_party{i}")
