@@ -76,5 +76,7 @@ performance/performance_data
 fabric_client_party*
 RPO_party*
 RPE_party*
+CE_party*
 
 RPO/policies.json.template.bak
+RPO/policies_1rpe_50ce.json

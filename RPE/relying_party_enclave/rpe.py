@@ -337,6 +337,12 @@ class RPE:
 
         # =============== Phase three ===============
         logger.info("======================= Starting phase three... =======================")
+
+        # 性能测试：初始化 Phase 3 性能数据
+        phase3_perf_data = {
+            "rpe_id": self.local_rpe["rpe_id"],
+            "ce_authentications": []
+        }
         
         # get TCB collateral data according to the policies
         ce_tcb_ids = self.policies_obj.getCETcbIds(self.local_rpe["rpe_id"])
@@ -354,6 +360,10 @@ class RPE:
             return
 
         while True:
+            # 性能测试：记录 CE 认证开始时间
+            ce_auth_start = time.time()
+            ce_id = None
+
             if self.ratls.wait_for_connection() !=0:
                 logger.info("CE connection failed")
                 continue
@@ -409,6 +419,25 @@ class RPE:
                     logger.error("Send CE's Certificate signed by RPE to CE failed")
                     self.ratls.close_connection()
                     continue
+
+                # 性能测试：记录 CE 认证完成时间（REQ_CERT 完成）
+                ce_auth_end = time.time()
+                ce_auth_duration = ce_auth_end - ce_auth_start
+                logger.info("CE %s authentication completed in %.3f seconds" % (ce_id, ce_auth_duration))
+                
+                # 保存性能数据
+                phase3_perf_data["ce_authentications"].append({
+                    "ce_id": ce_id,
+                    "auth_start": ce_auth_start,
+                    "auth_end": ce_auth_end,
+                    "auth_duration": ce_auth_duration
+                })
+                
+                # 保存到文件（每次认证后更新）
+                perf_file = f"./performance_data/rpe_phase3_perf_{self.local_rpe['rpe_id']}.json"
+                with open(perf_file, 'w') as f:
+                    json.dump(phase3_perf_data, f, indent=2)
+
             elif command == VERIFY_CERT:
                 collaborativeCERT = self.ratls.get_collaborative_ce_cert()
                 if collaborativeCERT is None:

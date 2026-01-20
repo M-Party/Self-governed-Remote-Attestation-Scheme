@@ -39,6 +39,19 @@ class RPE:
     
     def start(self):
         # =============== Phase three ===============
+        # 性能测试：记录认证开始时间
+        import time
+        import json
+        import os
+        
+        auth_start_time = time.time()
+        perf_data = {
+            "ce_id": self.local_ce,
+            "auth_start": auth_start_time,
+            "auth_end": None,
+            "auth_duration": None
+        }
+
         # Initialize RA-TLS clent
         ratls = RaTLS.RATLS()
         success = ratls.client(self.rpe_address, self.rpe_port)
@@ -46,7 +59,32 @@ class RPE:
             return 
 
         # Get CE certificate from RPE
+        cert_start_time = time.time()
         CECertBase64 = ratls.get_cert_from_rpe(self.local_ce)
+        cert_end_time = time.time()
+        # 性能测试：记录认证完成时间
+        auth_end_time = time.time()
+        auth_duration = auth_end_time - auth_start_time
+        cert_duration = cert_end_time - cert_start_time
+        
+        perf_data["auth_end"] = auth_end_time
+        perf_data["auth_duration"] = auth_duration
+        perf_data["cert_duration"] = cert_duration
+        
+        logger.info("CE %s authentication completed in %.3f seconds (cert request: %.3f seconds)" % 
+                   (self.local_ce, auth_duration, cert_duration))
+        
+        # 保存性能数据
+        perf_dir = "./performance_data"
+        os.makedirs(perf_dir, exist_ok=True)
+        perf_file = os.path.join(perf_dir, f"ce_perf_{self.local_ce}.json")
+        with open(perf_file, 'w') as f:
+            json.dump(perf_data, f, indent=2)
+        logger.info("Performance data saved to %s" % perf_file)
+
+        if CECertBase64 is None:
+            logger.error("Failed to get CE certificate from RPE")
+            return
         CECert = crypto_utility.base64_to_byte_array(CECertBase64)
         # logger.info("CE cert: %s", CECert.decode())
         

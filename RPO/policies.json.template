@@ -37,14 +37,14 @@
     "ce": [
         {
             "id": "ce-1",
-            "mrenclave": "93fcedde8afb13f8802257e7fb9214761e4716d83ed4d2058eca2045c5ae0794",
+            "mrenclave": "3b650c2ef42f93cdd3702ca27a9e3b6178b9765ea305496a8969a135c270924b",
             "mrsigner": "8f755b4333f50b53b8a5e33c1cd91733945746933915cf626bad92ed8bb095ee",
             "isvprodid_allow_any": true,
             "isvsvn_allow_any": true
         },
         {
             "id": "ce-2",
-            "mrenclave": "14dcb84bc3c2141af4e2dfdf21af2367230bdb5d517a637af4b8c157859e1532",
+            "mrenclave": "3b650c2ef42f93cdd3702ca27a9e3b6178b9765ea305496a8969a135c270924b",
             "mrsigner": "8f755b4333f50b53b8a5e33c1cd91733945746933915cf626bad92ed8bb095ee",
             "isv_prod_id": "0",
             "isv_svn": "0"
