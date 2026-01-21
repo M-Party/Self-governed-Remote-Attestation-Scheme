@@ -21,10 +21,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-// #define mbedtls_fprintf fprintf
-// #define mbedtls_printf printf
-#define mbedtls_fprintf(...) ((void)0)
-#define mbedtls_printf(...) ((void)0)
+#define mbedtls_fprintf fprintf
+#define mbedtls_printf printf
+// #define mbedtls_fprintf(...) ((void)0)
+// #define mbedtls_printf(...) ((void)0)
 
 #define MBEDTLS_EXIT_SUCCESS EXIT_SUCCESS
 #define MBEDTLS_EXIT_FAILURE EXIT_FAILURE
@@ -533,7 +533,7 @@ char *get_policies(const char * hostname, const char * port,
         return NULL;
     }
     int data_len = atoi(data_len_str);
-    if (data_len <= 0 || data_len > 8192) {
+    if (data_len <= 0 || data_len > 524288) {
         mbedtls_printf(" Invalid policies data length: %d\n", data_len);
         return NULL;
     }
@@ -544,11 +544,49 @@ char *get_policies(const char * hostname, const char * port,
         return NULL;
     }
 
-    ret = client_receive_data(policies_data, data_len+1);
-    if (ret <= 0) {
-        free(policies_data);
-        return NULL;
+    /* Receive policies data in chunks (SSL/TLS has record size limits, typically 16KB) */
+    /* Use the same approach as client_receive_data but for large data with chunking */
+    size_t total_received = 0;
+    
+    mbedtls_printf("  < Receiving policy data (%d bytes)...", data_len);
+    fflush(stdout);
+    
+    while (total_received < data_len) {
+        size_t remaining = data_len - total_received;
+        /* Read in smaller chunks - let mbedTLS decide the actual size available */
+        size_t request_size = remaining > 4096 ? 4096 : remaining;
+        
+        do {
+            ret = mbedtls_ssl_read(&ssl, (unsigned char*)(policies_data + total_received), request_size);
+            
+            if (ret > 0) {
+                total_received += ret;
+                /* Print progress every 8KB */
+                if (total_received % 8192 == 0 || total_received == data_len) {
+                    mbedtls_printf(".");
+                    fflush(stdout);
+                }
+                break; /* Successfully read, continue to next chunk */
+            }
+            else if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+                /* Continue to retry in the do-while loop - this matches client_receive_data pattern */
+                continue;
+            }
+            else if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY || ret == 0) {
+                mbedtls_printf(" failed\n  ! connection closed by peer (received %zu/%d bytes)\n", total_received, data_len);
+                free(policies_data);
+                return NULL;
+            }
+            else {
+                mbedtls_printf(" failed\n  ! mbedtls_ssl_read returned %d (received %zu/%d bytes)\n", ret, total_received, data_len);
+                free(policies_data);
+                return NULL;
+            }
+        } while (1); /* Loop until we get data or error */
     }
+    
+    policies_data[data_len] = '\0'; /* Null terminate */
+    mbedtls_printf(" ok (%zu bytes)\n", total_received);
 
     /* receive verification result */
     ret = client_receive_data(verification_result, verification_result_size);

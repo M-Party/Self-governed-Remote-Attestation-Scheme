@@ -628,15 +628,15 @@ class RPE:
         return hash_obj.digest()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
-    logging.getLogger().setLevel(logging.ERROR)
-    logging.getLogger('__main__').setLevel(logging.ERROR)
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
+    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger('__main__').setLevel(logging.INFO)
     logging.getLogger('rpe').setLevel(logging.INFO)
-    logging.getLogger('certificate').setLevel(logging.ERROR)
-    logging.getLogger('ratls').setLevel(logging.ERROR)
-    logging.getLogger('policies').setLevel(logging.ERROR)
+    logging.getLogger('certificate').setLevel(logging.INFO)
+    logging.getLogger('ratls').setLevel(logging.INFO)
+    logging.getLogger('policies').setLevel(logging.INFO)
     for name in logging.Logger.manager.loggerDict:
-        logging.getLogger(name).setLevel(logging.ERROR)
+        logging.getLogger(name).setLevel(logging.INFO)
         
     rpe = RPE()
     rpe.start()

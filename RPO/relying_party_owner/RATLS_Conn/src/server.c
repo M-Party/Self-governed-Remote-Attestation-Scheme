@@ -333,20 +333,29 @@ static int send_response(const char* response) {
 
 static int send_response1(const char* response, size_t len) {
     int ret;
-    // size_t len = strlen(response);
+    size_t total_sent = 0;
     
-    while ((ret = mbedtls_ssl_write(&ssl, (unsigned char*)response, len)) <= 0) {
-        if (ret == MBEDTLS_ERR_NET_CONN_RESET) {
-            mbedtls_printf(" failed\n  ! peer closed the connection\n\n");
-            return -1;
+    /* Send data in chunks to handle large data better */
+    while (total_sent < len) {
+        size_t remaining = len - total_sent;
+        size_t chunk_size = remaining > 16384 ? 16384 : remaining; /* Send in 16KB chunks */
+        
+        while ((ret = mbedtls_ssl_write(&ssl, (unsigned char*)(response + total_sent), chunk_size)) <= 0) {
+            if (ret == MBEDTLS_ERR_NET_CONN_RESET) {
+                mbedtls_printf(" failed\n  ! peer closed the connection\n\n");
+                return -1;
+            }
+            if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+                mbedtls_printf(" failed\n  ! mbedtls_ssl_write returned %d\n\n", ret);
+                return -1;
+            }
+            /* Continue to retry for WANT_READ/WANT_WRITE */
         }
-        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n  ! mbedtls_ssl_write returned %d\n\n", ret);
-            return -1;
-        }
+        
+        total_sent += ret;
     }
     
-    mbedtls_printf(" %lu bytes sent\n", (long unsigned int)ret);
+    mbedtls_printf(" %zu bytes sent\n", total_sent);
     return 0;
 }
 
