@@ -68,5 +68,6 @@ sgx.allowed_files = [
   "file:/etc/hosts",
   #"file:/etc/sgx_default_qcnl.conf",
   "file:config.toml",
+  "file:performance_data/",
   "file:venv/lib/python3.10/site-packages/"
 ]

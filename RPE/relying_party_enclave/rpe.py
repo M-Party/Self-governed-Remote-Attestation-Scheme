@@ -360,14 +360,14 @@ class RPE:
             return
 
         while True:
-            # 性能测试：记录 CE 认证开始时间
-            ce_auth_start = time.time()
-            ce_id = None
-
             if self.ratls.wait_for_connection() !=0:
                 logger.info("CE connection failed")
                 continue
             logger.info("CE connected")
+
+            # 性能测试：记录 CE 认证开始时间
+            ce_auth_start = time.time()
+            ce_id = None
 
             if self.ratls.perform_handshake() != 0:
                 logger.info("RA-TLS handshake with CE failed")

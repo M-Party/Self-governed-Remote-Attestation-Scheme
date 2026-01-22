@@ -82,6 +82,7 @@ class RPE:
             json.dump(perf_data, f, indent=2)
         logger.info("Performance data saved to %s" % perf_file)
 
+        exit(0)
         if CECertBase64 is None:
             logger.error("Failed to get CE certificate from RPE")
             return

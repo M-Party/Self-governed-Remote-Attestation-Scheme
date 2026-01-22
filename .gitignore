@@ -71,6 +71,7 @@ evidence
 RPO/evidences
 RPO/tool-collateral/collateral.dat.bat
 RPE/performance_data/
+CE/performance_data/
 performance/performance_data
 
 fabric_client_party*
