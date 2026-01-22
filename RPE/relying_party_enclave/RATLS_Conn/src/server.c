@@ -21,8 +21,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define mbedtls_fprintf fprintf
-#define mbedtls_printf printf
+// #define mbedtls_fprintf fprintf
+// #define mbedtls_printf printf
+#define mbedtls_fprintf(...) ((void)0)
+#define mbedtls_printf(...) ((void)0)
 
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/debug.h"

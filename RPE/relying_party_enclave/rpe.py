@@ -361,7 +361,7 @@ class RPE:
 
         while True:
             if self.ratls.wait_for_connection() !=0:
-                logger.info("CE connection failed")
+                logger.error("CE connection failed")
                 continue
             logger.info("CE connected")
 
@@ -370,13 +370,12 @@ class RPE:
             ce_id = None
 
             if self.ratls.perform_handshake() != 0:
-                logger.info("RA-TLS handshake with CE failed")
+                logger.error("RA-TLS handshake with CE failed")
                 self.ratls.close_connection()
                 continue
-            logger.info("RA-TLS handshake with CE succeeded")
 
             if self.ratls.verify_peer() != 0:
-                logger.info("CE attestation failed")
+                logger.error("CE attestation failed")
                 self.ratls.close_connection()
                 continue
 
@@ -426,6 +425,39 @@ class RPE:
                 logger.info("CE %s authentication completed in %.3f seconds" % (ce_id, ce_auth_duration))
                 
                 # 保存性能数据
+                # 在每次认证完成后，写入文件前检查文件是否存在
+                # 如果文件不存在（说明是新测试，文件被清理了），重置数据
+                perf_file = f"./performance_data/rpe_phase3_perf_{self.local_rpe['rpe_id']}.json"
+                
+                # 关键：在追加数据前，尝试读取现有文件来验证文件状态
+                # 如果文件不存在或读取失败，则重置 phase3_perf_data
+                # 这样可以确保在文件被手动删除后，不会将旧数据写入新文件
+                file_exists_and_valid = False
+                try:
+                    if os.path.exists(perf_file):
+                        # 尝试读取文件，验证文件是否有效
+                        with open(perf_file, 'r') as f:
+                            existing_data = json.load(f)
+                            # 验证文件格式是否正确
+                            if isinstance(existing_data, dict) and "rpe_id" in existing_data and "ce_authentications" in existing_data:
+                                file_exists_and_valid = True
+                                # 如果文件有效，使用现有数据（保持连续性）
+                                phase3_perf_data = existing_data
+                                logger.debug("Loaded existing perf data from %s with %d authentications" % 
+                                           (perf_file, len(phase3_perf_data.get("ce_authentications", []))))
+                except (FileNotFoundError, IOError, OSError, json.JSONDecodeError) as e:
+                    # 文件不存在、读取失败或格式错误，需要重置
+                    logger.debug("Perf file %s not accessible or invalid: %s, resetting phase3_perf_data" % (perf_file, e))
+                    file_exists_and_valid = False
+                
+                # 如果文件不存在或无效，重置数据
+                if not file_exists_and_valid:
+                    logger.info("Perf file %s not found or invalid, resetting phase3_perf_data (new test detected)" % perf_file)
+                    phase3_perf_data = {
+                        "rpe_id": self.local_rpe["rpe_id"],
+                        "ce_authentications": []
+                    }
+                
                 phase3_perf_data["ce_authentications"].append({
                     "ce_id": ce_id,
                     "auth_start": ce_auth_start,
@@ -434,9 +466,41 @@ class RPE:
                 })
                 
                 # 保存到文件（每次认证后更新）
-                perf_file = f"./performance_data/rpe_phase3_perf_{self.local_rpe['rpe_id']}.json"
-                with open(perf_file, 'w') as f:
-                    json.dump(phase3_perf_data, f, indent=2)
+                
+                # 在 SGX enclave 中，如果文件被外部删除，直接写入可能遇到权限问题
+                # 使用临时文件然后重命名的方式，更安全可靠
+                try:
+                    # 使用临时文件名
+                    temp_file = perf_file + ".tmp"
+                    
+                    # 先写入临时文件
+                    with open(temp_file, 'w') as f:
+                        json.dump(phase3_perf_data, f, indent=2)
+                    
+                    # 如果目标文件存在，先删除（避免重命名失败）
+                    # 注意：文件可能已经被外部删除，所以先检查是否存在
+                    if os.path.exists(perf_file):
+                        try:
+                            os.remove(perf_file)
+                        except (PermissionError, OSError) as e:
+                            # 文件可能已经被删除，忽略 FileNotFoundError
+                            if isinstance(e, FileNotFoundError):
+                                pass  # 文件不存在，无需处理
+                            else:
+                                logger.warning("Failed to remove existing perf file %s: %s" % (perf_file, e))
+                    
+                    # 重命名临时文件为目标文件
+                    os.rename(temp_file, perf_file)
+                except (PermissionError, IOError, OSError) as e:
+                    logger.error("Failed to write performance data to %s: %s" % (perf_file, e))
+                    # 清理临时文件（如果存在）
+                    temp_file = perf_file + ".tmp"
+                    if os.path.exists(temp_file):
+                        try:
+                            os.remove(temp_file)
+                        except:
+                            pass
+                    # 继续执行，不中断认证流程
 
             elif command == VERIFY_CERT:
                 collaborativeCERT = self.ratls.get_collaborative_ce_cert()
@@ -632,9 +696,9 @@ if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)
     logging.getLogger('__main__').setLevel(logging.INFO)
     logging.getLogger('rpe').setLevel(logging.INFO)
-    logging.getLogger('certificate').setLevel(logging.INFO)
-    logging.getLogger('ratls').setLevel(logging.INFO)
-    logging.getLogger('policies').setLevel(logging.INFO)
+    logging.getLogger('certificate').setLevel(logging.ERROR)
+    logging.getLogger('ratls').setLevel(logging.ERROR)
+    logging.getLogger('policies').setLevel(logging.ERROR)
     for name in logging.Logger.manager.loggerDict:
         logging.getLogger(name).setLevel(logging.INFO)
         

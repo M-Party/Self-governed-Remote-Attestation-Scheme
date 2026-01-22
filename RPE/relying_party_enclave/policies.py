@@ -334,7 +334,6 @@ class Policies:
     
     def getCEinfo(self, rpe_id, ce_id):
         # Get ces' info from policies 
-        logger.info("get ces' info from policies")
         policies_data_json = self.policies_data_json
         ces_info = dict()
         for job in policies_data_json["job"]:

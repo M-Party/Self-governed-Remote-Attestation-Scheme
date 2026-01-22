@@ -25,10 +25,20 @@ class Phase3PerformanceTest:
         if rpe_dir is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             self.rpe_base_dir = base_dir
+            self.rpe_dir = None
         else:
             # 如果指定了单个 RPE 目录，则只使用该目录
-            self.rpe_base_dir = os.path.dirname(rpe_dir) if os.path.isdir(rpe_dir) else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            self.rpe_dir = rpe_dir
+            # 将相对路径转换为绝对路径
+            if not os.path.isabs(rpe_dir):
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                self.rpe_dir = os.path.join(base_dir, rpe_dir.rstrip('/'))
+            else:
+                self.rpe_dir = rpe_dir.rstrip('/')
+            # 如果指定的目录存在，使用其父目录作为 base_dir（用于查找其他 RPE）
+            if os.path.isdir(self.rpe_dir):
+                self.rpe_base_dir = os.path.dirname(self.rpe_dir)
+            else:
+                self.rpe_base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
             
         # CE 基础目录
         if ce_base_dir is None:
@@ -46,15 +56,25 @@ class Phase3PerformanceTest:
     
     def _discover_rpe_dirs(self):
         """自动发现所有 RPE 目录"""
+        # 如果指定了 rpe_dir，直接使用它
+        if hasattr(self, 'rpe_dir') and self.rpe_dir:
+            if os.path.isdir(self.rpe_dir):
+                logger.debug("Using specified RPE directory: %s" % self.rpe_dir)
+                return [self.rpe_dir]
+            else:
+                logger.warning("Specified RPE directory does not exist: %s" % self.rpe_dir)
+        
+        # 否则自动发现所有 RPE 目录
         rpe_dirs = []
+        # 首先查找 RPE_party* 目录
         for path in glob.glob(os.path.join(self.rpe_base_dir, "RPE_party*")):
             if os.path.isdir(path):
                 rpe_dirs.append(path)
-        if not rpe_dirs:
-            # 如果没有找到 RPE_party*，尝试查找单个 RPE 目录
-            rpe_dir = os.path.join(self.rpe_base_dir, "RPE")
-            if os.path.isdir(rpe_dir):
-                rpe_dirs.append(rpe_dir)
+        # 同时也要查找单个 RPE 目录（可能文件在这里）
+        rpe_dir = os.path.join(self.rpe_base_dir, "RPE")
+        if os.path.isdir(rpe_dir):
+            rpe_dirs.append(rpe_dir)
+        logger.debug("Auto-discovered RPE directories: %s" % rpe_dirs)
         return sorted(rpe_dirs)
     
     def _find_rpe_perf_file(self, rpe_dir=None):
@@ -78,7 +98,9 @@ class Phase3PerformanceTest:
     def _find_all_rpe_perf_files(self):
         """查找所有 RPE 的 Phase 3 性能文件"""
         rpe_perf_files = {}
-        for rpe_dir in self._discover_rpe_dirs():
+        discovered_rpe_dirs = self._discover_rpe_dirs()
+        logger.debug("Discovering RPE perf files in dirs: %s" % discovered_rpe_dirs)
+        for rpe_dir in discovered_rpe_dirs:
             perf_file = self._find_rpe_perf_file(rpe_dir)
             if perf_file:
                 # 从文件名中提取 rpe_id
@@ -87,6 +109,8 @@ class Phase3PerformanceTest:
                 if filename.startswith("rpe_phase3_perf_") and filename.endswith(".json"):
                     rpe_id = filename[16:-5]  # 去掉前缀和后缀
                     rpe_perf_files[rpe_id] = perf_file
+                    logger.debug("Found RPE perf file: %s -> %s" % (rpe_id, perf_file))
+        logger.debug("Total RPE perf files found: %d" % len(rpe_perf_files))
         return rpe_perf_files
     
     def _find_ce_perf_file(self, ce_id):
@@ -127,20 +151,73 @@ class Phase3PerformanceTest:
         logger.info("All CEs completed authentication!")
         return True
     
+    def check_rpe_perf_data_ready(self, ce_ids):
+        """
+        检查 RPE 性能文件是否包含本轮所有 CE 的认证记录
+        通过统计已认证完成的 CE 数量与期望数量 N 是否相等来判断
+        返回 True 如果数量匹配，否则返回 False
+        """
+        if not ce_ids:
+            return False
+        
+        # 期望的 CE 数量
+        expected_count = len(ce_ids)
+        
+        # 查找所有 RPE 性能文件
+        rpe_perf_files = self._find_all_rpe_perf_files()
+        if not rpe_perf_files:
+            logger.debug("No RPE perf files found")
+            return False
+        
+        # 检查所有 RPE 的认证记录，收集所有已认证的 ce_id（去重）
+        all_ce_ids_found = set()
+        
+        for rpe_id, perf_file in rpe_perf_files.items():
+            try:
+                with open(perf_file, 'r') as f:
+                    rpe_data = json.load(f)
+                    if isinstance(rpe_data, dict) and "ce_authentications" in rpe_data:
+                        for auth in rpe_data["ce_authentications"]:
+                            if "ce_id" in auth:
+                                all_ce_ids_found.add(auth["ce_id"])
+            except Exception as e:
+                logger.debug("Error reading RPE perf file %s: %s" % (perf_file, e))
+                continue
+        
+        actual_count = len(all_ce_ids_found)
+        
+        # 比较已认证的 CE 数量是否与期望数量相等
+        if actual_count == expected_count:
+            logger.debug("RPE performance data is ready: %d CEs authenticated (expected %d)" % 
+                        (actual_count, expected_count))
+            return True
+        else:
+            logger.debug("RPE performance data not ready: %d CEs authenticated, expected %d" % 
+                        (actual_count, expected_count))
+            return False
+    
     def collect_performance_data(self, ce_ids):
         """收集性能数据"""
         # 收集所有 RPE 端数据
         rpe_perf_files = self._find_all_rpe_perf_files()
+        logger.debug("Found %d RPE perf files: %s" % (len(rpe_perf_files), list(rpe_perf_files.keys())))
         rpe_data_dict = {}
         for rpe_id, perf_file in rpe_perf_files.items():
             try:
                 with open(perf_file, 'r') as f:
                     rpe_data_dict[rpe_id] = json.load(f)
+                    logger.debug("Loaded RPE perf data for %s: %d authentications" % (
+                        rpe_id, len(rpe_data_dict[rpe_id].get("ce_authentications", []))
+                    ))
             except Exception as e:
                 logger.warning("Error reading RPE perf file for %s: %s" % (rpe_id, e))
         
         # 如果只有一个 RPE，保持向后兼容性
         rpe_data = rpe_data_dict if len(rpe_data_dict) > 1 else (list(rpe_data_dict.values())[0] if rpe_data_dict else None)
+        logger.debug("RPE data type: %s, has ce_authentications: %s" % (
+            type(rpe_data).__name__,
+            isinstance(rpe_data, dict) and "ce_authentications" in rpe_data
+        ))
         
         # 收集 CE 端数据
         ce_data = {}
@@ -155,11 +232,10 @@ class Phase3PerformanceTest:
         
         return rpe_data, ce_data
     
-    def run_test(self, num_ces, concurrent=False):
+    def run_test(self, num_ces):
         """
         运行性能测试
         注意：此方法不启动 CE，CE 应该由 start_multi_ce.py 启动
-        concurrent: 仅用于标识测试模式，不影响实际启动逻辑
         """
         logger.info("=" * 60)
         logger.info("Starting Phase 3 performance test with %d CEs" % num_ces)
@@ -201,6 +277,11 @@ class Phase3PerformanceTest:
         if not success:
             logger.error("Test failed: not all CEs completed authentication")
             return None
+        
+        # 检查 RPE 性能数据是否就绪（通过统计已认证的 CE 数量）
+        logger.info("Checking if RPE performance data is ready...")
+        if not self.check_rpe_perf_data_ready(ce_ids):
+            logger.warning("RPE performance data may not be complete (CE count mismatch), proceeding anyway...")
         
         # 收集性能数据
         rpe_data, ce_data = self.collect_performance_data(ce_ids)
@@ -254,7 +335,6 @@ class Phase3PerformanceTest:
         
         result = {
             "num_ces": num_ces,
-            "concurrent": concurrent,
             "ce_ids": ce_ids,
             "first_auth_start": first_auth_start,
             "last_auth_end": last_auth_end,
@@ -301,12 +381,12 @@ class Phase3PerformanceTest:
         
         return result
     
-    def run_series(self, start=1, end=10, concurrent=False):
+    def run_series(self, start=1, end=10):
         """运行一系列测试"""
         all_results = []
         
         for num_ces in range(start, end + 1):
-            result = self.run_test(num_ces, concurrent=concurrent)
+            result = self.run_test(num_ces)
             if result:
                 all_results.append(result)
             time.sleep(5)  # 测试间隔
@@ -332,6 +412,9 @@ class Phase3PerformanceTest:
                 "First Auth Start",
                 "Last Auth End",
                 "Total Time (s)",
+                "CE Start Time Spread (s)",
+                "Processing Time Range (s)",
+                "Total Auth Duration (s)",
                 "Avg Auth Duration (s)",
                 "Min Auth Duration (s)",
                 "Max Auth Duration (s)",
@@ -346,12 +429,18 @@ class Phase3PerformanceTest:
                 rpe_total_time = result.get("rpe_total_time", 0)
                 first_start = result.get("first_auth_start", 0)
                 last_end = result.get("last_auth_end", 0)
+                ce_start_spread = result.get("ce_start_time_spread")
+                processing_range = result.get("processing_time_range")
+                total_auth_duration = result.get("total_auth_duration", 0)
                 
                 writer.writerow([
                     num_ces,
                     "%.3f" % first_start if first_start else "N/A",
                     "%.3f" % last_end if last_end else "N/A",
                     "%.3f" % rpe_total_time if rpe_total_time else "N/A",
+                    "%.3f" % ce_start_spread if ce_start_spread is not None else "N/A",
+                    "%.3f" % processing_range if processing_range is not None else "N/A",
+                    "%.3f" % total_auth_duration if total_auth_duration else "N/A",
                     "%.3f" % stats.get("avg", 0),
                     "%.3f" % stats.get("min", 0),
                     "%.3f" % stats.get("max", 0),
@@ -367,9 +456,9 @@ class Phase3PerformanceTest:
             f.write("Phase 3 Performance Test Summary (RPE Authentication of CEs)\n")
             f.write("=" * 100 + "\n\n")
             
-            f.write("Number | First Auth  | Last Auth   | Total Time | Avg Auth   | Min Auth   | Max Auth   | Count | Throughput\n")
-            f.write("of CEs | Start        | End          | (s)        | Duration(s)| Duration(s)| Duration(s)|       | (CEs/min)\n")
-            f.write("-" * 100 + "\n")
+            f.write("Number | First Auth  | Last Auth   | Total Time | Start Spread| Proc Range  | Total Auth | Avg Auth   | Min Auth   | Max Auth   | Count | Throughput\n")
+            f.write("of CEs | Start        | End          | (s)        | (s)         | (s)         | Duration(s)| Duration(s)| Duration(s)| Duration(s)|       | (CEs/min)\n")
+            f.write("-" * 120 + "\n")
             
             for result in all_results:
                 num_ces = result["num_ces"]
@@ -377,12 +466,18 @@ class Phase3PerformanceTest:
                 rpe_total_time = result.get("rpe_total_time", 0)
                 first_start = result.get("first_auth_start", 0)
                 last_end = result.get("last_auth_end", 0)
+                ce_start_spread = result.get("ce_start_time_spread")
+                processing_range = result.get("processing_time_range")
+                total_auth_duration = result.get("total_auth_duration", 0)
                 
-                f.write("%6d | %12.3f | %12.3f | %10.3f | %10.3f | %10.3f | %10.3f | %5d | %10.2f\n" % (
+                f.write("%6d | %12.3f | %12.3f | %10.3f | %11.3f | %11.3f | %11.3f | %10.3f | %10.3f | %10.3f | %5d | %10.2f\n" % (
                     num_ces,
                     first_start if first_start else 0,
                     last_end if last_end else 0,
                     rpe_total_time if rpe_total_time else 0,
+                    ce_start_spread if ce_start_spread is not None else 0,
+                    processing_range if processing_range is not None else 0,
+                    total_auth_duration if total_auth_duration else 0,
                     stats.get("avg", 0),
                     stats.get("min", 0),
                     stats.get("max", 0),
@@ -401,7 +496,6 @@ if __name__ == "__main__":
     parser.add_argument("--start", type=int, default=1, help="Starting number of CEs")
     parser.add_argument("--end", type=int, default=10, help="Ending number of CEs")
     parser.add_argument("--single", type=int, default=None, help="Test with a single number of CEs")
-    parser.add_argument("--concurrent", action="store_true", help="Start CEs concurrently")
     parser.add_argument("--perf-dir", type=str, default="./performance_data", help="Performance data directory")
     parser.add_argument("--rpe-dir", type=str, default=None, help="RPE directory")
     parser.add_argument("--ce-base-dir", type=str, default=None, help="CE base directory")
@@ -415,6 +509,6 @@ if __name__ == "__main__":
     )
     
     if args.single:
-        test.run_test(args.single, concurrent=args.concurrent)
+        test.run_test(args.single)
     else:
-        test.run_series(start=args.start, end=args.end, concurrent=args.concurrent)
+        test.run_series(start=args.start, end=args.end)

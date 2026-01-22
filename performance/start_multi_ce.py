@@ -56,25 +56,54 @@ class MultiCEStarter:
                         logger.warning("Failed to remove performance file %s: %s" % (perf_file, e))
         
         # 启动所有 CE
-        for i, ce_dir, log_dir, startup_script in ce_configs:
-            try:
-                ce_id = f"ce-{i}"
-                log_file = open(os.path.join(log_dir, f"ce_party{i}.log"), "w")
-                process = subprocess.Popen(
-                    ["bash", startup_script, "start"],
-                    cwd=ce_dir,
-                    stdout=log_file,
-                    stderr=subprocess.STDOUT
-                )
-                self.processes.append((f"ce_party{i}", process, log_file))
-                logger.info("CE Party %d (%s) started (PID: %d)" % (i, ce_id, process.pid))
-                
-                if not concurrent:
-                    # 顺序启动：等待当前进程完成
+        if concurrent:
+            # 并发启动：先创建所有进程，然后一次性启动
+            logger.info("Starting %d CEs concurrently..." % len(ce_configs))
+            processes_to_start = []
+            
+            for i, ce_dir, log_dir, startup_script in ce_configs:
+                try:
+                    ce_id = f"ce-{i}"
+                    log_file = open(os.path.join(log_dir, f"ce_party{i}.log"), "w")
+                    processes_to_start.append((i, ce_id, ce_dir, log_dir, startup_script, log_file))
+                except Exception as e:
+                    logger.error("Failed to prepare CE Party %d: %s" % (i, str(e)))
+            
+            # 一次性启动所有进程（减少启动时间差异）
+            for i, ce_id, ce_dir, log_dir, startup_script, log_file in processes_to_start:
+                try:
+                    process = subprocess.Popen(
+                        ["bash", startup_script, "start"],
+                        cwd=ce_dir,
+                        stdout=log_file,
+                        stderr=subprocess.STDOUT
+                    )
+                    self.processes.append((f"ce_party{i}", process, log_file))
+                    logger.info("CE Party %d (%s) started (PID: %d)" % (i, ce_id, process.pid))
+                except Exception as e:
+                    logger.error("Failed to start CE Party %d: %s" % (i, str(e)))
+                    log_file.close()
+            
+            if self.processes:
+                logger.info("All %d CEs started concurrently. Waiting for them to initialize..." % len(self.processes))
+        else:
+            # 顺序启动：等待当前进程完成
+            logger.info("Starting CEs sequentially...")
+            for i, ce_dir, log_dir, startup_script in ce_configs:
+                try:
+                    ce_id = f"ce-{i}"
+                    log_file = open(os.path.join(log_dir, f"ce_party{i}.log"), "w")
+                    process = subprocess.Popen(
+                        ["bash", startup_script, "start"],
+                        cwd=ce_dir,
+                        stdout=log_file,
+                        stderr=subprocess.STDOUT
+                    )
+                    self.processes.append((f"ce_party{i}", process, log_file))
+                    logger.info("CE Party %d (%s) started (PID: %d)" % (i, ce_id, process.pid))
                     process.wait()
-                    
-            except Exception as e:
-                logger.error("Failed to start CE Party %d: %s" % (i, str(e)))
+                except Exception as e:
+                    logger.error("Failed to start CE Party %d: %s" % (i, str(e)))
     
     def stop_all(self):
         """停止所有 CE"""
