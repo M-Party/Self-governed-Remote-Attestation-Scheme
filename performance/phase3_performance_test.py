@@ -322,11 +322,39 @@ class Phase3PerformanceTest:
         
         # 计算总时间（第一个 auth_start 到最后一个 auth_end）
         rpe_total_time = None
-        throughput = 0
+        first_auth_start_time = None
+        last_auth_start_time = None
+        first_auth_end_time = None
+        last_auth_end_time = None
+        
         if first_auth_start is not None and last_auth_end is not None and first_auth_start != float('inf') and last_auth_end > 0:
             rpe_total_time = last_auth_end - first_auth_start
-            # 吞吐量 = CE数量 / RPE总认证时间 * 60
-            throughput = (num_ces / rpe_total_time) * 60 if rpe_total_time > 0 else 0
+            # 计算第一个和最后一个 auth_start 的时间差（反映 CE 启动时间差异）
+            if valid_auths:
+                first_auth_start_time = min(auth.get("auth_start", float('inf')) for auth in valid_auths)
+                last_auth_start_time = max(auth.get("auth_start", 0) for auth in valid_auths)
+                first_auth_end_time = min(auth.get("auth_end", float('inf')) for auth in valid_auths)
+                last_auth_end_time = max(auth.get("auth_end", 0) for auth in valid_auths)
+        
+        # 计算 CE 启动时间差异（第一个 auth_start 到最后一个 auth_start）
+        ce_start_time_spread = None
+        if first_auth_start_time is not None and last_auth_start_time is not None:
+            ce_start_time_spread = last_auth_start_time - first_auth_start_time
+        
+        # 计算实际处理时间范围（第一个 auth_end 到最后一个 auth_end）
+        processing_time_range = None
+        if first_auth_end_time is not None and last_auth_end_time is not None:
+            processing_time_range = last_auth_end_time - first_auth_end_time
+        
+        # 计算吞吐量：使用所有 CE 的 auth_duration 总和（更准确反映 RPE 处理能力）
+        throughput = 0
+        total_auth_duration = sum(rpe_auth_durations) if rpe_auth_durations else 0
+        if total_auth_duration > 0:
+            # 吞吐量 = CE数量 / 总认证处理时间 * 60
+            throughput = (num_ces / total_auth_duration) * 60
+        elif rpe_total_time is not None and rpe_total_time > 0:
+            # 如果 RPE 数据不可用，使用总时间作为后备（不准确，但至少有个值）
+            throughput = (num_ces / rpe_total_time) * 60
         
         # 如果 RPE 数据不可用
         if not rpe_auth_durations:
@@ -338,7 +366,10 @@ class Phase3PerformanceTest:
             "ce_ids": ce_ids,
             "first_auth_start": first_auth_start,
             "last_auth_end": last_auth_end,
-            "rpe_total_time": rpe_total_time,  # 第一个 auth_start 到最后一个 auth_end 的总时间
+            "rpe_total_time": rpe_total_time,  # 第一个 auth_start 到最后一个 auth_end 的总时间（包含启动时间差异）
+            "ce_start_time_spread": ce_start_time_spread,  # CE 启动时间差异（第一个 auth_start 到最后一个 auth_start）
+            "processing_time_range": processing_time_range,  # 实际处理时间范围（第一个 auth_end 到最后一个 auth_end）
+            "total_auth_duration": total_auth_duration,  # 所有 CE 的 auth_duration 总和（纯处理时间）
             "throughput_per_minute": throughput,
             "individual_perf": ce_data,
             "rpe_perf": rpe_data,
@@ -366,9 +397,17 @@ class Phase3PerformanceTest:
             logger.info("  Last CE auth_end: %.3f" % last_auth_end)
         if rpe_total_time is not None and rpe_total_time > 0:
             logger.info("  Total Time (first auth_start to last auth_end): %.3f seconds" % rpe_total_time)
-        logger.info("  Throughput: %.2f CEs/minute" % throughput)
+        if ce_start_time_spread is not None:
+            logger.info("  CE Start Time Spread (startup delay): %.3f seconds" % ce_start_time_spread)
+        if processing_time_range is not None:
+            logger.info("  Processing Time Range (first to last auth_end): %.3f seconds" % processing_time_range)
+        if total_auth_duration > 0:
+            logger.info("  Total Auth Duration (sum of all CE processing): %.3f seconds" % total_auth_duration)
+        logger.info("  Throughput: %.2f CEs/minute (based on total auth_duration)" % throughput)
         if rpe_auth_durations:
             logger.info("  Average Auth Duration (RPE-side): %.3f seconds" % avg_auth_duration)
+            if total_auth_duration > 0:
+                logger.info("  Total Auth Duration (sum of all): %.3f seconds" % total_auth_duration)
             logger.info("  Auth Duration - Min: %.3f, Max: %.3f, Count: %d" % (
                 result["statistics"]["auth_duration"]["min"],
                 result["statistics"]["auth_duration"]["max"],
@@ -487,6 +526,59 @@ class Phase3PerformanceTest:
         
         logger.info("Summary report (CSV) saved to: %s" % csv_file)
         logger.info("Summary report (TXT) saved to: %s" % report_file)
+    
+    def generate_report_from_json_files(self, perf_dir=None):
+        """
+        从已生成的 phase3_test_result_Nces.json 文件中读取数据并生成汇总报告
+        """
+        if perf_dir is None:
+            perf_dir = self.perf_dir
+        
+        logger.info("=" * 60)
+        logger.info("Generating summary report from existing JSON files...")
+        logger.info("Searching in directory: %s" % perf_dir)
+        logger.info("=" * 60)
+        
+        # 查找所有 phase3_test_result_*ces.json 文件
+        json_files = glob.glob(os.path.join(perf_dir, "phase3_test_result_*ces.json"))
+        
+        if not json_files:
+            logger.error("No phase3_test_result_*ces.json files found in %s" % perf_dir)
+            return
+        
+        # 按 CE 数量排序
+        def extract_num_ces(filename):
+            import re
+            match = re.search(r'phase3_test_result_(\d+)ces\.json', filename)
+            return int(match.group(1)) if match else 0
+        
+        json_files.sort(key=extract_num_ces)
+        logger.info("Found %d result files" % len(json_files))
+        
+        # 读取所有结果
+        all_results = []
+        for json_file in json_files:
+            try:
+                with open(json_file, 'r') as f:
+                    result = json.load(f)
+                    all_results.append(result)
+                    logger.info("Loaded: %s (N=%d CEs)" % (os.path.basename(json_file), result.get("num_ces", 0)))
+            except Exception as e:
+                logger.warning("Failed to load %s: %s" % (json_file, e))
+                continue
+        
+        if not all_results:
+            logger.error("No valid results loaded")
+            return
+        
+        logger.info("Successfully loaded %d test results" % len(all_results))
+        
+        # 生成汇总报告
+        self.generate_summary_report(all_results)
+        
+        logger.info("=" * 60)
+        logger.info("Summary report generated successfully!")
+        logger.info("=" * 60)
 
 
 if __name__ == "__main__":
@@ -499,6 +591,7 @@ if __name__ == "__main__":
     parser.add_argument("--perf-dir", type=str, default="./performance_data", help="Performance data directory")
     parser.add_argument("--rpe-dir", type=str, default=None, help="RPE directory")
     parser.add_argument("--ce-base-dir", type=str, default=None, help="CE base directory")
+    parser.add_argument("--generate-report", action="store_true", help="Generate summary report from existing JSON files")
     
     args = parser.parse_args()
     
@@ -508,7 +601,10 @@ if __name__ == "__main__":
         ce_base_dir=args.ce_base_dir
     )
     
-    if args.single:
+    if args.generate_report:
+        # 从已生成的 JSON 文件生成报告
+        test.generate_report_from_json_files(args.perf_dir)
+    elif args.single:
         test.run_test(args.single)
     else:
         test.run_series(start=args.start, end=args.end)
