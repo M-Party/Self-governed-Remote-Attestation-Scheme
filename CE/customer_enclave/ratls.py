@@ -38,13 +38,18 @@ class RATLS:
         b_port = self.port.encode('utf-8')
         b_ce_id = ce_id.encode('utf-8')
 
-        result = RAtlsclient.get_cert_from_rpe(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port),
-                                               ctypes.c_char_p(b_ce_id))
-        if result is None:
-            logger.error(" Get cert from RPE failed !")
-            return None
+        max_retries = 100
+        for attempt in range(1, max_retries + 1):
+            result = RAtlsclient.get_cert_from_rpe(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port),
+                                                   ctypes.c_char_p(b_ce_id))
+            if result is not None:
+                return ctypes.string_at(result).decode()
+            logger.warning(" Get cert from RPE failed (attempt %d/%d), retrying...", attempt, max_retries)
+            if attempt < max_retries:
+                time.sleep(0.001)
 
-        return ctypes.string_at(result).decode()
+        logger.error(" Get cert from RPE failed after %d retries, giving up.", max_retries)
+        return None
 
     def veritfy_peer_cert(self, peer_cert, verification_result_size=100):
         RAtlsclient.veritfy_peer_cert.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p, ctypes.c_size_t]
