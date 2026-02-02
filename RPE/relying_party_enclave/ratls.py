@@ -45,10 +45,21 @@ class RATLS:
         b_port = self.port.encode('utf-8')
         verification_result = ctypes.create_string_buffer(verification_result_size)
         
-        policies_data = RAtls.get_policies(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port), 
+        # Many retries with 0.001s interval to minimize stagger between RPEs (Phase2 waits for others' Evidence Quote)
+        max_retries = 30000
+        backoff_s = 0.001
+        for attempt in range(1, max_retries + 1):
+            result = RAtls.get_policies(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port),
                                            verification_result, verification_result_size)
-        
-        return ctypes.string_at(policies_data).decode(), verification_result.value.decode()
+            if result is not None:
+                return ctypes.string_at(result).decode(), verification_result.value.decode()
+            if attempt % 1000 == 0:
+                logger.warning(" Get policies from RPO failed (attempt %d/%d), retrying...", attempt, max_retries)
+            if attempt < max_retries:
+                time.sleep(backoff_s)
+
+        logger.error(" Get policies from RPO failed after %d retries, giving up.", max_retries)
+        return None, None 
 
     def getCEMR(self):
         RAtls.get_ce_mr.argtypes = []
