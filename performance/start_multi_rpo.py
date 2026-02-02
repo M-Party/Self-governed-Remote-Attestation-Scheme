@@ -49,48 +49,58 @@ class RPOStarter:
                 logger.error("Failed to update config for RPO Party %d: %s" % (i, str(e)))
 
     def start_all(self):
-        """启动所有 RPO"""
+        """启动所有 RPO（并行启动）"""
         self.update_policies_path()
         logger.info("Starting RPOs...")
+        rpo_configs = []
         for i in range(1, self.num_parties + 1):
             rpo_dir = os.path.join(self.base_dir, f"RPO_party{i}")
             if not os.path.exists(rpo_dir):
                 logger.warning("RPO Party %d not found: %s" % (i, rpo_dir))
                 continue
-            
             startup_script = os.path.join(rpo_dir, "startup.sh")
             if not os.path.exists(startup_script):
                 logger.warning("Startup script not found: %s" % startup_script)
                 continue
-            
             log_dir = os.path.join(rpo_dir, "logs")
             os.makedirs(log_dir, exist_ok=True)
-            
+            rpo_configs.append((i, rpo_dir, log_dir, startup_script))
+        for i, rpo_dir, log_dir, startup_script in rpo_configs:
             try:
                 log_file = open(os.path.join(log_dir, f"rpo_party{i}.log"), "w")
                 process = subprocess.Popen(
                     ["bash", startup_script, "start"],
                     cwd=rpo_dir,
                     stdout=log_file,
-                    stderr=subprocess.STDOUT
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True
                 )
                 self.processes.append((f"rpo_party{i}", process, log_file))
                 logger.info("RPO Party %d started (PID: %d)" % (i, process.pid))
-                time.sleep(3)  # 等待启动
             except Exception as e:
                 logger.error("Failed to start RPO Party %d: %s" % (i, str(e)))
-        
+        if self.processes:
+            logger.info("Waiting for all RPOs to bind...")
+            time.sleep(3)
         logger.info("=" * 60)
         logger.info("All RPOs started!")
         logger.info("Total processes: %d" % len(self.processes))
         logger.info("=" * 60)
     
     def stop_all(self):
-        """停止所有进程"""
+        """停止所有进程（含子进程，释放端口）"""
+        import os
         logger.info("Stopping all RPOs...")
         for name, process, log_file in reversed(self.processes):
             try:
                 logger.info("Stopping %s (PID: %d)..." % (name, process.pid))
+                if process.poll() is None:
+                    try:
+                        pgid = os.getpgid(process.pid)
+                        os.killpg(pgid, signal.SIGTERM)
+                    except (ProcessLookupError, OSError):
+                        pass
+                time.sleep(1)
                 process.terminate()
                 try:
                     process.wait(timeout=10)

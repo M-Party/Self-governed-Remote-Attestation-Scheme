@@ -64,7 +64,8 @@ class RPEStarter:
                     ["bash", startup_script, "start"],
                     cwd=rpe_dir,
                     stdout=log_file,
-                    stderr=subprocess.STDOUT
+                    stderr=subprocess.STDOUT,
+                    start_new_session=True
                 )
                 self.processes.append((f"rpe_party{i}", process, log_file))
                 logger.info("RPE Party %d (%s) started (PID: %d)" % (i, rpe_id, process.pid))
@@ -82,11 +83,19 @@ class RPEStarter:
         logger.info("=" * 60)
     
     def stop_all(self):
-        """停止所有进程"""
+        """停止所有进程（含子进程，释放端口）"""
+        import os
         logger.info("Stopping all RPEs...")
         for name, process, log_file in reversed(self.processes):
             try:
                 logger.info("Stopping %s (PID: %d)..." % (name, process.pid))
+                if process.poll() is None:
+                    try:
+                        pgid = os.getpgid(process.pid)
+                        os.killpg(pgid, signal.SIGTERM)
+                    except (ProcessLookupError, OSError):
+                        pass
+                time.sleep(1)
                 process.terminate()
                 try:
                     process.wait(timeout=10)

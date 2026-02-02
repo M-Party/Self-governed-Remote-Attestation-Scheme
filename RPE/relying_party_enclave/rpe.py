@@ -87,10 +87,20 @@ class RPE:
         # =============== Phase one ===============
         perf_timestamps["phase1_start"] = time.time()
         logger.info("======================= Starting phase one... =======================")
-        # Initialize RA-TLS client 
+        # Initialize RA-TLS client (init only, does not connect to RPO)
         success = self.ratls.client(self.rpo_address, self.rpo_port)
         if not success:
             return
+
+        # Pre-init ready: RPE has keys and client init; test script can start RPO now (for Phase2 test)
+        perf_data_dir = "./performance_data"
+        os.makedirs(perf_data_dir, exist_ok=True)
+        pre_init_ready_file = os.path.join(perf_data_dir, "rpe_pre_init_ready_{}.flag".format(self.local_rpe["rpe_id"]))
+        try:
+            with open(pre_init_ready_file, "w") as f:
+                f.write("{}\n".format(time.time()))
+        except Exception as e:
+            logger.warning("Could not write pre-init ready file %s: %s" % (pre_init_ready_file, e))
 
         # Set public keys to RPO
         # if self.ratls.set_public_keys(public_signing_key_pem, public_encryption_key_pem) != 0:
