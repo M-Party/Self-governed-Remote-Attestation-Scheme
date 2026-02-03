@@ -73,16 +73,68 @@ class FabricClientStarter:
                 logger.error("Error stopping %s: %s" % (name, str(e)))
         self.processes.clear()
 
+    def stop_all_by_ports(self):
+        """通过各 party 的 gRPC 端口查找并终止进程（用于 SSH 断开后无法 Ctrl+C 时在远程执行 --stop 清理）"""
+        import configparser
+        logger.info("Stopping Fabric Clients by ports...")
+        base_port = 50051
+        for i in range(1, self.num_parties + 1):
+            port = base_port + (i - 1)
+            config_file = os.path.join(self.base_dir, f"fabric_client_party{i}", "config", "config.toml")
+            if os.path.isfile(config_file):
+                try:
+                    config = configparser.ConfigParser()
+                    config.read(config_file)
+                    if "grpc" in config and "port" in config["grpc"]:
+                        port_str = config["grpc"]["port"].strip("'\"")
+                        port = int(port_str)
+                except Exception:
+                    pass
+            try:
+                out = subprocess.run(
+                    ["lsof", "-ti", ":%d" % port],
+                    capture_output=True, text=True, timeout=5
+                )
+                if out.returncode == 0 and out.stdout.strip():
+                    for pid_str in out.stdout.strip().split():
+                        pid = int(pid_str)
+                        logger.info("Killing PID %d (listening on port %d, fabric_client_party%d)" % (pid, port, i))
+                        try:
+                            os.kill(pid, signal.SIGTERM)
+                        except ProcessLookupError:
+                            pass
+                        except Exception as e:
+                            logger.warning("Failed to kill PID %d: %s" % (pid, e))
+            except FileNotFoundError:
+                # 无 lsof 时用 fuser（若存在）
+                try:
+                    out = subprocess.run(
+                        ["fuser", "-k", "%d/tcp" % port],
+                        capture_output=True, text=True, timeout=5
+                    )
+                    if out.returncode == 0:
+                        logger.info("Killed process on port %d (fabric_client_party%d)" % (port, i))
+                except FileNotFoundError:
+                    logger.warning("lsof/fuser not found, cannot kill by port. Run: lsof -ti :%d | xargs kill" % port)
+            except Exception as e:
+                logger.warning("Error stopping party %d (port %d): %s" % (i, port, e))
+        logger.info("Done.")
+
 def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="批量启动多个 Fabric Client")
     parser.add_argument("--num-parties", type=int, required=True, help="参与方数量")
     parser.add_argument("--wait", type=int, default=0, help="等待时间（秒），0 表示持续运行")
+    parser.add_argument("--stop", action="store_true", help="仅按端口清理已启动的 Fabric Client 进程（SSH 断开后可在远程执行此选项）")
     
     args = parser.parse_args()
     
     starter = FabricClientStarter(num_parties=args.num_parties)
+    
+    if args.stop:
+        starter.stop_all_by_ports()
+        return
     
     def signal_handler(sig, frame):
         logger.info("Received interrupt signal, stopping all processes...")

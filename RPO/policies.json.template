@@ -2,7 +2,7 @@
     "session_id": "uuid",
     "description": "This is an example for policies description.",
     "rpe_info":{
-        "mrenclave": "6f4fb56126e0cc8210a4908a543b507d2336ee087303e005c2465fb3510a14c9",
+        "mrenclave": "3459e9efa41275a02369241b5e9f26d22dbaef8792589551889483fcad6da20c",
         "mrsigner": "8f755b4333f50b53b8a5e33c1cd91733945746933915cf626bad92ed8bb095ee",
         "isv_prod_id": "0",
         "isv_svn": "0"

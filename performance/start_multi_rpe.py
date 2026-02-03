@@ -83,8 +83,20 @@ class RPEStarter:
         logger.info("=" * 60)
     
     def stop_all(self):
-        """停止所有进程（含子进程，释放端口）"""
+        """停止所有进程（含子进程，释放端口），并删除各 RPE 目录下的 rpe_pre_init_ready_*.flag"""
         import os
+        import glob
+
+        # 先删除 flag，让 performance_test --manual 在 0.5s 内检测到「已清空」并重试，再慢慢停进程
+        for i in range(1, self.num_parties + 1):
+            perf_data_dir = os.path.join(self.base_dir, f"RPE_party{i}", "performance_data")
+            if os.path.isdir(perf_data_dir):
+                for flag_file in glob.glob(os.path.join(perf_data_dir, "rpe_pre_init_ready_*.flag")):
+                    try:
+                        os.remove(flag_file)
+                        logger.info("Removed flag: %s" % flag_file)
+                    except Exception as e:
+                        logger.warning("Failed to remove flag %s: %s" % (flag_file, e))
         logger.info("Stopping all RPEs...")
         for name, process, log_file in reversed(self.processes):
             try:
@@ -106,15 +118,34 @@ class RPEStarter:
             except Exception as e:
                 logger.error("Error stopping %s: %s" % (name, str(e)))
         self.processes.clear()
+  
 
 def main():
     import argparse
-    
+    import glob
+
     parser = argparse.ArgumentParser(description="批量启动多个 RPE")
     parser.add_argument("--num-parties", type=int, required=True, help="参与方数量")
     parser.add_argument("--wait", type=int, default=0, help="等待时间（秒），0 表示持续运行")
+    parser.add_argument("--delete-flags-only", action="store_true",
+                        help="仅删除各 RPE 目录下 performance_data 中的 rpe_pre_init_ready_*.flag（不启动、不停止进程），用于手动退出 RPE 后清空 flag 以便 performance_test 自动重试")
+    parser.add_argument("--base-dir", type=str, default=None, help="项目根目录（默认：performance 的上级）")
     
     args = parser.parse_args()
+    
+    if args.delete_flags_only:
+        base_dir = args.base_dir or os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        n = args.num_parties
+        for i in range(1, n + 1):
+            perf_data_dir = os.path.join(base_dir, f"RPE_party{i}", "performance_data")
+            if os.path.isdir(perf_data_dir):
+                for flag_file in glob.glob(os.path.join(perf_data_dir, "rpe_pre_init_ready_*.flag")):
+                    try:
+                        os.remove(flag_file)
+                        logger.info("Removed flag: %s" % flag_file)
+                    except Exception as e:
+                        logger.warning("Failed to remove flag %s: %s" % (flag_file, e))
+        return
     
     starter = RPEStarter(num_parties=args.num_parties)
     

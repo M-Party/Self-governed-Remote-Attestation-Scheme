@@ -3,6 +3,7 @@
 RPE 初始化性能测试脚本
 - Phase1 测试：先启动 RPO 再启动 RPE，统计 Phase1 时间随参与方数量变化
 - Phase2 测试：先启动 RPE，等所有 RPE 预初始化完成后给出信号再启动 RPO，统计 Phase2 时间随参与方数量变化
+- --manual：由你手动启动 RPE（先不启 RPO）；脚本等所有 RPE 预初始化就绪后给出「请现在启动 RPO」信号，你启动 RPO 后按 Enter，脚本再等待完成并收集结果
 """
 import json
 import time
@@ -25,12 +26,13 @@ if _script_dir not in sys.path:
 
 class RPEPerformanceTest:
     def __init__(self, max_rpe_count=5, perf_dir="./performance_data", rpe_dirs=None,
-                 test_mode="phase1", base_dir=None, stop_after_test=True):
+                 test_mode="phase1", base_dir=None, stop_after_test=True, manual=False):
         self.max_rpe_count = max_rpe_count
         self.perf_dir = perf_dir
         self.test_mode = test_mode  # "phase1" or "phase2"
         self.base_dir = base_dir or os.path.dirname(_script_dir)
         self.stop_after_test = stop_after_test
+        self.manual = manual  # True: 不启动/不停止 RPO、RPE，由用户手动启动；会给出「可启动 RPO」信号
         os.makedirs(self.perf_dir, exist_ok=True)
         
         # 配置 RPE 目录列表，例如 ["../RPE", "../RPE1", "../RPE2"]
@@ -78,10 +80,11 @@ class RPEPerformanceTest:
         logger.info("All %d RPE(s) pre-init ready. You can start RPO now." % len(rpe_ids))
         return True
 
-    def wait_for_all_rpes_complete(self, rpe_ids, timeout=300):
+    def wait_for_all_rpes_complete(self, rpe_ids, timeout=300, check_cleared=False):
         """
         等待所有 RPE 完成初始化（Phase 2 完成）
         如果性能文件被删除，会重新从所有 RPE 目录查找
+        check_cleared=True（manual 模式）：若检测到 rpe_pre_init_ready_*.flag 已全部删除，立即视为未完成并返回 False，便于重试流程
         """
         logger.info("Waiting for all RPEs to complete initialization...")
         start_time = time.time()
@@ -93,7 +96,11 @@ class RPEPerformanceTest:
             if time.time() - start_time > timeout:
                 logger.error("Timeout waiting for RPEs to complete")
                 return False
-                
+            # manual 模式：一旦检测到 flag 已清空（你已退出 RPE 并删 flag），立即视为未完成并重试
+            if check_cleared and self._is_perf_cleared(rpe_ids):
+                logger.info("检测到预初始化 flag 已清空，视为本轮未完成，重新开始当前轮次。")
+                return False
+
             for rpe_id in rpe_ids:
                 # 每次循环都重新从所有 RPE 目录查找性能文件
                 perf_file = self._find_perf_file(rpe_id)
@@ -125,8 +132,9 @@ class RPEPerformanceTest:
                                     logger.info("RPE %s completed initialization" % rpe_id)
                     except Exception as e:
                         logger.warning("Error reading perf file for %s: %s" % (rpe_id, e))
-            
-            time.sleep(1)
+
+            # manual 模式用较短间隔以便尽快检测到 flag 清空并重试
+            time.sleep(0.5 if check_cleared else 1)
         
         logger.info("All RPEs completed initialization!")
         return True
@@ -138,6 +146,21 @@ class RPEPerformanceTest:
             if os.path.exists(perf_file):
                 return perf_file
         return None
+
+    def _find_pre_init_flag(self, rpe_id):
+        """从所有 RPE 目录中查找预初始化就绪 flag 文件"""
+        for rpe_dir in self.rpe_dirs:
+            flag_file = os.path.join(rpe_dir, "performance_data", "rpe_pre_init_ready_%s.flag" % rpe_id)
+            if os.path.isfile(flag_file):
+                return flag_file
+        return None
+
+    def _is_perf_cleared(self, rpe_ids):
+        """判断是否已清空：各 rpe_id 的 rpe_pre_init_ready_*.flag 均不存在（Phase2 失败时 rpe_perf_*.json 可能不生成；已完成的会写 rpe_perf_*.json，故只以 flag 为准）"""
+        for rpe_id in rpe_ids:
+            if self._find_pre_init_flag(rpe_id) is not None:
+                return False
+        return True
     
     def collect_performance_data(self, rpe_ids):
         """
@@ -316,15 +339,65 @@ class RPEPerformanceTest:
         logger.info("=" * 60)
         return result
 
+    def _run_test_manual(self, num_rpes):
+        """
+        手动模式：不启动/不停止 RPO 和 RPE。
+        1) 先等所有 RPE 预初始化就绪 → 给出「请现在启动 RPO」信号
+        2) 再等所有 RPE 完全初始化完成 → 收集数据
+        失败时由你自行判断并退出所有 RPE；脚本通过检测 performance_data 是否清空来自动重试当前轮次。
+        """
+        rpe_ids = [f"rpe-{i+1}" for i in range(num_rpes)]
+        while True:
+            self._cleanup_perf_files()
+            logger.info("=" * 60)
+            logger.info("Manual mode: %d RPE(s). Please start all RPEs first (do not start RPO yet)." % num_rpes)
+            logger.info("base_dir=%s, rpe_dirs=%s（与 start_multi_rpe 须同一项目根）" % (self.base_dir, self.rpe_dirs))
+            logger.info("=" * 60)
+            if not self.wait_for_all_rpes_pre_init_ready(rpe_ids):
+                logger.error("Manual test failed: not all RPEs became pre-init ready")
+                return None
+            # ---------- 信号：所有 RPE 已预初始化就绪，请现在启动 RPO ----------
+            _signal_msg = ">>> 信号：所有 RPE 已预初始化就绪，请现在启动 RPO <<<"
+            for _ in range(3):
+                logger.info("")
+            logger.info("=" * 60)
+            logger.info(_signal_msg)
+            logger.info("=" * 60)
+            for _ in range(3):
+                logger.info("")
+            try:
+                with open(os.path.join(self.perf_dir, "START_RPO_NOW.flag"), "w") as f:
+                    f.write(_signal_msg + "\n")
+            except Exception:
+                pass
+            try:
+                input("启动 RPO 后按 Enter 继续... ")
+            except EOFError:
+                logger.info("(no stdin, waiting 10s for you to start RPO...)")
+                time.sleep(10)
+            logger.info("Waiting for all RPEs to complete full initialization...")
+            success = self.wait_for_all_rpes_complete(rpe_ids, check_cleared=True)
+            if success:
+                return self._collect_and_report(num_rpes, rpe_ids)
+            # 未全部完成：由你判断失败并退出所有 RPE，脚本只检测 flag 是否清空
+            logger.warning("未全部完成初始化。若已退出所有 RPE，请删除各 RPE 目录下 performance_data 中的 rpe_pre_init_ready_*.flag（可运行: python start_multi_rpe.py --num-parties %d --delete-flags-only）" % num_rpes)
+            logger.info("检测到上述 flag 已删除后，将自动重新等待 RPE 预初始化就绪并继续当前轮次...")
+            while not self._is_perf_cleared(rpe_ids):
+                time.sleep(2)
+            logger.info("已检测到文件清空，重新开始当前轮次。")
+
     def run_test(self, num_rpes):
         """
         运行指定数量 RPE 的性能测试
         Phase1：先 RPO 再 RPE，统计 Phase1 时间
         Phase2：先 RPE，等预初始化完成后启 RPO，统计 Phase2 时间
+        --manual：手动启 RPE/RPO，脚本给出「可启动 RPO」信号后等待完成并收集
         """
         logger.info("=" * 60)
         logger.info("Starting %s performance test with %d RPEs" % (self.test_mode, num_rpes))
         logger.info("=" * 60)
+        if self.manual:
+            return self._run_test_manual(num_rpes)
         if self.test_mode == "phase2":
             return self.run_test_phase2(num_rpes)
         return self.run_test_phase1(num_rpes)
@@ -550,6 +623,8 @@ if __name__ == "__main__":
     parser.add_argument("--perf-dir", type=str, default="./performance_data", help="Performance data directory")
     parser.add_argument("--base-dir", type=str, default=None, help="Project base directory (default: parent of performance/)")
     parser.add_argument("--no-stop", action="store_true", help="Do not stop RPO/RPE after test (leave them running)")
+    parser.add_argument("--manual", action="store_true",
+                        help="Manual start: you start RPE then RPO; script waits for pre-init ready, prints signal to start RPO, then waits for completion and collects results")
     parser.add_argument("--rpe-dirs", type=str, nargs="+", default=None,
                         help="List of RPE directories (e.g., ../RPE ../RPE1 ../RPE2)")
     
@@ -561,11 +636,15 @@ if __name__ == "__main__":
         rpe_dirs=args.rpe_dirs,
         test_mode=args.test,
         base_dir=args.base_dir,
-        stop_after_test=not args.no_stop
+        stop_after_test=not args.no_stop,
+        manual=getattr(args, "manual", False)
     )
 
     def _stop_rpo_rpe_on_signal(signum=None, frame=None):
-        """Ctrl+C 或 SIGTERM 时停掉 RPO/RPE，释放端口"""
+        """Ctrl+C 或 SIGTERM 时停掉 RPO/RPE，释放端口（manual 模式下不杀进程）"""
+        if test.manual:
+            logger.info("Received signal %s (manual mode: not stopping RPO/RPE)" % (signum if signum is not None else "?"))
+            sys.exit(128 + (signum if signum is not None else 0))
         logger.info("Received signal %s, stopping RPO and RPE..." % (signum if signum is not None else "?"))
         if test.rpe_starter:
             try:
