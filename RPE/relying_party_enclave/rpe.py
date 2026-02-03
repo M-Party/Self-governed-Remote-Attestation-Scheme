@@ -85,8 +85,9 @@ class RPE:
         logger.info("done.")
         
         # =============== Phase one ===============
-        perf_timestamps["phase1_start"] = time.time()
         logger.info("======================= Starting phase one... =======================")
+        logger.error("====== Performace test: phase one start =======")
+        perf_timestamps["phase1_start"] = time.time()
         # Initialize RA-TLS client (init only, does not connect to RPO)
         success = self.ratls.client(self.rpo_address, self.rpo_port)
         if not success:
@@ -206,7 +207,7 @@ class RPE:
         logger.info("Verify TCBs' collateral Succeed! ")
         perf_timestamps["phase1_end"] = time.time()
         phase1_duration = perf_timestamps["phase1_end"] - perf_timestamps["phase1_start"]
-        logger.info("Phase 1 duration: %.3f seconds" % phase1_duration)
+        logger.error("Phase 1 duration: %.3f seconds" % phase1_duration)
         logger.info("======================= Phase one finished =======================\n")
         
         # =============== Phase two ===============
@@ -327,8 +328,8 @@ class RPE:
         perf_timestamps["init_complete"] = perf_timestamps["phase2_end"]
         phase2_duration = perf_timestamps["phase2_end"] - perf_timestamps["phase2_start"]
         total_duration = perf_timestamps["init_complete"] - perf_timestamps["init_start"]
-        logger.info("Phase 2 duration: %.3f seconds" % phase2_duration)
-        logger.info("Total initialization duration: %.3f seconds" % total_duration)
+        logger.error("Phase 2 duration: %.3f seconds" % phase2_duration)
+        logger.error("Total initialization duration: %.3f seconds" % total_duration)
 
         # =============== 性能测试：保存时间戳到文件 ===============
         perf_data = {
@@ -347,7 +348,7 @@ class RPE:
 
         # =============== Phase three ===============
         logger.info("======================= Starting phase three... =======================")
-
+        logger.error("====== Performace test: phase three start =======")
         # 性能测试：初始化 Phase 3 性能数据
         phase3_perf_data = {
             "rpe_id": self.local_rpe["rpe_id"],
@@ -702,15 +703,15 @@ class RPE:
         return hash_obj.digest()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
-    logging.getLogger().setLevel(logging.INFO)
-    logging.getLogger('__main__').setLevel(logging.INFO)
-    logging.getLogger('rpe').setLevel(logging.INFO)
+    logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
+    logging.getLogger().setLevel(logging.ERROR)
+    logging.getLogger('__main__').setLevel(logging.ERROR)
+    logging.getLogger('rpe').setLevel(logging.ERROR)
     logging.getLogger('certificate').setLevel(logging.ERROR)
     logging.getLogger('ratls').setLevel(logging.ERROR)
     logging.getLogger('policies').setLevel(logging.ERROR)
     for name in logging.Logger.manager.loggerDict:
-        logging.getLogger(name).setLevel(logging.INFO)
+        logging.getLogger(name).setLevel(logging.ERROR)
         
     rpe = RPE()
     rpe.start()

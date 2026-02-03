@@ -34,8 +34,8 @@ int teeVerifyQuote(std::string base64_encoded_quote, size_t quote_size, std::str
                                             &supp_data.data_size);
 
     if (ret == SGX_QL_SUCCESS && supp_data.data_size == sizeof(sgx_ql_qv_supplemental_t)) {
-        printf("\tInfo: tee_get_quote_supplemental_data_version_and_size successfully returned.\n");
-        printf("\tInfo: latest supplemental data major version: %d, minor version: %d, size: %d\n", latest_ver.major_version, latest_ver.minor_version, supp_data.data_size);
+        // printf("\tInfo: tee_get_quote_supplemental_data_version_and_size successfully returned.\n");
+        // printf("\tInfo: latest supplemental data major version: %d, minor version: %d, size: %d\n", latest_ver.major_version, latest_ver.minor_version, supp_data.data_size);
         supp_data.p_data = (uint8_t*)malloc(supp_data.data_size);
         if (supp_data.p_data != NULL) {
             memset(supp_data.p_data, 0, supp_data.data_size);
@@ -410,7 +410,6 @@ uint8_t* parseCollateral(std::string base64_encoded_collateral) {
     uint32_t qe_identity_size = json_integer_value(json_object_get(collateral_object, "qe_identity_size"));
 
     // Construct p_quote_collater
-    printf("\nCollateral size: %d\n", collateral_size);
     sgx_ql_qve_collateral_t* p_quote_collateral_struct = (sgx_ql_qve_collateral_t*)malloc(sizeof(sgx_ql_qve_collateral_t));
     if (p_quote_collateral_struct == NULL) {
         printf("Allocate p_quote_collateral_struct failed\n");
@@ -462,8 +461,6 @@ uint8_t* parseCollateral(std::string base64_encoded_collateral) {
     p_quote_collateral_struct->qe_identity_size = qe_identity_size;
 
     uint8_t* p_quote_collateral = reinterpret_cast<uint8_t*>(p_quote_collateral_struct);
-
-    std::cout << "Construct collateral finished" << std::endl;
 
     return p_quote_collateral;
 }
