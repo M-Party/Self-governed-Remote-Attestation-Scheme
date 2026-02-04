@@ -38,15 +38,18 @@ class RATLS:
         b_port = self.port.encode('utf-8')
         b_ce_id = ce_id.encode('utf-8')
 
-        max_retries = 100
+        # Many retries with 0.001s interval to minimize stagger between RPEs (Phase2 waits for others' Evidence Quote)
+        max_retries = 40000
+        backoff_s = 0.001
         for attempt in range(1, max_retries + 1):
             result = RAtlsclient.get_cert_from_rpe(ctypes.c_char_p(b_address), ctypes.c_char_p(b_port),
                                                    ctypes.c_char_p(b_ce_id))
             if result is not None:
                 return ctypes.string_at(result).decode()
-            logger.warning(" Get cert from RPE failed (attempt %d/%d), retrying...", attempt, max_retries)
+            if attempt % 1000 == 0:
+                logger.warning(" Get cert from RPE failed (attempt %d/%d), retrying...", attempt, max_retries)
             if attempt < max_retries:
-                time.sleep(0.001)
+                time.sleep(backoff_s)
 
         logger.error(" Get cert from RPE failed after %d retries, giving up.", max_retries)
         return None

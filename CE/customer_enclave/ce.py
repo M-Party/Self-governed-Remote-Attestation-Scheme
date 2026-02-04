@@ -39,11 +39,33 @@ class RPE:
     
     def start(self):
         # =============== Phase three ===============
-        # 性能测试：记录认证开始时间
         import time
         import json
         import os
         
+        # 性能测试：CE 初始化就绪后写 flag，供 phase3 检测
+        perf_dir = "./performance_data"
+        os.makedirs(perf_dir, exist_ok=True)
+        pre_connect_flag = os.path.join(perf_dir, "ce_pre_connect_ready_{}.flag".format(self.local_ce))
+        start_rpe_flag = os.path.join(perf_dir, "START_RPE_NOW.flag")
+        try:
+            with open(pre_connect_flag, "w") as f:
+                f.write("{}\n".format(time.time()))
+            logger.info("CE %s pre-connect ready..." % self.local_ce)
+        except Exception as e:
+            logger.warning("Failed to write pre-connect flag: %s" % e)
+        # 总时间模式（CE_WAIT_FOR_START_RPE=1）：等 START_RPE_NOW.flag 后再开始计时连 RPE，保证「第一个 CE 开始计时到最后一个 CE 完成」为真实认证总时间
+        if os.environ.get("CE_WAIT_FOR_START_RPE", "").strip().lower() in ("1", "true", "yes"):
+            wait_timeout = 300
+            wait_start = time.time()
+            while not os.path.isfile(start_rpe_flag):
+                if time.time() - wait_start > wait_timeout:
+                    logger.error("Timeout waiting for START_RPE_NOW.flag")
+                    return
+                time.sleep(0.001)
+            logger.info("CE %s START_RPE_NOW.flag detected, starting auth timer and connecting to RPE..." % self.local_ce)
+
+        # 性能测试：记录认证开始时间（总时间模式下为 RPE 就绪后开始）
         auth_start_time = time.time()
         perf_data = {
             "ce_id": self.local_ce,
@@ -52,11 +74,14 @@ class RPE:
             "auth_duration": None
         }
 
+        init_start_time = time.time()
         # Initialize RA-TLS clent
         ratls = RaTLS.RATLS()
         success = ratls.client(self.rpe_address, self.rpe_port)
         if not success:
             return 
+        init_end_time = time.time()
+        logger.info("CE %s RA-TLS client initialization completed in %.3f seconds" % (self.local_ce, init_end_time - init_start_time))
 
         # Get CE certificate from RPE
         cert_start_time = time.time()

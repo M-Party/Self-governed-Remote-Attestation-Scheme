@@ -47,12 +47,20 @@ class Phase3PerformanceTest:
             self.ce_base_dir = ce_base_dir
     
     def _discover_ce_dirs(self):
-        """自动发现 CE 目录"""
+        """自动发现 CE 目录，按 CE_party 后的数字排序（CE_party1, CE_party2, ..., CE_party10）"""
         ce_dirs = []
         for path in glob.glob(os.path.join(self.ce_base_dir, "CE_party*")):
             if os.path.isdir(path):
                 ce_dirs.append(path)
-        return sorted(ce_dirs)
+        def _party_num(p):
+            name = os.path.basename(p.rstrip(os.sep))
+            if name.startswith("CE_party"):
+                try:
+                    return int(name[8:])
+                except ValueError:
+                    return 0
+            return 0
+        return sorted(ce_dirs, key=_party_num)
     
     def _discover_rpe_dirs(self):
         """自动发现所有 RPE 目录"""
@@ -120,7 +128,43 @@ class Phase3PerformanceTest:
             if os.path.exists(perf_file):
                 return perf_file
         return None
-    
+
+    def _find_ce_pre_connect_flag(self, ce_id):
+        """查找 CE 预连接就绪 flag 文件（ce_pre_connect_ready_{ce_id}.flag）"""
+        ce_dirs = self._discover_ce_dirs()
+        try:
+            idx = int(ce_id.split("-")[1]) - 1
+            if 0 <= idx < len(ce_dirs):
+                flag_file = os.path.join(ce_dirs[idx], "performance_data", "ce_pre_connect_ready_%s.flag" % ce_id)
+                if os.path.isfile(flag_file):
+                    return flag_file
+        except (ValueError, IndexError):
+            pass
+        for ce_dir in ce_dirs:
+            flag_file = os.path.join(ce_dir, "performance_data", "ce_pre_connect_ready_%s.flag" % ce_id)
+            if os.path.isfile(flag_file):
+                return flag_file
+        return None
+
+    def wait_for_all_ces_pre_connect_ready(self, ce_ids, timeout=120):
+        """等待所有 CE 预连接就绪（已写 ce_pre_connect_ready_*.flag）"""
+        logger.info("Waiting for all CEs to be pre-connect ready...")
+        start_time = time.time()
+        ready = set()
+        while len(ready) < len(ce_ids):
+            if time.time() - start_time > timeout:
+                logger.error("Timeout waiting for CEs pre-connect ready (%d/%d)" % (len(ready), len(ce_ids)))
+                return False
+            for ce_id in ce_ids:
+                if ce_id in ready:
+                    continue
+                if self._find_ce_pre_connect_flag(ce_id) is not None:
+                    ready.add(ce_id)
+                    logger.info("CE %s pre-connect ready" % ce_id)
+            time.sleep(0.2)
+        logger.info("All %d CE(s) pre-connect ready. You can start RPE now." % len(ce_ids))
+        return True
+
     def wait_for_ces_complete(self, ce_ids, timeout=300):
         """等待所有 CE 完成认证"""
         start_time = time.time()
@@ -232,24 +276,43 @@ class Phase3PerformanceTest:
         
         return rpe_data, ce_data
     
-    def run_test(self, num_ces):
+    def run_test(self, num_ces, ce_first=False, total_time=False):
         """
         运行性能测试
         注意：此方法不启动 CE，CE 应该由 start_multi_ce.py 启动
+        ce_first=True：先等所有 CE 预连接就绪 → 发出「请现在启动 RPE」信号 → 你启动 RPE 后按 Enter → 再等所有 CE 完成认证
+        total_time=True：N 个 CE 认证总时间模式。先启 CE（需设 CE_WAIT_FOR_START_RPE=1），等所有 CE 初始化就绪后发信号，
+                         你启动 RPE 后按 Enter，脚本下发 START_RPE_NOW.flag，CE 侧开始计时，统计「第一个 CE 开始计时到最后一个 CE 完成认证」的总时间
         """
         logger.info("=" * 60)
         logger.info("Starting Phase 3 performance test with %d CEs" % num_ces)
-        logger.info("Note: CEs should be started separately using start_multi_ce.py")
+        if total_time:
+            logger.info("Mode: Total-time. Start CEs with CE_WAIT_FOR_START_RPE=1; script signals when to start RPE, then CE-side timing = first auth_start to last auth_end.")
+        elif ce_first:
+            logger.info("Mode: CE-first. Start all CEs first; script will signal when you can start RPE.")
+        else:
+            logger.info("Note: CEs should be started separately using start_multi_ce.py")
         logger.info("=" * 60)
         
-        # 清理之前的性能数据
+        # 清理之前的性能数据及 CE 预连接 flag
         for ce_dir in self._discover_ce_dirs():
             perf_data_dir = os.path.join(ce_dir, "performance_data")
             if os.path.exists(perf_data_dir):
                 for perf_file in glob.glob(os.path.join(perf_data_dir, "ce_perf_*.json")):
                     try:
                         os.remove(perf_file)
-                    except:
+                    except Exception:
+                        pass
+                for flag_file in glob.glob(os.path.join(perf_data_dir, "ce_pre_connect_ready_*.flag")):
+                    try:
+                        os.remove(flag_file)
+                    except Exception:
+                        pass
+                start_rpe_flag = os.path.join(perf_data_dir, "START_RPE_NOW.flag")
+                if os.path.isfile(start_rpe_flag):
+                    try:
+                        os.remove(start_rpe_flag)
+                    except Exception:
                         pass
         
         # 清理所有 RPE 性能数据
@@ -270,7 +333,37 @@ class Phase3PerformanceTest:
         if len(ce_dirs) < num_ces:
             logger.error("Not enough CE directories found. Need %d, found %d" % (num_ces, len(ce_dirs)))
             return None
-        
+
+        if ce_first or total_time:
+            if not self.wait_for_all_ces_pre_connect_ready(ce_ids):
+                logger.error("Not all CEs became pre-connect ready")
+                return None
+            _signal_msg = ">>> 信号：所有 CE 已初始化就绪，请现在启动 RPE <<<"
+            for _ in range(3):
+                logger.info("")
+            logger.info("=" * 60)
+            logger.info(_signal_msg)
+            logger.info("=" * 60)
+            for _ in range(3):
+                logger.info("")
+            try:
+                input("启动 RPE 后按 Enter 继续... ")
+            except EOFError:
+                logger.info("(no stdin, waiting 10s...)")
+                time.sleep(10)
+            if total_time:
+                for ce_dir in ce_dirs:
+                    perf_data_dir = os.path.join(ce_dir, "performance_data")
+                    start_rpe_flag = os.path.join(perf_data_dir, "START_RPE_NOW.flag")
+                    try:
+                        os.makedirs(perf_data_dir, exist_ok=True)
+                        with open(start_rpe_flag, "w") as f:
+                            f.write(_signal_msg + "\n")
+                        logger.info("Created %s" % start_rpe_flag)
+                    except Exception as e:
+                        logger.warning("Failed to create START_RPE_NOW.flag in %s: %s" % (ce_dir, e))
+                logger.info("START_RPE_NOW.flag created; CEs will start timing and connect to RPE.")
+
         # 等待所有 CE 完成认证
         logger.info("Waiting for all CEs to complete authentication...")
         success = self.wait_for_ces_complete(ce_ids, timeout=300)
@@ -303,19 +396,28 @@ class Phase3PerformanceTest:
                     if isinstance(rpe_info, dict) and "ce_authentications" in rpe_info:
                         all_rpe_ce_auths.extend(rpe_info["ce_authentications"])
         
-        # 收集每个 CE 的 auth_duration 和计算总时间
+        # 收集每个 CE 的 auth_duration 和计算总时间（默认用 RPE 侧数据）
         if all_rpe_ce_auths:
             # 收集所有 auth_duration
             for auth in all_rpe_ce_auths:
                 if auth.get("auth_duration") is not None:
                     rpe_auth_durations.append(auth["auth_duration"])
             
-            # 找到第一个 auth_start 和最后一个 auth_end
+            # 找到第一个 auth_start 和最后一个 auth_end（RPE 侧）
             valid_auths = [auth for auth in all_rpe_ce_auths 
                           if auth.get("auth_start") is not None and auth.get("auth_end") is not None]
             if valid_auths:
                 first_auth_start = min(auth.get("auth_start", float('inf')) for auth in valid_auths)
                 last_auth_end = max(auth.get("auth_end", 0) for auth in valid_auths)
+        
+        # --total-time 模式：用 CE 侧性能文件（ce_perf_*.json）的 auth_start/auth_end 计算 Total Time（第一个 CE 开始计时到最后一个 CE 完成认证）
+        if total_time and ce_data:
+            ce_valid = [(ce_id, ce_data[ce_id]) for ce_id in ce_ids if ce_id in ce_data 
+                        and ce_data[ce_id].get("auth_start") is not None and ce_data[ce_id].get("auth_end") is not None]
+            if ce_valid:
+                first_auth_start = min(ce_data[ce_id].get("auth_start", float('inf')) for ce_id, _ in ce_valid)
+                last_auth_end = max(ce_data[ce_id].get("auth_end", 0) for ce_id, _ in ce_valid)
+                logger.info("Total Time (--total-time) computed from CE-side perf files (first CE auth_start to last CE auth_end)")
         
         # 计算平均 auth_duration
         avg_auth_duration = sum(rpe_auth_durations) / len(rpe_auth_durations) if rpe_auth_durations else 0
@@ -329,12 +431,23 @@ class Phase3PerformanceTest:
         
         if first_auth_start is not None and last_auth_end is not None and first_auth_start != float('inf') and last_auth_end > 0:
             rpe_total_time = last_auth_end - first_auth_start
-            # 计算第一个和最后一个 auth_start 的时间差（反映 CE 启动时间差异）
-            if valid_auths:
-                first_auth_start_time = min(auth.get("auth_start", float('inf')) for auth in valid_auths)
-                last_auth_start_time = max(auth.get("auth_start", 0) for auth in valid_auths)
-                first_auth_end_time = min(auth.get("auth_end", float('inf')) for auth in valid_auths)
-                last_auth_end_time = max(auth.get("auth_end", 0) for auth in valid_auths)
+            # 计算第一个和最后一个 auth_start/auth_end 的时间差
+            if total_time and ce_data:
+                ce_valid = [(ce_id, ce_data[ce_id]) for ce_id in ce_ids if ce_id in ce_data 
+                            and ce_data[ce_id].get("auth_start") is not None and ce_data[ce_id].get("auth_end") is not None]
+                if ce_valid:
+                    first_auth_start_time = min(ce_data[ce_id].get("auth_start", float('inf')) for ce_id, _ in ce_valid)
+                    last_auth_start_time = max(ce_data[ce_id].get("auth_start", 0) for ce_id, _ in ce_valid)
+                    first_auth_end_time = min(ce_data[ce_id].get("auth_end", float('inf')) for ce_id, _ in ce_valid)
+                    last_auth_end_time = max(ce_data[ce_id].get("auth_end", 0) for ce_id, _ in ce_valid)
+            elif all_rpe_ce_auths:
+                valid_auths = [auth for auth in all_rpe_ce_auths 
+                              if auth.get("auth_start") is not None and auth.get("auth_end") is not None]
+                if valid_auths:
+                    first_auth_start_time = min(auth.get("auth_start", float('inf')) for auth in valid_auths)
+                    last_auth_start_time = max(auth.get("auth_start", 0) for auth in valid_auths)
+                    first_auth_end_time = min(auth.get("auth_end", float('inf')) for auth in valid_auths)
+                    last_auth_end_time = max(auth.get("auth_end", 0) for auth in valid_auths)
         
         # 计算 CE 启动时间差异（第一个 auth_start 到最后一个 auth_start）
         ce_start_time_spread = None
@@ -396,7 +509,10 @@ class Phase3PerformanceTest:
         if last_auth_end is not None:
             logger.info("  Last CE auth_end: %.3f" % last_auth_end)
         if rpe_total_time is not None and rpe_total_time > 0:
-            logger.info("  Total Time (first auth_start to last auth_end): %.3f seconds" % rpe_total_time)
+            if total_time:
+                logger.info("  Total Time (CE-side: first auth_start to last auth_end): %.3f seconds" % rpe_total_time)
+            else:
+                logger.info("  Total Time (first auth_start to last auth_end): %.3f seconds" % rpe_total_time)
         if ce_start_time_spread is not None:
             logger.info("  CE Start Time Spread (startup delay): %.3f seconds" % ce_start_time_spread)
         if processing_time_range is not None:
@@ -420,12 +536,12 @@ class Phase3PerformanceTest:
         
         return result
     
-    def run_series(self, start=1, end=10):
+    def run_series(self, start=1, end=10, ce_first=False, total_time=False):
         """运行一系列测试"""
         all_results = []
         
         for num_ces in range(start, end + 1):
-            result = self.run_test(num_ces)
+            result = self.run_test(num_ces, ce_first=ce_first, total_time=total_time)
             if result:
                 all_results.append(result)
             time.sleep(5)  # 测试间隔
@@ -591,6 +707,8 @@ if __name__ == "__main__":
     parser.add_argument("--perf-dir", type=str, default="./performance_data", help="Performance data directory")
     parser.add_argument("--rpe-dir", type=str, default=None, help="RPE directory")
     parser.add_argument("--ce-base-dir", type=str, default=None, help="CE base directory")
+    parser.add_argument("--ce-first", action="store_true", help="CE-first mode: start CEs first, script signals when to start RPE, then wait for auth complete")
+    parser.add_argument("--total-time", action="store_true", help="N CE auth total-time mode: start CEs with CE_WAIT_FOR_START_RPE=1, signal when CE init done, after you start RPE and Enter script creates START_RPE_NOW.flag, CE-side timing = first auth_start to last auth_end")
     parser.add_argument("--generate-report", action="store_true", help="Generate summary report from existing JSON files")
     
     args = parser.parse_args()
@@ -605,6 +723,6 @@ if __name__ == "__main__":
         # 从已生成的 JSON 文件生成报告
         test.generate_report_from_json_files(args.perf_dir)
     elif args.single:
-        test.run_test(args.single)
+        test.run_test(args.single, ce_first=args.ce_first, total_time=args.total_time)
     else:
-        test.run_series(start=args.start, end=args.end)
+        test.run_series(start=args.start, end=args.end, ce_first=args.ce_first, total_time=args.total_time)
