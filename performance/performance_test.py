@@ -24,6 +24,14 @@ if _script_dir not in sys.path:
     sys.path.insert(0, _script_dir)
 
 
+def _build_stats(values):
+    return {
+        "avg": sum(values) / len(values) if values else 0,
+        "min": min(values) if values else 0,
+        "max": max(values) if values else 0,
+    }
+
+
 class RPEPerformanceTest:
     def __init__(self, max_rpe_count=5, perf_dir="./performance_data", rpe_dirs=None,
                  test_mode="phase1", base_dir=None, stop_after_test=True, manual=False):
@@ -279,6 +287,9 @@ class RPEPerformanceTest:
             system_total_time = None
         phase1_times = []
         phase2_times = []
+        phase2_quote_generation_times = []
+        phase2_exchange_times = []
+        phase2_verification_times = []
         total_times = []
         for rpe_id, perf_data in all_perf_data.items():
             durations = perf_data.get("durations", {})
@@ -286,6 +297,12 @@ class RPEPerformanceTest:
                 phase1_times.append(durations["phase1"])
             if durations.get("phase2"):
                 phase2_times.append(durations["phase2"])
+            if durations.get("phase2_quote_generation") is not None:
+                phase2_quote_generation_times.append(durations["phase2_quote_generation"])
+            if durations.get("phase2_exchange") is not None:
+                phase2_exchange_times.append(durations["phase2_exchange"])
+            if durations.get("phase2_verification") is not None:
+                phase2_verification_times.append(durations["phase2_verification"])
             if durations.get("total"):
                 total_times.append(durations["total"])
         result = {
@@ -296,21 +313,12 @@ class RPEPerformanceTest:
             "system_end": latest_end,
             "individual_perf": all_perf_data,
             "statistics": {
-                "phase1": {
-                    "avg": sum(phase1_times) / len(phase1_times) if phase1_times else 0,
-                    "min": min(phase1_times) if phase1_times else 0,
-                    "max": max(phase1_times) if phase1_times else 0
-                },
-                "phase2": {
-                    "avg": sum(phase2_times) / len(phase2_times) if phase2_times else 0,
-                    "min": min(phase2_times) if phase2_times else 0,
-                    "max": max(phase2_times) if phase2_times else 0
-                },
-                "total": {
-                    "avg": sum(total_times) / len(total_times) if total_times else 0,
-                    "min": min(total_times) if total_times else 0,
-                    "max": max(total_times) if total_times else 0
-                }
+                "phase1": _build_stats(phase1_times),
+                "phase2": _build_stats(phase2_times),
+                "phase2_quote_generation": _build_stats(phase2_quote_generation_times),
+                "phase2_exchange": _build_stats(phase2_exchange_times),
+                "phase2_verification": _build_stats(phase2_verification_times),
+                "total": _build_stats(total_times),
             }
         }
         result_file = os.path.join(self.perf_dir, "test_result_%drpes.json" % num_rpes)
@@ -329,6 +337,21 @@ class RPEPerformanceTest:
             result["statistics"]["phase2"]["avg"],
             result["statistics"]["phase2"]["min"],
             result["statistics"]["phase2"]["max"]
+        ))
+        logger.info("  Phase 2.1 local quote generation - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_quote_generation"]["avg"],
+            result["statistics"]["phase2_quote_generation"]["min"],
+            result["statistics"]["phase2_quote_generation"]["max"]
+        ))
+        logger.info("  Phase 2.2 quote exchange - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_exchange"]["avg"],
+            result["statistics"]["phase2_exchange"]["min"],
+            result["statistics"]["phase2_exchange"]["max"]
+        ))
+        logger.info("  Phase 2.3 quote verification - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_verification"]["avg"],
+            result["statistics"]["phase2_verification"]["min"],
+            result["statistics"]["phase2_verification"]["max"]
         ))
         logger.info("  Total (Individual) - Avg: %.3f, Min: %.3f, Max: %.3f" % (
             result["statistics"]["total"]["avg"],
@@ -434,6 +457,9 @@ class RPEPerformanceTest:
             system_total_time = system_end - system_start
         phase1_times = []
         phase2_times = []
+        phase2_quote_generation_times = []
+        phase2_exchange_times = []
+        phase2_verification_times = []
         total_times = []
         for rpe_id, perf_data in all_perf_data.items():
             durations = perf_data.get("durations", {})
@@ -441,6 +467,12 @@ class RPEPerformanceTest:
                 phase1_times.append(durations["phase1"])
             if durations.get("phase2"):
                 phase2_times.append(durations["phase2"])
+            if durations.get("phase2_quote_generation") is not None:
+                phase2_quote_generation_times.append(durations["phase2_quote_generation"])
+            if durations.get("phase2_exchange") is not None:
+                phase2_exchange_times.append(durations["phase2_exchange"])
+            if durations.get("phase2_verification") is not None:
+                phase2_verification_times.append(durations["phase2_verification"])
             if durations.get("total"):
                 total_times.append(durations["total"])
         result = {
@@ -451,15 +483,12 @@ class RPEPerformanceTest:
             "system_end": latest_end,
             "individual_perf": all_perf_data,
             "statistics": {
-                "phase1": {"avg": sum(phase1_times) / len(phase1_times) if phase1_times else 0,
-                          "min": min(phase1_times) if phase1_times else 0,
-                          "max": max(phase1_times) if phase1_times else 0},
-                "phase2": {"avg": sum(phase2_times) / len(phase2_times) if phase2_times else 0,
-                          "min": min(phase2_times) if phase2_times else 0,
-                          "max": max(phase2_times) if phase2_times else 0},
-                "total": {"avg": sum(total_times) / len(total_times) if total_times else 0,
-                         "min": min(total_times) if total_times else 0,
-                         "max": max(total_times) if total_times else 0}
+                "phase1": _build_stats(phase1_times),
+                "phase2": _build_stats(phase2_times),
+                "phase2_quote_generation": _build_stats(phase2_quote_generation_times),
+                "phase2_exchange": _build_stats(phase2_exchange_times),
+                "phase2_verification": _build_stats(phase2_verification_times),
+                "total": _build_stats(total_times),
             }
         }
         result_file = os.path.join(self.perf_dir, "test_result_%drpes.json" % num_rpes)
@@ -476,6 +505,18 @@ class RPEPerformanceTest:
             result["statistics"]["phase2"]["avg"],
             result["statistics"]["phase2"]["min"],
             result["statistics"]["phase2"]["max"]))
+        logger.info("  Phase 2.1 local quote generation - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_quote_generation"]["avg"],
+            result["statistics"]["phase2_quote_generation"]["min"],
+            result["statistics"]["phase2_quote_generation"]["max"]))
+        logger.info("  Phase 2.2 quote exchange - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_exchange"]["avg"],
+            result["statistics"]["phase2_exchange"]["min"],
+            result["statistics"]["phase2_exchange"]["max"]))
+        logger.info("  Phase 2.3 quote verification - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_verification"]["avg"],
+            result["statistics"]["phase2_verification"]["min"],
+            result["statistics"]["phase2_verification"]["max"]))
         logger.info("  Total (Individual) - Avg: %.3f, Min: %.3f, Max: %.3f" % (
             result["statistics"]["total"]["avg"],
             result["statistics"]["total"]["min"],
@@ -535,6 +576,15 @@ class RPEPerformanceTest:
                 "Phase2 Avg (s)",
                 "Phase2 Min (s)",
                 "Phase2 Max (s)",
+                "Phase2.1 Quote Generation Avg (s)",
+                "Phase2.1 Quote Generation Min (s)",
+                "Phase2.1 Quote Generation Max (s)",
+                "Phase2.2 Quote Exchange Avg (s)",
+                "Phase2.2 Quote Exchange Min (s)",
+                "Phase2.2 Quote Exchange Max (s)",
+                "Phase2.3 Quote Verification Avg (s)",
+                "Phase2.3 Quote Verification Min (s)",
+                "Phase2.3 Quote Verification Max (s)",
                 "Total Avg (s)",
                 "Total Min (s)",
                 "Total Max (s)"
@@ -545,6 +595,9 @@ class RPEPerformanceTest:
                 num_rpes = result["num_rpes"]
                 phase1_stats = result["statistics"]["phase1"]
                 phase2_stats = result["statistics"]["phase2"]
+                phase2_quote_generation_stats = result["statistics"]["phase2_quote_generation"]
+                phase2_exchange_stats = result["statistics"]["phase2_exchange"]
+                phase2_verification_stats = result["statistics"]["phase2_verification"]
                 total_stats = result["statistics"]["total"]
                 
                 writer.writerow([
@@ -555,6 +608,15 @@ class RPEPerformanceTest:
                     "%.3f" % phase2_stats["avg"],
                     "%.3f" % phase2_stats["min"],
                     "%.3f" % phase2_stats["max"],
+                    "%.3f" % phase2_quote_generation_stats["avg"],
+                    "%.3f" % phase2_quote_generation_stats["min"],
+                    "%.3f" % phase2_quote_generation_stats["max"],
+                    "%.3f" % phase2_exchange_stats["avg"],
+                    "%.3f" % phase2_exchange_stats["min"],
+                    "%.3f" % phase2_exchange_stats["max"],
+                    "%.3f" % phase2_verification_stats["avg"],
+                    "%.3f" % phase2_verification_stats["min"],
+                    "%.3f" % phase2_verification_stats["max"],
                     "%.3f" % total_stats["avg"],
                     "%.3f" % total_stats["min"],
                     "%.3f" % total_stats["max"]
@@ -570,21 +632,33 @@ class RPEPerformanceTest:
             
             f.write("Number of RPEs | Phase1 Avg | Phase1 Min | Phase1 Max | "
                    "Phase2 Avg | Phase2 Min | Phase2 Max | "
+                   "P2.1 Avg | P2.1 Min | P2.1 Max | "
+                   "P2.2 Avg | P2.2 Min | P2.2 Max | "
+                   "P2.3 Avg | P2.3 Min | P2.3 Max | "
                    "Total Avg | Total Min | Total Max\n")
-            f.write("-" * 120 + "\n")
+            f.write("-" * 220 + "\n")
             
             for result in all_results:
                 num_rpes = result["num_rpes"]
                 phase1_stats = result["statistics"]["phase1"]
                 phase2_stats = result["statistics"]["phase2"]
+                phase2_quote_generation_stats = result["statistics"]["phase2_quote_generation"]
+                phase2_exchange_stats = result["statistics"]["phase2_exchange"]
+                phase2_verification_stats = result["statistics"]["phase2_verification"]
                 total_stats = result["statistics"]["total"]
                 
                 f.write("%14d | %10.3f | %10.3f | %10.3f | "
                        "%10.3f | %10.3f | %10.3f | "
+                       "%8.3f | %8.3f | %8.3f | "
+                       "%8.3f | %8.3f | %8.3f | "
+                       "%8.3f | %8.3f | %8.3f | "
                        "%9.3f | %9.3f | %9.3f\n" % (
                     num_rpes,
                     phase1_stats["avg"], phase1_stats["min"], phase1_stats["max"],
                     phase2_stats["avg"], phase2_stats["min"], phase2_stats["max"],
+                    phase2_quote_generation_stats["avg"], phase2_quote_generation_stats["min"], phase2_quote_generation_stats["max"],
+                    phase2_exchange_stats["avg"], phase2_exchange_stats["min"], phase2_exchange_stats["max"],
+                    phase2_verification_stats["avg"], phase2_verification_stats["min"], phase2_verification_stats["max"],
                     total_stats["avg"], total_stats["min"], total_stats["max"]
                 ))
             

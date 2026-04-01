@@ -71,6 +71,16 @@ class RPE:
             "phase1_start": None,
             "phase1_end": None,
             "phase2_start": None,
+            "phase2_quote_generation_start": None,
+            "phase2_quote_generation_end": None,
+            "phase2_exchange_start": None,
+            "phase2_send_local_quote_start": None,
+            "phase2_send_local_quote_end": None,
+            "phase2_wait_remote_quotes_start": None,
+            "phase2_wait_remote_quotes_end": None,
+            "phase2_exchange_end": None,
+            "phase2_verification_start": None,
+            "phase2_verification_end": None,
             "phase2_end": None,
             "init_complete": None
         }
@@ -221,6 +231,7 @@ class RPE:
             policies_hash = bytes(policies_hash_bytes)
 
         # Generate quote
+        perf_timestamps["phase2_quote_generation_start"] = time.time()
         quote = None
         if policies is not None:
             quote = self.generate_quote(policies)
@@ -239,95 +250,122 @@ class RPE:
             evidence_quote_json = json.dumps(evidence_quote)
             # Base64 encode the Evidence Quote JSON for transmission
             evidence_quote_base64 = crypto_utility.byte_array_to_base64(evidence_quote_json.encode('UTF-8'))
+            perf_timestamps["phase2_quote_generation_end"] = time.time()
 
-            logger.info("Sending Evidence Quote (quote + public keys) to blockchain...")
+            logger.error("Sending Evidence Quote (quote + public keys) to blockchain...")
+            perf_timestamps["phase2_exchange_start"] = time.time()
+            perf_timestamps["phase2_send_local_quote_start"] = perf_timestamps["phase2_exchange_start"]
             if not grpc_client.sendQuote(self.grpc_server_address, self.local_rpe["rpe_id"], evidence_quote_base64):
                 logger.error(" Send Evidence Quote to fabric failed !")
                 return
-            logger.info("Done")
+            perf_timestamps["phase2_send_local_quote_end"] = time.time()
+            perf_timestamps["phase2_wait_remote_quotes_start"] = perf_timestamps["phase2_send_local_quote_end"]
+            logger.error("Done")
         else:
             logger.error(" Generate qoute failed !")
             return
         
-        # Get the other rpes' Evidence Quote from fabric-service and do RA for them
-        rpe_id_dict_to_be_verified = set(self.rpes.keys())
+        # Get all RPEs' Evidence Quote from transport service before verification.
+        rpe_id_dict_to_be_fetched = set(self.rpes.keys())
+        fetched_evidence_quotes = {}
         while True:
-            rpe_ids = ",".join(rpe_id_dict_to_be_verified)
+            rpe_ids = ",".join(rpe_id_dict_to_be_fetched)
+            logger.error("Querying quotes for ids: %s", rpe_ids)
+            query_started_at = time.time()
 
             status, evidence_quotes_base64 = grpc_client.queryQuoteByIds(self.grpc_server_address, rpe_ids)
             if not status:
                 logger.error("Failed to query quotes from blockchain")
                 return
+            query_finished_at = time.time()
 
             evidence_quotes_dict = json.loads(evidence_quotes_base64)
+            logger.error(
+                "QueryQuoteByIds finished in %.3fs, returned ids=%s",
+                query_finished_at - query_started_at,
+                sorted(evidence_quotes_dict.keys()),
+            )
             if not evidence_quotes_dict:
                 continue
             
             for rpe_id, evidence_quote_base64 in evidence_quotes_dict.items():
-                rpe_id_dict_to_be_verified.remove(rpe_id)
-                rpe_info = self.rpes[rpe_id]
-
-                # Parse Evidence Quote: decode and extract quote and public keys
-                try:
-                    evidence_quote_json = crypto_utility.base64_to_byte_array(evidence_quote_base64).decode('UTF-8')
-                    evidence_quote = json.loads(evidence_quote_json)
-                    base64_encoded_quote = evidence_quote["quote"]
-                    rpe_public_signing_key = evidence_quote["rpe_public_signing_key"]
-                    rpe_public_encryption_key = evidence_quote["rpe_public_encryption_key"]
-                except Exception as e:
-                    logger.error(" Failed to parse Evidence Quote for rpe %s: %s", (rpe_id, str(e)))
-                    return
+                fetched_evidence_quotes[rpe_id] = evidence_quote_base64
+                rpe_id_dict_to_be_fetched.remove(rpe_id)
                 
-                # Verify quote using DCAP
-                quote_bytes = crypto_utility.base64_to_byte_array(base64_encoded_quote)
-                collateral = rpe_info["collateral"]
-                ret = verify_dcap_quote.teeVerifyQuote(base64_encoded_quote, len(quote_bytes), collateral)
-                logger.info("quote verification for rpe %s result: %x" % (rpe_id, ret))
-                if ret != 0 and ret != 0xa002 and ret != 0xa008:
-                    logger.error("Quote verification failed for rpe %s", rpe_id)
-                    return
-
-                # Generate report_data using public keys from Evidence Quote and local policies
-                worker_data = rpe_public_signing_key + rpe_public_encryption_key
-                keys_bytes = self.compute_message_hash(worker_data.encode('UTF-8'), SHA384)
-                report_data = bytes(keys_bytes) + policies_hash
-                base64_encoded_report_data = crypto_utility.byte_array_to_base64(report_data)
-        
-                rpe_policies_to_verify = {
-                    "mr_enclave": self.rpe_mr,
-                    "mr_signer": self.rpe_mrsigner,
-                    "isv_prod_id": self.rpe_isvprodid,
-                    "isv_svn": self.rpe_isvsvn,
-                    "base64_encoded_report_data": base64_encoded_report_data,
-                    "qeid": rpe_info["qeid"][0]
-                }
-                rpe_policies_to_verify_json = json.dumps(rpe_policies_to_verify)
-                ret = verify_dcap_quote.sgxVerifyQuoteBody(base64_encoded_quote, rpe_policies_to_verify_json)
-                logger.info("quote body verification for rpe %s result: %x" % (rpe_id, ret))
-                if ret != 0:
-                    logger.error("Quote body verification failed for rpe %s", rpe_id)
-                    return
-
-                # Verification successful, update public keys in self.rpes
-                logger.info("Verification successful for rpe %s, updating public keys", rpe_id)
-                rpe_info["details"]["rpe_public_signing_key"] = rpe_public_signing_key
-                rpe_info["details"]["rpe_public_encryption_key"] = rpe_public_encryption_key
-                
-            if len(rpe_id_dict_to_be_verified) == 0:
+            if len(rpe_id_dict_to_be_fetched) == 0:
                 break
 
-            ####################################################################
-            # if len(rpe_id_dict_to_be_verified) == 0 or \
-            #    self.local_rpe["rpe_id"] not in rpe_id_dict_to_be_verified:
-            #     break
-            ####################################################################
+        perf_timestamps["phase2_wait_remote_quotes_end"] = time.time()
+        perf_timestamps["phase2_exchange_end"] = time.time()
+        perf_timestamps["phase2_verification_start"] = time.time()
+
+        for rpe_id, evidence_quote_base64 in fetched_evidence_quotes.items():
+            rpe_info = self.rpes[rpe_id]
+
+            # Parse Evidence Quote: decode and extract quote and public keys
+            try:
+                evidence_quote_json = crypto_utility.base64_to_byte_array(evidence_quote_base64).decode('UTF-8')
+                evidence_quote = json.loads(evidence_quote_json)
+                base64_encoded_quote = evidence_quote["quote"]
+                rpe_public_signing_key = evidence_quote["rpe_public_signing_key"]
+                rpe_public_encryption_key = evidence_quote["rpe_public_encryption_key"]
+            except Exception as e:
+                logger.error(" Failed to parse Evidence Quote for rpe %s: %s", (rpe_id, str(e)))
+                return
+            
+            # Verify quote using DCAP
+            quote_bytes = crypto_utility.base64_to_byte_array(base64_encoded_quote)
+            collateral = rpe_info["collateral"]
+            ret = verify_dcap_quote.teeVerifyQuote(base64_encoded_quote, len(quote_bytes), collateral)
+            logger.info("quote verification for rpe %s result: %x" % (rpe_id, ret))
+            if ret != 0 and ret != 0xa002 and ret != 0xa008:
+                logger.error("Quote verification failed for rpe %s", rpe_id)
+                return
+
+            # Generate report_data using public keys from Evidence Quote and local policies
+            worker_data = rpe_public_signing_key + rpe_public_encryption_key
+            keys_bytes = self.compute_message_hash(worker_data.encode('UTF-8'), SHA384)
+            report_data = bytes(keys_bytes) + policies_hash
+            base64_encoded_report_data = crypto_utility.byte_array_to_base64(report_data)
+    
+            rpe_policies_to_verify = {
+                "mr_enclave": self.rpe_mr,
+                "mr_signer": self.rpe_mrsigner,
+                "isv_prod_id": self.rpe_isvprodid,
+                "isv_svn": self.rpe_isvsvn,
+                "base64_encoded_report_data": base64_encoded_report_data,
+                "qeid": rpe_info["qeid"][0]
+            }
+            rpe_policies_to_verify_json = json.dumps(rpe_policies_to_verify)
+            ret = verify_dcap_quote.sgxVerifyQuoteBody(base64_encoded_quote, rpe_policies_to_verify_json)
+            logger.info("quote body verification for rpe %s result: %x" % (rpe_id, ret))
+            if ret != 0:
+                logger.error("Quote body verification failed for rpe %s", rpe_id)
+                return
+
+            # Verification successful, update public keys in self.rpes
+            logger.info("Verification successful for rpe %s, updating public keys", rpe_id)
+            rpe_info["details"]["rpe_public_signing_key"] = rpe_public_signing_key
+            rpe_info["details"]["rpe_public_encryption_key"] = rpe_public_encryption_key
+
+        perf_timestamps["phase2_verification_end"] = time.time()
         
         logger.info("======================= Phase two finished =======================\n")
         perf_timestamps["phase2_end"] = time.time()
         perf_timestamps["init_complete"] = perf_timestamps["phase2_end"]
+        phase2_quote_generation_duration = perf_timestamps["phase2_quote_generation_end"] - perf_timestamps["phase2_quote_generation_start"]
+        phase2_send_local_quote_duration = perf_timestamps["phase2_send_local_quote_end"] - perf_timestamps["phase2_send_local_quote_start"]
+        phase2_wait_remote_quotes_duration = perf_timestamps["phase2_wait_remote_quotes_end"] - perf_timestamps["phase2_wait_remote_quotes_start"]
+        phase2_exchange_duration = perf_timestamps["phase2_exchange_end"] - perf_timestamps["phase2_exchange_start"]
+        phase2_verification_duration = perf_timestamps["phase2_verification_end"] - perf_timestamps["phase2_verification_start"]
         phase2_duration = perf_timestamps["phase2_end"] - perf_timestamps["phase2_start"]
         total_duration = perf_timestamps["init_complete"] - perf_timestamps["init_start"]
         logger.error("Phase 2 duration: %.3f seconds" % phase2_duration)
+        logger.error("Phase 2.1 local quote generation duration: %.3f seconds" % phase2_quote_generation_duration)
+        logger.error("Phase 2.2 quote exchange duration: %.3f seconds" % phase2_exchange_duration)
+        logger.error("Phase 2.2.1 send local quote duration: %.3f seconds" % phase2_send_local_quote_duration)
+        logger.error("Phase 2.2.2 wait remote quotes duration: %.3f seconds" % phase2_wait_remote_quotes_duration)
+        logger.error("Phase 2.3 quote verification duration: %.3f seconds" % phase2_verification_duration)
         logger.error("Total initialization duration: %.3f seconds" % total_duration)
 
         # =============== 性能测试：保存时间戳到文件 ===============
@@ -337,6 +375,11 @@ class RPE:
             "durations": {
                 "phase1": phase1_duration,
                 "phase2": phase2_duration,
+                "phase2_quote_generation": phase2_quote_generation_duration,
+                "phase2_exchange": phase2_exchange_duration,
+                "phase2_send_local_quote": phase2_send_local_quote_duration,
+                "phase2_wait_remote_quotes": phase2_wait_remote_quotes_duration,
+                "phase2_verification": phase2_verification_duration,
                 "total": total_duration
             }
         }

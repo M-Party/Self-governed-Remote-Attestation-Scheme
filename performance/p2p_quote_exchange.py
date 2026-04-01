@@ -14,6 +14,7 @@ import threading
 import time
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 import grpc
 
@@ -42,6 +43,7 @@ def _parse_csv_ids(raw_ids):
 class InMemoryExchangeState:
     def __init__(self):
         self._lock = threading.Lock()
+        self._quotes_condition = threading.Condition(self._lock)
         self.quotes = {}
         self.workers = {}
         self.verification_results = {}
@@ -55,8 +57,9 @@ class InMemoryExchangeState:
             self.ces_info.clear()
 
     def set_quote(self, rpe_id, quote):
-        with self._lock:
+        with self._quotes_condition:
             self.quotes[rpe_id] = quote
+            self._quotes_condition.notify_all()
 
     def get_quote(self, rpe_id):
         with self._lock:
@@ -65,6 +68,32 @@ class InMemoryExchangeState:
     def get_quotes(self, rpe_ids):
         with self._lock:
             return {rpe_id: self.quotes[rpe_id] for rpe_id in rpe_ids if rpe_id in self.quotes}
+
+    def wait_for_quotes(self, rpe_ids, timeout=None):
+        requested_ids = [rpe_id for rpe_id in rpe_ids if rpe_id]
+        if not requested_ids:
+            return {}, 0, 0.0
+
+        deadline = None if timeout is None else time.time() + timeout
+        wait_started_at = time.time()
+        with self._quotes_condition:
+            while True:
+                ready_quotes = {
+                    rpe_id: self.quotes[rpe_id]
+                    for rpe_id in requested_ids
+                    if rpe_id in self.quotes
+                }
+                if len(ready_quotes) == len(requested_ids):
+                    return ready_quotes, len(ready_quotes), time.time() - wait_started_at
+
+                if deadline is not None:
+                    remaining = deadline - time.time()
+                    if remaining <= 0:
+                        return ready_quotes, len(ready_quotes), time.time() - wait_started_at
+                else:
+                    remaining = None
+
+                self._quotes_condition.wait(timeout=remaining)
 
     def add_worker(self, worker_id, details):
         with self._lock:
@@ -101,40 +130,91 @@ class PeerBroadcaster:
     def __init__(self, node_id, peer_addresses):
         self.node_id = node_id
         self.peer_addresses = [address for address in peer_addresses if address]
+        self._executor = ThreadPoolExecutor(max_workers=max(1, len(self.peer_addresses)))
 
     @staticmethod
     def _metadata():
         return ((_FORWARDED_METADATA_KEY, "1"),)
 
-    def _fanout(self, rpc_name, request):
-        for peer_address in self.peer_addresses:
+    def _send_to_peer(self, peer_address, rpc_name, request):
+        request_label = getattr(request, "rpeId", rpc_name)
+        max_attempts = 3 if rpc_name == "SendQuote" else 1
+
+        for attempt in range(1, max_attempts + 1):
             try:
+                logger.info(
+                    "Node %s forwarding %s for %s to %s (attempt %d/%d)",
+                    self.node_id,
+                    rpc_name,
+                    request_label,
+                    peer_address,
+                    attempt,
+                    max_attempts,
+                )
                 with grpc.insecure_channel(peer_address) as channel:
                     stub = rpe_pb2_grpc.RpeServiceStub(channel)
                     rpc = getattr(stub, rpc_name)
                     response = rpc(request, metadata=self._metadata(), timeout=5.0)
-                    if response.status != 0:
-                        logger.warning(
-                            "Node %s forwarding %s to %s failed: %s",
+                    if response.status == 0:
+                        logger.info(
+                            "Node %s forwarded %s for %s to %s successfully",
                             self.node_id,
                             rpc_name,
+                            request_label,
                             peer_address,
-                            response.content,
                         )
+                        return
+
+                    logger.warning(
+                        "Node %s forwarding %s for %s to %s failed on attempt %d/%d: %s",
+                        self.node_id,
+                        rpc_name,
+                        request_label,
+                        peer_address,
+                        attempt,
+                        max_attempts,
+                        response.content,
+                    )
             except grpc.RpcError as exc:
                 logger.warning(
-                    "Node %s forwarding %s to %s rpc error: %s",
+                    "Node %s forwarding %s for %s to %s rpc error on attempt %d/%d: %s",
                     self.node_id,
                     rpc_name,
+                    request_label,
                     peer_address,
+                    attempt,
+                    max_attempts,
                     exc,
                 )
+
+            if attempt < max_attempts:
+                time.sleep(0.1 * attempt)
+
+        logger.error(
+            "Node %s exhausted retries forwarding %s for %s to %s",
+            self.node_id,
+            rpc_name,
+            request_label,
+            peer_address,
+        )
+
+    def _fanout(self, rpc_name, request):
+        for peer_address in self.peer_addresses:
+            self._send_to_peer(peer_address, rpc_name, request)
 
     def broadcast_rpe_verification_info(self, request):
         self._fanout("SendRPEVerificationInfo", request)
 
     def broadcast_quote(self, request):
         self._fanout("SendQuote", request)
+
+    def broadcast_quote_async(self, request):
+        copied_request = rpe_pb2.RpeIdAndQuote(
+            rpeId=request.rpeId,
+            base64EncodedQuote=request.base64EncodedQuote,
+        )
+        for peer_address in self.peer_addresses:
+            self._executor.submit(self._send_to_peer, peer_address, "SendQuote", copied_request)
 
     def broadcast_verification_result(self, request):
         self._fanout("SendVerificationResult", request)
@@ -144,9 +224,10 @@ class PeerBroadcaster:
 
 
 class P2PExchangeService(rpe_pb2_grpc.RpeServiceServicer):
-    def __init__(self, state, broadcaster):
+    def __init__(self, state, broadcaster, query_wait_timeout=25.0):
         self.state = state
         self.broadcaster = broadcaster
+        self.query_wait_timeout = query_wait_timeout
 
     @staticmethod
     def _is_forwarded(context):
@@ -176,8 +257,14 @@ class P2PExchangeService(rpe_pb2_grpc.RpeServiceServicer):
 
     def SendQuote(self, request, context):
         self.state.set_quote(request.rpeId, request.base64EncodedQuote)
+        logger.info(
+            "Node %s received quote for %s (forwarded=%s)",
+            self.broadcaster.node_id,
+            request.rpeId,
+            self._is_forwarded(context),
+        )
         if not self._is_forwarded(context):
-            self.broadcaster.broadcast_quote(request)
+            self.broadcaster.broadcast_quote_async(request)
         return rpe_pb2.Response(status=0, content="")
 
     def QueryQuote(self, request, context):
@@ -187,7 +274,25 @@ class P2PExchangeService(rpe_pb2_grpc.RpeServiceServicer):
         return rpe_pb2.Response(status=0, content=quote)
 
     def QueryQuoteByIds(self, request, context):
-        quotes = self.state.get_quotes(_parse_csv_ids(request.rpeIds))
+        requested_ids = _parse_csv_ids(request.rpeIds)
+        logger.info(
+            "Node %s QueryQuoteByIds request: ids=%s",
+            self.broadcaster.node_id,
+            requested_ids,
+        )
+        quotes, ready_count, waited_seconds = self.state.wait_for_quotes(
+            requested_ids,
+            timeout=self.query_wait_timeout,
+        )
+        logger.info(
+            "Node %s QueryQuoteByIds response: ids=%s ready=%d/%d waited=%.3fs returned=%s",
+            self.broadcaster.node_id,
+            requested_ids,
+            ready_count,
+            len(requested_ids),
+            waited_seconds,
+            sorted(quotes.keys()),
+        )
         return rpe_pb2.Response(status=0, content=json.dumps(quotes))
 
     def SendVerificationResult(self, request, context):
@@ -211,11 +316,14 @@ class P2PExchangeService(rpe_pb2_grpc.RpeServiceServicer):
         return rpe_pb2.Response(status=0, content=json.dumps(result))
 
 
-def serve(port, node_id, peer_addresses):
+def serve(port, node_id, peer_addresses, query_wait_timeout):
     state = InMemoryExchangeState()
     broadcaster = PeerBroadcaster(node_id=node_id, peer_addresses=peer_addresses)
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=20))
-    rpe_pb2_grpc.add_RpeServiceServicer_to_server(P2PExchangeService(state, broadcaster), server)
+    rpe_pb2_grpc.add_RpeServiceServicer_to_server(
+        P2PExchangeService(state, broadcaster, query_wait_timeout=query_wait_timeout),
+        server,
+    )
     server.add_insecure_port("0.0.0.0:%d" % port)
     logger.info(
         "Starting P2P node %s on port %d with peers=%s",
@@ -237,8 +345,14 @@ def main():
         default="",
         help="comma-separated peer grpc addresses, e.g. 127.0.0.1:51052,127.0.0.1:51053",
     )
+    parser.add_argument(
+        "--query-wait-timeout",
+        type=float,
+        default=25.0,
+        help="seconds for QueryQuoteByIds to wait for requested quotes before returning partial results",
+    )
     args = parser.parse_args()
-    serve(args.port, args.node_id, _parse_csv_ids(args.peer_addresses))
+    serve(args.port, args.node_id, _parse_csv_ids(args.peer_addresses), args.query_wait_timeout)
 
 
 if __name__ == "__main__":
