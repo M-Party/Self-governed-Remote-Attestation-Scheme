@@ -14,27 +14,41 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(mes
 logger = logging.getLogger(__name__)
 
 class MultiPartySetup:
-    def __init__(self, base_dir=None, num_parties=3):
+    def __init__(self, base_dir=None, num_parties=3, transport="fabric", p2p_port=51051, p2p_host="127.0.0.1"):
         if base_dir is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.base_dir = base_dir
         self.num_parties = num_parties
+        self.transport = transport
+        self.p2p_port = p2p_port
+        self.p2p_host = p2p_host
         
         # 基础目录
         self.fabric_client_base = os.path.join(base_dir, "fabric_service", "fabric_client")
         self.rpo_base = os.path.join(base_dir, "RPO")
         self.rpe_base = os.path.join(base_dir, "RPE")
+
+    def _get_rpe_grpc_address(self, party_index, base_grpc_port, grpc_host):
+        if self.transport == "p2p":
+            return "%s:%d" % (self.p2p_host, self.p2p_port + party_index - 1)
+        return "%s:%d" % (grpc_host, base_grpc_port + party_index - 1)
+
+    def _get_p2p_peer_addresses(self, party_index):
+        return [
+            "%s:%d" % (self.p2p_host, self.p2p_port + peer_index - 1)
+            for peer_index in range(1, self.num_parties + 1)
+            if peer_index != party_index
+        ]
     
-    def copy_and_config_fabric_client(self, party_id, port_offset=0):
+    def copy_and_config_fabric_client(self, party_id, grpc_port):
         """复制并配置 Fabric Client"""
         party_fc_dir = os.path.join(self.base_dir, f"fabric_client_party{party_id}")
         
         if os.path.exists(party_fc_dir):
-            logger.warning("Fabric Client Party %d already exists, skipping..." % party_id)
-            return party_fc_dir
-        
-        logger.info("Copying Fabric Client for Party %d..." % party_id)
-        shutil.copytree(self.fabric_client_base, party_fc_dir, ignore=shutil.ignore_patterns('*.pyc', '__pycache__', '*.log'))
+            logger.warning("Fabric Client Party %d already exists, reconfiguring..." % party_id)
+        else:
+            logger.info("Copying Fabric Client for Party %d..." % party_id)
+            shutil.copytree(self.fabric_client_base, party_fc_dir, ignore=shutil.ignore_patterns('*.pyc', '__pycache__', '*.log'))
         
         # 修改 gRPC 端口（如果需要）
         config_file = os.path.join(party_fc_dir, "config", "config.toml")
@@ -43,10 +57,7 @@ class MultiPartySetup:
             config = configparser.ConfigParser()
             config.read(config_file)
             if 'grpc' in config and 'port' in config['grpc']:
-                # 去除引号并转换为整数
-                port_str = config['grpc']['port'].strip('"\'')  # 去除单引号和双引号
-                base_port = int(port_str)
-                config['grpc']['port'] = f'"{base_port + port_offset}"'  # 保持 TOML 格式的引号
+                config['grpc']['port'] = f'"{grpc_port}"'
                 with open(config_file, 'w') as f:
                     config.write(f)
         
@@ -57,11 +68,10 @@ class MultiPartySetup:
         party_rpo_dir = os.path.join(self.base_dir, f"RPO_party{party_id}")
         
         if os.path.exists(party_rpo_dir):
-            logger.warning("RPO Party %d already exists, skipping..." % party_id)
-            return party_rpo_dir
-        
-        logger.info("Copying RPO for Party %d (RPE: %s)..." % (party_id, rpe_id))
-        shutil.copytree(self.rpo_base, party_rpo_dir)
+            logger.warning("RPO Party %d already exists, reconfiguring..." % party_id)
+        else:
+            logger.info("Copying RPO for Party %d (RPE: %s)..." % (party_id, rpe_id))
+            shutil.copytree(self.rpo_base, party_rpo_dir)
         
         # 修改 config.toml
         config_file = os.path.join(party_rpo_dir, "config.toml")
@@ -115,17 +125,51 @@ class MultiPartySetup:
         policies["rpe"] = rpe_list
 
         return policies
+
+    def generate_policies_variants(self, all_rpe_ids, all_rpe_configs, policies_template_path=None):
+        """
+        一次生成 policies-1.json 到 policies-N.json 对应的数据。
+
+        返回:
+            {
+                1: {...},
+                2: {...},
+                ...
+                N: {...}
+            }
+        """
+        policies_variants = {}
+        for participant_count in range(1, len(all_rpe_ids) + 1):
+            current_rpe_ids = all_rpe_ids[:participant_count]
+            policies_variants[participant_count] = self.generate_policies_json(
+                current_rpe_ids,
+                all_rpe_configs,
+                policies_template_path=policies_template_path,
+            )
+        return policies_variants
+
+    def write_policies_variants(self, rpo_dir, policies_variants):
+        """向单个 RPO 目录写入 policies-1.json 到 policies-N.json。"""
+        for participant_count, policies_json in policies_variants.items():
+            policies_file = os.path.join(rpo_dir, "policies-%d.json" % participant_count)
+            with open(policies_file, 'w') as f:
+                json.dump(policies_json, f, indent=4)
+            logger.info(
+                "Generated policies-%d.json in %s with %d RPE(s)",
+                participant_count,
+                rpo_dir,
+                participant_count,
+            )
     
     def copy_and_config_rpe(self, party_id, rpe_id, rpe_port, rpo_address, rpo_port, grpc_address):
         """复制并配置 RPE"""
         party_rpe_dir = os.path.join(self.base_dir, f"RPE_party{party_id}")
         
         if os.path.exists(party_rpe_dir):
-            logger.warning("RPE Party %d already exists, skipping..." % party_id)
-            return party_rpe_dir
-        
-        logger.info("Copying RPE for Party %d (RPE: %s, Port: %s)..." % (party_id, rpe_id, rpe_port))
-        shutil.copytree(self.rpe_base, party_rpe_dir)
+            logger.warning("RPE Party %d already exists, reconfiguring..." % party_id)
+        else:
+            logger.info("Copying RPE for Party %d (RPE: %s, Port: %s)..." % (party_id, rpe_id, rpe_port))
+            shutil.copytree(self.rpe_base, party_rpe_dir)
         
         # 修改 config.toml
         config_file = os.path.join(party_rpe_dir, "config.toml")
@@ -138,6 +182,10 @@ class MultiPartySetup:
                 config['rpe']['rpo_address'] = f'"{rpo_address}"'
                 config['rpe']['rpo_port'] = f'"{rpo_port}"'
                 config['rpe']['grpc_server_address'] = f'"{grpc_address}"'
+                if self.transport == "p2p":
+                    config['rpe']['grpc_peer_addresses'] = '"%s"' % ",".join(
+                        self._get_p2p_peer_addresses(party_id)
+                    )
                 with open(config_file, 'w') as f:
                     config.write(f)
         
@@ -177,8 +225,8 @@ class MultiPartySetup:
                 "ca_signing_key_cert": "-----BEGIN PUBLIC KEY-----\nMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE4k0UPMHPQ7GfD81M2Xu4TEQHQYKiJtE5\nSqhjpflPdn6kph9ZsbuUt6hEnMo/jJve7bPjsshp6G03Cu+ejGplRkcNrQEPJi2r\n7mzpBedryCClM5ALI0GAVvbwVI1p8BVA\n-----END PUBLIC KEY-----"  # 根据实际情况修改
             }
         
-        # 生成统一的 policies.json（包含所有 RPE）
-        policies_json = self.generate_policies_json(all_rpe_ids, all_rpe_configs)
+        # 一次生成 policies-1.json 到 policies-N.json
+        policies_variants = self.generate_policies_variants(all_rpe_ids, all_rpe_configs)
         
         for i in range(1, self.num_parties + 1):
             rpe_id = f"rpe-{i}"
@@ -187,17 +235,12 @@ class MultiPartySetup:
             grpc_port = base_grpc_port + i - 1
             
             # Fabric Client
-            fc_dir = self.copy_and_config_fabric_client(i, port_offset=i-1)
+            fc_dir = self.copy_and_config_fabric_client(i, grpc_port)
             party_dirs['fabric_clients'].append(fc_dir)
             
-            # RPO（需要为每个 RPO 复制 policies.json）
+            # RPO
             rpo_dir = self.copy_and_config_rpo(i, rpe_id, rpo_port)
-            
-            # 复制统一的 policies.json 到每个 RPO 目录
-            policies_file = os.path.join(rpo_dir, f"policies-{self.num_parties}.json")
-            with open(policies_file, 'w') as f:
-                json.dump(policies_json, f, indent=4)
-            logger.info("Generated policies-%d.json for RPO Party %d with all %d RPEs" % (self.num_parties, i, self.num_parties))
+            self.write_policies_variants(rpo_dir, policies_variants)
             
             party_dirs['rpos'].append(rpo_dir)
             
@@ -205,7 +248,7 @@ class MultiPartySetup:
             rpe_dir = self.copy_and_config_rpe(
                 i, rpe_id, rpe_port, 
                 rpo_host, rpo_port, 
-                f"{grpc_host}:{grpc_port}"
+                self._get_rpe_grpc_address(i, base_grpc_port, grpc_host)
             )
             party_dirs['rpes'].append(rpe_dir)
         
@@ -214,7 +257,8 @@ class MultiPartySetup:
         logger.info("Fabric Clients: %s" % ", ".join(party_dirs['fabric_clients']))
         logger.info("RPOs: %s" % ", ".join(party_dirs['rpos']))
         logger.info("RPEs: %s" % ", ".join(party_dirs['rpes']))
-        logger.info("Each RPO's policies.json contains all %d RPEs" % self.num_parties)
+        logger.info("Each RPO now contains policies-1.json through policies-%d.json" % self.num_parties)
+        logger.info("Transport mode for RPE grpc_server_address: %s" % self.transport)
         logger.info("=" * 60)
         
         return party_dirs
@@ -227,10 +271,21 @@ def main():
     parser.add_argument("--base-rpo-port", type=int, default=4433, help="RPO 基础端口")
     parser.add_argument("--base-rpe-port", type=int, default=4455, help="RPE 基础端口")
     parser.add_argument("--base-grpc-port", type=int, default=50051, help="gRPC 基础端口")
+    parser.add_argument("--transport", type=str, choices=["fabric", "p2p"], default="fabric",
+                        help="fabric: 各 RPE 指向各自 fabric_client 端口；p2p: 各 RPE 指向各自本地 P2P 节点")
+    parser.add_argument("--p2p-port", type=int, default=51051,
+                        help="transport=p2p 时 P2P 节点的基础端口，party i 使用 p2p-port+i-1")
+    parser.add_argument("--p2p-host", type=str, default="127.0.0.1",
+                        help="transport=p2p 时各 P2P 节点监听和互联使用的主机地址")
     
     args = parser.parse_args()
     
-    setup = MultiPartySetup(num_parties=args.num_parties)
+    setup = MultiPartySetup(
+        num_parties=args.num_parties,
+        transport=args.transport,
+        p2p_port=args.p2p_port,
+        p2p_host=args.p2p_host,
+    )
     setup.setup_multiple_parties(
         base_rpo_port=args.base_rpo_port,
         base_rpe_port=args.base_rpe_port,
