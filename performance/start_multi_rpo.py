@@ -112,16 +112,66 @@ class RPOStarter:
                 logger.error("Error stopping %s: %s" % (name, str(e)))
         self.processes.clear()
 
+    def stop_by_port(self):
+        """通过各 party 的 RPO 端口查找并终止进程"""
+        logger.info("Stopping RPOs by ports...")
+        for i in range(1, self.num_parties + 1):
+            rpo_dir = os.path.join(self.base_dir, f"RPO_party{i}")
+            config_file = os.path.join(rpo_dir, "config.toml")
+            if not os.path.exists(config_file):
+                logger.warning("Config file not found for RPO Party %d: %s" % (i, config_file))
+                continue
+
+            try:
+                config = configparser.ConfigParser()
+                config.read(config_file)
+                if "rpo" not in config or "port" not in config["rpo"]:
+                    logger.warning("Port not found in config for RPO Party %d" % i)
+                    continue
+                port = int(config["rpo"]["port"].strip("'\""))
+            except Exception as e:
+                logger.error("Failed to read port for RPO Party %d: %s" % (i, str(e)))
+                continue
+
+            try:
+                out = subprocess.run(
+                    ["lsof", "-ti", ":%d" % port],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+            except FileNotFoundError:
+                logger.warning("lsof not found; cannot stop RPO by port automatically")
+                return
+            except Exception as e:
+                logger.error("Failed to inspect port %d for RPO Party %d: %s" % (port, i, str(e)))
+                continue
+
+            if out.returncode == 0 and out.stdout.strip():
+                for pid_str in out.stdout.strip().split():
+                    pid = int(pid_str)
+                    logger.info("Killing PID %d (listening on port %d, rpo_party%d)" % (pid, port, i))
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+            else:
+                logger.info("No process found on port %d for rpo_party%d" % (port, i))
+
 def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="批量启动多个 RPO")
     parser.add_argument("--num-parties", type=int, required=True, help="参与方数量")
     parser.add_argument("--wait", type=int, default=0, help="等待时间（秒），0 表示持续运行")
+    parser.add_argument("--stop", action="store_true", help="仅按端口清理已启动的 RPO 进程")
     
     args = parser.parse_args()
     
     starter = RPOStarter(num_parties=args.num_parties)
+    if args.stop:
+        starter.stop_by_port()
+        return
     
     def signal_handler(sig, frame):
         logger.info("Received interrupt signal, stopping all processes...")
