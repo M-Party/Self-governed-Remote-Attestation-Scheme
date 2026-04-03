@@ -290,6 +290,8 @@ class RPEPerformanceTest:
         phase2_quote_generation_times = []
         phase2_exchange_times = []
         phase2_verification_times = []
+        phase2_native_quote_verification_times = []
+        phase2_policy_enforcement_times = []
         total_times = []
         for rpe_id, perf_data in all_perf_data.items():
             durations = perf_data.get("durations", {})
@@ -303,6 +305,10 @@ class RPEPerformanceTest:
                 phase2_exchange_times.append(durations["phase2_exchange"])
             if durations.get("phase2_verification") is not None:
                 phase2_verification_times.append(durations["phase2_verification"])
+            if durations.get("phase2_native_quote_verification") is not None:
+                phase2_native_quote_verification_times.append(durations["phase2_native_quote_verification"])
+            if durations.get("phase2_policy_enforcement") is not None:
+                phase2_policy_enforcement_times.append(durations["phase2_policy_enforcement"])
             if durations.get("total"):
                 total_times.append(durations["total"])
         result = {
@@ -318,6 +324,8 @@ class RPEPerformanceTest:
                 "phase2_quote_generation": _build_stats(phase2_quote_generation_times),
                 "phase2_exchange": _build_stats(phase2_exchange_times),
                 "phase2_verification": _build_stats(phase2_verification_times),
+                "phase2_native_quote_verification": _build_stats(phase2_native_quote_verification_times),
+                "phase2_policy_enforcement": _build_stats(phase2_policy_enforcement_times),
                 "total": _build_stats(total_times),
             }
         }
@@ -352,6 +360,16 @@ class RPEPerformanceTest:
             result["statistics"]["phase2_verification"]["avg"],
             result["statistics"]["phase2_verification"]["min"],
             result["statistics"]["phase2_verification"]["max"]
+        ))
+        logger.info("  Phase 2.3.1 native quote verification - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_native_quote_verification"]["avg"],
+            result["statistics"]["phase2_native_quote_verification"]["min"],
+            result["statistics"]["phase2_native_quote_verification"]["max"]
+        ))
+        logger.info("  Phase 2.3.2 policy enforcement - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_policy_enforcement"]["avg"],
+            result["statistics"]["phase2_policy_enforcement"]["min"],
+            result["statistics"]["phase2_policy_enforcement"]["max"]
         ))
         logger.info("  Total (Individual) - Avg: %.3f, Min: %.3f, Max: %.3f" % (
             result["statistics"]["total"]["avg"],
@@ -460,6 +478,8 @@ class RPEPerformanceTest:
         phase2_quote_generation_times = []
         phase2_exchange_times = []
         phase2_verification_times = []
+        phase2_native_quote_verification_times = []
+        phase2_policy_enforcement_times = []
         total_times = []
         for rpe_id, perf_data in all_perf_data.items():
             durations = perf_data.get("durations", {})
@@ -473,6 +493,10 @@ class RPEPerformanceTest:
                 phase2_exchange_times.append(durations["phase2_exchange"])
             if durations.get("phase2_verification") is not None:
                 phase2_verification_times.append(durations["phase2_verification"])
+            if durations.get("phase2_native_quote_verification") is not None:
+                phase2_native_quote_verification_times.append(durations["phase2_native_quote_verification"])
+            if durations.get("phase2_policy_enforcement") is not None:
+                phase2_policy_enforcement_times.append(durations["phase2_policy_enforcement"])
             if durations.get("total"):
                 total_times.append(durations["total"])
         result = {
@@ -488,6 +512,8 @@ class RPEPerformanceTest:
                 "phase2_quote_generation": _build_stats(phase2_quote_generation_times),
                 "phase2_exchange": _build_stats(phase2_exchange_times),
                 "phase2_verification": _build_stats(phase2_verification_times),
+                "phase2_native_quote_verification": _build_stats(phase2_native_quote_verification_times),
+                "phase2_policy_enforcement": _build_stats(phase2_policy_enforcement_times),
                 "total": _build_stats(total_times),
             }
         }
@@ -517,6 +543,14 @@ class RPEPerformanceTest:
             result["statistics"]["phase2_verification"]["avg"],
             result["statistics"]["phase2_verification"]["min"],
             result["statistics"]["phase2_verification"]["max"]))
+        logger.info("  Phase 2.3.1 native quote verification - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_native_quote_verification"]["avg"],
+            result["statistics"]["phase2_native_quote_verification"]["min"],
+            result["statistics"]["phase2_native_quote_verification"]["max"]))
+        logger.info("  Phase 2.3.2 policy enforcement - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_policy_enforcement"]["avg"],
+            result["statistics"]["phase2_policy_enforcement"]["min"],
+            result["statistics"]["phase2_policy_enforcement"]["max"]))
         logger.info("  Total (Individual) - Avg: %.3f, Min: %.3f, Max: %.3f" % (
             result["statistics"]["total"]["avg"],
             result["statistics"]["total"]["min"],
@@ -585,6 +619,12 @@ class RPEPerformanceTest:
                 "Phase2.3 Quote Verification Avg (s)",
                 "Phase2.3 Quote Verification Min (s)",
                 "Phase2.3 Quote Verification Max (s)",
+                "Phase2.3.1 Native Quote Verification Avg (s)",
+                "Phase2.3.1 Native Quote Verification Min (s)",
+                "Phase2.3.1 Native Quote Verification Max (s)",
+                "Phase2.3.2 Policy Enforcement Avg (s)",
+                "Phase2.3.2 Policy Enforcement Min (s)",
+                "Phase2.3.2 Policy Enforcement Max (s)",
                 "Total Avg (s)",
                 "Total Min (s)",
                 "Total Max (s)"
@@ -598,6 +638,8 @@ class RPEPerformanceTest:
                 phase2_quote_generation_stats = result["statistics"]["phase2_quote_generation"]
                 phase2_exchange_stats = result["statistics"]["phase2_exchange"]
                 phase2_verification_stats = result["statistics"]["phase2_verification"]
+                phase2_native_quote_verification_stats = result["statistics"]["phase2_native_quote_verification"]
+                phase2_policy_enforcement_stats = result["statistics"]["phase2_policy_enforcement"]
                 total_stats = result["statistics"]["total"]
                 
                 writer.writerow([
@@ -617,6 +659,12 @@ class RPEPerformanceTest:
                     "%.3f" % phase2_verification_stats["avg"],
                     "%.3f" % phase2_verification_stats["min"],
                     "%.3f" % phase2_verification_stats["max"],
+                    "%.3f" % phase2_native_quote_verification_stats["avg"],
+                    "%.3f" % phase2_native_quote_verification_stats["min"],
+                    "%.3f" % phase2_native_quote_verification_stats["max"],
+                    "%.3f" % phase2_policy_enforcement_stats["avg"],
+                    "%.3f" % phase2_policy_enforcement_stats["min"],
+                    "%.3f" % phase2_policy_enforcement_stats["max"],
                     "%.3f" % total_stats["avg"],
                     "%.3f" % total_stats["min"],
                     "%.3f" % total_stats["max"]
@@ -635,8 +683,10 @@ class RPEPerformanceTest:
                    "P2.1 Avg | P2.1 Min | P2.1 Max | "
                    "P2.2 Avg | P2.2 Min | P2.2 Max | "
                    "P2.3 Avg | P2.3 Min | P2.3 Max | "
+                   "P2.3.1 Avg | P2.3.1 Min | P2.3.1 Max | "
+                   "P2.3.2 Avg | P2.3.2 Min | P2.3.2 Max | "
                    "Total Avg | Total Min | Total Max\n")
-            f.write("-" * 220 + "\n")
+            f.write("-" * 300 + "\n")
             
             for result in all_results:
                 num_rpes = result["num_rpes"]
@@ -645,6 +695,8 @@ class RPEPerformanceTest:
                 phase2_quote_generation_stats = result["statistics"]["phase2_quote_generation"]
                 phase2_exchange_stats = result["statistics"]["phase2_exchange"]
                 phase2_verification_stats = result["statistics"]["phase2_verification"]
+                phase2_native_quote_verification_stats = result["statistics"]["phase2_native_quote_verification"]
+                phase2_policy_enforcement_stats = result["statistics"]["phase2_policy_enforcement"]
                 total_stats = result["statistics"]["total"]
                 
                 f.write("%14d | %10.3f | %10.3f | %10.3f | "
@@ -652,6 +704,8 @@ class RPEPerformanceTest:
                        "%8.3f | %8.3f | %8.3f | "
                        "%8.3f | %8.3f | %8.3f | "
                        "%8.3f | %8.3f | %8.3f | "
+                       "%10.3f | %10.3f | %10.3f | "
+                       "%10.3f | %10.3f | %10.3f | "
                        "%9.3f | %9.3f | %9.3f\n" % (
                     num_rpes,
                     phase1_stats["avg"], phase1_stats["min"], phase1_stats["max"],
@@ -659,6 +713,8 @@ class RPEPerformanceTest:
                     phase2_quote_generation_stats["avg"], phase2_quote_generation_stats["min"], phase2_quote_generation_stats["max"],
                     phase2_exchange_stats["avg"], phase2_exchange_stats["min"], phase2_exchange_stats["max"],
                     phase2_verification_stats["avg"], phase2_verification_stats["min"], phase2_verification_stats["max"],
+                    phase2_native_quote_verification_stats["avg"], phase2_native_quote_verification_stats["min"], phase2_native_quote_verification_stats["max"],
+                    phase2_policy_enforcement_stats["avg"], phase2_policy_enforcement_stats["min"], phase2_policy_enforcement_stats["max"],
                     total_stats["avg"], total_stats["min"], total_stats["max"]
                 ))
             

@@ -222,6 +222,8 @@ class RPE:
         # =============== Phase two ===============
         perf_timestamps["phase2_start"] = time.time()
         logger.info("======================= Starting phase two... =======================")
+        phase2_native_quote_verification_duration = 0.0
+        phase2_policy_enforcement_duration = 0.0
         if self.rpes is not None:
             self.rpe_ids = ",".join(self.rpes.keys())
         
@@ -316,13 +318,16 @@ class RPE:
             # Verify quote using DCAP
             quote_bytes = crypto_utility.base64_to_byte_array(base64_encoded_quote)
             collateral = rpe_info["collateral"]
+            native_verify_start = time.time()
             ret = verify_dcap_quote.teeVerifyQuote(base64_encoded_quote, len(quote_bytes), collateral)
+            phase2_native_quote_verification_duration += time.time() - native_verify_start
             logger.info("quote verification for rpe %s result: %x" % (rpe_id, ret))
             if ret != 0 and ret != 0xa002 and ret != 0xa008:
                 logger.error("Quote verification failed for rpe %s", rpe_id)
                 return
 
             # Generate report_data using public keys from Evidence Quote and local policies
+            policy_verify_start = time.time()
             worker_data = rpe_public_signing_key + rpe_public_encryption_key
             keys_bytes = self.compute_message_hash(worker_data.encode('UTF-8'), SHA384)
             report_data = bytes(keys_bytes) + policies_hash
@@ -338,6 +343,7 @@ class RPE:
             }
             rpe_policies_to_verify_json = json.dumps(rpe_policies_to_verify)
             ret = verify_dcap_quote.sgxVerifyQuoteBody(base64_encoded_quote, rpe_policies_to_verify_json)
+            phase2_policy_enforcement_duration += time.time() - policy_verify_start
             logger.info("quote body verification for rpe %s result: %x" % (rpe_id, ret))
             if ret != 0:
                 logger.error("Quote body verification failed for rpe %s", rpe_id)
@@ -366,6 +372,8 @@ class RPE:
         logger.error("Phase 2.2.1 send local quote duration: %.3f seconds" % phase2_send_local_quote_duration)
         logger.error("Phase 2.2.2 wait remote quotes duration: %.3f seconds" % phase2_wait_remote_quotes_duration)
         logger.error("Phase 2.3 quote verification duration: %.3f seconds" % phase2_verification_duration)
+        logger.error("Phase 2.3.1 native quote verification duration: %.3f seconds" % phase2_native_quote_verification_duration)
+        logger.error("Phase 2.3.2 policy enforcement duration: %.3f seconds" % phase2_policy_enforcement_duration)
         logger.error("Total initialization duration: %.3f seconds" % total_duration)
 
         # =============== 性能测试：保存时间戳到文件 ===============
@@ -380,6 +388,8 @@ class RPE:
                 "phase2_send_local_quote": phase2_send_local_quote_duration,
                 "phase2_wait_remote_quotes": phase2_wait_remote_quotes_duration,
                 "phase2_verification": phase2_verification_duration,
+                "phase2_native_quote_verification": phase2_native_quote_verification_duration,
+                "phase2_policy_enforcement": phase2_policy_enforcement_duration,
                 "total": total_duration
             }
         }
@@ -421,16 +431,22 @@ class RPE:
             # 性能测试：记录 CE 认证开始时间
             ce_auth_start = time.time()
             ce_id = None
+            stage3_native_quote_verification_duration = None
+            stage3_expectation_policy_enforcement_duration = None
+            stage3_verification_duration = None
 
             if self.ratls.perform_handshake() != 0:
                 logger.error("RA-TLS handshake with CE failed")
                 self.ratls.close_connection()
                 continue
 
+            stage3_verify_peer_start = time.time()
             if self.ratls.verify_peer() != 0:
                 logger.error("CE attestation failed")
                 self.ratls.close_connection()
                 continue
+            stage3_verify_peer_end = time.time()
+            stage3_native_quote_verification_duration = stage3_verify_peer_end - stage3_verify_peer_start
 
             # receive commands from CE
             command = self.ratls.receive_commands()
@@ -452,7 +468,15 @@ class RPE:
                     logger.error("Cannot resolve ces info of ce %s", ce_id)
                     self.ratls.close_connection()
                     continue
+                stage3_verify_ce_body_start = time.time()
                 ret = self.ratls.verify_ce_body(ces_info)
+                stage3_verify_ce_body_end = time.time()
+                stage3_expectation_policy_enforcement_duration = (
+                    stage3_verify_ce_body_end - stage3_verify_ce_body_start
+                )
+                stage3_verification_duration = (
+                    stage3_native_quote_verification_duration + stage3_expectation_policy_enforcement_duration
+                )
                 if ret < 0:
                     logger.error("CE body verification failed")
                     self.ratls.close_connection()
@@ -476,6 +500,12 @@ class RPE:
                 ce_auth_end = time.time()
                 ce_auth_duration = ce_auth_end - ce_auth_start
                 logger.info("CE %s authentication completed in %.3f seconds" % (ce_id, ce_auth_duration))
+                logger.info("CE %s stage3 native quote verification duration: %.3f seconds" % (
+                    ce_id, stage3_native_quote_verification_duration))
+                logger.info("CE %s stage3 expectation-policy enforcement duration: %.3f seconds" % (
+                    ce_id, stage3_expectation_policy_enforcement_duration))
+                logger.info("CE %s stage3 verification duration: %.3f seconds" % (
+                    ce_id, stage3_verification_duration))
                 
                 # 保存性能数据
                 # 在每次认证完成后，写入文件前检查文件是否存在
@@ -515,7 +545,10 @@ class RPE:
                     "ce_id": ce_id,
                     "auth_start": ce_auth_start,
                     "auth_end": ce_auth_end,
-                    "auth_duration": ce_auth_duration
+                    "auth_duration": ce_auth_duration,
+                    "stage3_native_quote_verification_duration": stage3_native_quote_verification_duration,
+                    "stage3_expectation_policy_enforcement_duration": stage3_expectation_policy_enforcement_duration,
+                    "stage3_verification_duration": stage3_verification_duration
                 })
                 
                 # 保存到文件（每次认证后更新）
