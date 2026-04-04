@@ -37,14 +37,14 @@
     "ce": [
         {
             "id": "ce-1",
-            "mrenclave": "548d6578ce101e7445f47c7a6dcd21d9b29c03092e7153c3f0060dddea58463b",
+            "mrenclave": "07a6b42e5fc8f18a87d1a29910750794bed4f2d647e3f843badbacd20ab7ea6c",
             "mrsigner": "8f755b4333f50b53b8a5e33c1cd91733945746933915cf626bad92ed8bb095ee",
             "isvprodid_allow_any": true,
             "isvsvn_allow_any": true
         },
         {
             "id": "ce-2",
-            "mrenclave": "548d6578ce101e7445f47c7a6dcd21d9b29c03092e7153c3f0060dddea58463b",
+            "mrenclave": "07a6b42e5fc8f18a87d1a29910750794bed4f2d647e3f843badbacd20ab7ea6c",
             "mrsigner": "8f755b4333f50b53b8a5e33c1cd91733945746933915cf626bad92ed8bb095ee",
             "isv_prod_id": "0",
             "isv_svn": "0"

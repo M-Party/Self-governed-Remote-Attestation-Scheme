@@ -440,13 +440,12 @@ class RPE:
                 self.ratls.close_connection()
                 continue
 
-            stage3_verify_peer_start = time.time()
             if self.ratls.verify_peer() != 0:
                 logger.error("CE attestation failed")
                 self.ratls.close_connection()
                 continue
             stage3_verify_peer_end = time.time()
-            stage3_native_quote_verification_duration = stage3_verify_peer_end - stage3_verify_peer_start
+            stage3_native_quote_verification_duration = stage3_verify_peer_end - ce_auth_start
 
             # receive commands from CE
             command = self.ratls.receive_commands()
@@ -456,6 +455,7 @@ class RPE:
                 continue
 
             if command == REQ_CERT:
+                stage3_verify_ce_body_start = time.time()
                 ret = self.ratls.get_ce_info()
                 if ret != 0:
                     logger.error("Get CE info failed")
@@ -468,14 +468,10 @@ class RPE:
                     logger.error("Cannot resolve ces info of ce %s", ce_id)
                     self.ratls.close_connection()
                     continue
-                stage3_verify_ce_body_start = time.time()
                 ret = self.ratls.verify_ce_body(ces_info)
                 stage3_verify_ce_body_end = time.time()
                 stage3_expectation_policy_enforcement_duration = (
                     stage3_verify_ce_body_end - stage3_verify_ce_body_start
-                )
-                stage3_verification_duration = (
-                    stage3_native_quote_verification_duration + stage3_expectation_policy_enforcement_duration
                 )
                 if ret < 0:
                     logger.error("CE body verification failed")
@@ -504,8 +500,6 @@ class RPE:
                     ce_id, stage3_native_quote_verification_duration))
                 logger.info("CE %s stage3 expectation-policy enforcement duration: %.3f seconds" % (
                     ce_id, stage3_expectation_policy_enforcement_duration))
-                logger.info("CE %s stage3 verification duration: %.3f seconds" % (
-                    ce_id, stage3_verification_duration))
                 
                 # 保存性能数据
                 # 在每次认证完成后，写入文件前检查文件是否存在

@@ -62,7 +62,6 @@ def _extract_stage3_rows(perf_dir):
             result = json.load(f)
         stats = result.get("statistics", {})
         native = _safe_get(stats, "stage3_native_quote_verification")
-        ours = _safe_get(stats, "stage3_verification")
         policy = _safe_get(stats, "stage3_expectation_policy_enforcement")
         rows.append({
             "stage": "stage3",
@@ -71,9 +70,6 @@ def _extract_stage3_rows(perf_dir):
             "native_avg": native.get("avg", 0),
             "native_min": native.get("min", 0),
             "native_max": native.get("max", 0),
-            "ours_avg": ours.get("avg", 0),
-            "ours_min": ours.get("min", 0),
-            "ours_max": ours.get("max", 0),
             "policy_avg": policy.get("avg", 0),
             "policy_min": policy.get("min", 0),
             "policy_max": policy.get("max", 0),
@@ -105,9 +101,6 @@ def _write_csv(rows, output_dir):
             "Native Avg (s)",
             "Native Min (s)",
             "Native Max (s)",
-            "Ours Avg (s)",
-            "Ours Min (s)",
-            "Ours Max (s)",
             "Policy Avg (s)",
             "Policy Min (s)",
             "Policy Max (s)",
@@ -121,9 +114,6 @@ def _write_csv(rows, output_dir):
                 "%.3f" % row["native_avg"],
                 "%.3f" % row["native_min"],
                 "%.3f" % row["native_max"],
-                "%.3f" % row["ours_avg"],
-                "%.3f" % row["ours_min"],
-                "%.3f" % row["ours_max"],
                 "%.3f" % row["policy_avg"],
                 "%.3f" % row["policy_min"],
                 "%.3f" % row["policy_max"],
@@ -138,11 +128,11 @@ def _write_txt(rows, output_dir):
         f.write("=" * 140 + "\n")
         f.write("Expectation-Policy Enforcement Overhead Report\n")
         f.write("=" * 140 + "\n\n")
-        f.write("Stage  | Count | Kind | Native Avg | Native Min | Native Max | Ours Avg | Ours Min | Ours Max | Policy Avg | Policy Min | Policy Max | Source\n")
-        f.write("-" * 180 + "\n")
+        f.write("Stage  | Count | Kind | Native Avg | Native Min | Native Max | Policy Avg | Policy Min | Policy Max | Source\n")
+        f.write("-" * 150 + "\n")
         for row in rows:
             f.write(
-                "%6s | %5d | %4s | %10.3f | %10.3f | %10.3f | %8.3f | %8.3f | %8.3f | %10.3f | %10.3f | %10.3f | %s\n"
+                "%6s | %5d | %4s | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %s\n"
                 % (
                     row["stage"],
                     row["count"],
@@ -150,9 +140,6 @@ def _write_txt(rows, output_dir):
                     row["native_avg"],
                     row["native_min"],
                     row["native_max"],
-                    row["ours_avg"],
-                    row["ours_min"],
-                    row["ours_max"],
                     row["policy_avg"],
                     row["policy_min"],
                     row["policy_max"],
