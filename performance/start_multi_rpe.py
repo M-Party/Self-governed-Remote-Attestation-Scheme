@@ -8,6 +8,7 @@ import time
 import subprocess
 import signal
 import logging
+import configparser
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
@@ -118,6 +119,64 @@ class RPEStarter:
             except Exception as e:
                 logger.error("Error stopping %s: %s" % (name, str(e)))
         self.processes.clear()
+
+    def stop_by_port(self):
+        """通过各 party 的 RPE 端口查找并终止进程，并删除各 RPE 目录下的 rpe_pre_init_ready_*.flag"""
+        import glob
+
+        for i in range(1, self.num_parties + 1):
+            perf_data_dir = os.path.join(self.base_dir, f"RPE_party{i}", "performance_data")
+            if os.path.isdir(perf_data_dir):
+                for flag_file in glob.glob(os.path.join(perf_data_dir, "rpe_pre_init_ready_*.flag")):
+                    try:
+                        os.remove(flag_file)
+                        logger.info("Removed flag: %s" % flag_file)
+                    except Exception as e:
+                        logger.warning("Failed to remove flag %s: %s" % (flag_file, e))
+
+        logger.info("Stopping RPEs by ports...")
+        for i in range(1, self.num_parties + 1):
+            rpe_dir = os.path.join(self.base_dir, f"RPE_party{i}")
+            config_file = os.path.join(rpe_dir, "config.toml")
+            if not os.path.exists(config_file):
+                logger.warning("Config file not found for RPE Party %d: %s" % (i, config_file))
+                continue
+
+            try:
+                config = configparser.ConfigParser()
+                config.read(config_file)
+                if "rpe" not in config or "rpe_port" not in config["rpe"]:
+                    logger.warning("rpe_port not found in config for RPE Party %d" % i)
+                    continue
+                port = int(config["rpe"]["rpe_port"].strip("'\""))
+            except Exception as e:
+                logger.error("Failed to read rpe_port for RPE Party %d: %s" % (i, str(e)))
+                continue
+
+            try:
+                out = subprocess.run(
+                    ["lsof", "-ti", ":%d" % port],
+                    capture_output=True,
+                    text=True,
+                    timeout=5,
+                )
+            except FileNotFoundError:
+                logger.warning("lsof not found; cannot stop RPE by port automatically")
+                return
+            except Exception as e:
+                logger.error("Failed to inspect port %d for RPE Party %d: %s" % (port, i, str(e)))
+                continue
+
+            if out.returncode == 0 and out.stdout.strip():
+                for pid_str in out.stdout.strip().split():
+                    pid = int(pid_str)
+                    logger.info("Killing PID %d (listening on port %d, rpe_party%d)" % (pid, port, i))
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                    except ProcessLookupError:
+                        pass
+            else:
+                logger.info("No process found on port %d for rpe_party%d" % (port, i))
   
 
 def main():
@@ -130,6 +189,7 @@ def main():
     parser.add_argument("--delete-flags-only", action="store_true",
                         help="仅删除各 RPE 目录下 performance_data 中的 rpe_pre_init_ready_*.flag（不启动、不停止进程），用于手动退出 RPE 后清空 flag 以便 performance_test 自动重试")
     parser.add_argument("--base-dir", type=str, default=None, help="项目根目录（默认：performance 的上级）")
+    parser.add_argument("--stop", action="store_true", help="仅按端口清理已启动的 RPE 进程")
     
     args = parser.parse_args()
     
@@ -147,7 +207,11 @@ def main():
                         logger.warning("Failed to remove flag %s: %s" % (flag_file, e))
         return
     
-    starter = RPEStarter(num_parties=args.num_parties)
+    starter = RPEStarter(base_dir=args.base_dir, num_parties=args.num_parties)
+
+    if args.stop:
+        starter.stop_by_port()
+        return
     
     def signal_handler(sig, frame):
         logger.info("Received interrupt signal, stopping all processes...")

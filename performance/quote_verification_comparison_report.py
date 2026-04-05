@@ -7,9 +7,9 @@
 - Stage 3: performance_data/phase3_test_result_*ces.json
 
 输出：
-- expectation_policy_overhead_report.json
-- expectation_policy_overhead_report.csv
-- expectation_policy_overhead_report.txt
+- quote_verification_comparison_report.json
+- quote_verification_comparison_report.csv
+- quote_verification_comparison_report.txt
 """
 import argparse
 import csv
@@ -36,20 +36,14 @@ def _extract_stage2_rows(perf_dir):
         stats = result.get("statistics", {})
         native = _safe_get(stats, "phase2_native_quote_verification")
         ours = _safe_get(stats, "phase2_verification")
-        policy = _safe_get(stats, "phase2_policy_enforcement")
+        quote_count = result.get("num_rpes", 0) or 1
         rows.append({
             "stage": "stage2",
             "count_label": "rpes",
             "count": result.get("num_rpes", 0),
-            "native_avg": native.get("avg", 0),
-            "native_min": native.get("min", 0),
-            "native_max": native.get("max", 0),
-            "ours_avg": ours.get("avg", 0),
-            "ours_min": ours.get("min", 0),
-            "ours_max": ours.get("max", 0),
-            "policy_avg": policy.get("avg", 0),
-            "policy_min": policy.get("min", 0),
-            "policy_max": policy.get("max", 0),
+            "metric_scope": "per_quote",
+            "native_avg": native.get("avg", 0) / quote_count,
+            "ours_avg": ours.get("avg", 0) / quote_count,
             "source_file": os.path.basename(path),
         })
     return rows
@@ -62,17 +56,14 @@ def _extract_stage3_rows(perf_dir):
             result = json.load(f)
         stats = result.get("statistics", {})
         native = _safe_get(stats, "stage3_native_quote_verification")
-        policy = _safe_get(stats, "stage3_expectation_policy_enforcement")
+        ours = _safe_get(stats, "auth_duration")
         rows.append({
             "stage": "stage3",
             "count_label": "ces",
             "count": result.get("num_ces", 0),
+            "metric_scope": "per_auth",
             "native_avg": native.get("avg", 0),
-            "native_min": native.get("min", 0),
-            "native_max": native.get("max", 0),
-            "policy_avg": policy.get("avg", 0),
-            "policy_min": policy.get("min", 0),
-            "policy_max": policy.get("max", 0),
+            "ours_avg": ours.get("avg", 0),
             "source_file": os.path.basename(path),
         })
     return rows
@@ -84,26 +75,23 @@ def _sort_rows(rows):
 
 
 def _write_json(rows, output_dir):
-    path = os.path.join(output_dir, "expectation_policy_overhead_report.json")
+    path = os.path.join(output_dir, "quote_verification_comparison_report.json")
     with open(path, "w") as f:
         json.dump({"results": rows}, f, indent=2)
     return path
 
 
 def _write_csv(rows, output_dir):
-    path = os.path.join(output_dir, "expectation_policy_overhead_report.csv")
+    path = os.path.join(output_dir, "quote_verification_comparison_report.csv")
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([
             "Stage",
             "Count Label",
             "Count",
+            "Metric Scope",
             "Native Avg (s)",
-            "Native Min (s)",
-            "Native Max (s)",
-            "Policy Avg (s)",
-            "Policy Min (s)",
-            "Policy Max (s)",
+            "Ours Avg (s)",
             "Source File",
         ])
         for row in rows:
@@ -111,38 +99,32 @@ def _write_csv(rows, output_dir):
                 row["stage"],
                 row["count_label"],
                 row["count"],
+                row["metric_scope"],
                 "%.3f" % row["native_avg"],
-                "%.3f" % row["native_min"],
-                "%.3f" % row["native_max"],
-                "%.3f" % row["policy_avg"],
-                "%.3f" % row["policy_min"],
-                "%.3f" % row["policy_max"],
+                "%.3f" % row["ours_avg"],
                 row["source_file"],
             ])
     return path
 
 
 def _write_txt(rows, output_dir):
-    path = os.path.join(output_dir, "expectation_policy_overhead_report.txt")
+    path = os.path.join(output_dir, "quote_verification_comparison_report.txt")
     with open(path, "w") as f:
         f.write("=" * 140 + "\n")
         f.write("Expectation-Policy Enforcement Overhead Report\n")
         f.write("=" * 140 + "\n\n")
-        f.write("Stage  | Count | Kind | Native Avg | Native Min | Native Max | Policy Avg | Policy Min | Policy Max | Source\n")
-        f.write("-" * 150 + "\n")
+        f.write("Stage  | Count | Kind | Scope     | Native Avg | Ours Avg | Source\n")
+        f.write("-" * 110 + "\n")
         for row in rows:
             f.write(
-                "%6s | %5d | %4s | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %s\n"
+                "%6s | %5d | %4s | %-9s | %10.3f | %8.3f | %s\n"
                 % (
                     row["stage"],
                     row["count"],
                     row["count_label"],
+                    row["metric_scope"],
                     row["native_avg"],
-                    row["native_min"],
-                    row["native_max"],
-                    row["policy_avg"],
-                    row["policy_min"],
-                    row["policy_max"],
+                    row["ours_avg"],
                     row["source_file"],
                 )
             )

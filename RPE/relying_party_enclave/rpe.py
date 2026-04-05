@@ -302,6 +302,7 @@ class RPE:
         perf_timestamps["phase2_verification_start"] = time.time()
 
         for rpe_id, evidence_quote_base64 in fetched_evidence_quotes.items():
+            native_verify_start = time.time()
             rpe_info = self.rpes[rpe_id]
 
             # Parse Evidence Quote: decode and extract quote and public keys
@@ -318,7 +319,6 @@ class RPE:
             # Verify quote using DCAP
             quote_bytes = crypto_utility.base64_to_byte_array(base64_encoded_quote)
             collateral = rpe_info["collateral"]
-            native_verify_start = time.time()
             ret = verify_dcap_quote.teeVerifyQuote(base64_encoded_quote, len(quote_bytes), collateral)
             phase2_native_quote_verification_duration += time.time() - native_verify_start
             logger.info("quote verification for rpe %s result: %x" % (rpe_id, ret))
