@@ -588,15 +588,19 @@ class RPEPerformanceTest:
         return all_results
     
    
-    def generate_summary_report(self, all_results):
+    def generate_summary_report(self, all_results, name_suffix=None):
         """
         生成汇总报告，展示初始化时间随 RPE 数量变化的趋势
         生成 CSV 文件，不包含 system_total_time
         """
         import csv
+
+        suffix = ""
+        if name_suffix:
+            suffix = "_%s" % name_suffix
         
         # 生成 CSV 文件
-        csv_file = os.path.join(self.perf_dir, "summary_report.csv")
+        csv_file = os.path.join(self.perf_dir, "summary_report%s.csv" % suffix)
         
         with open(csv_file, 'w', newline='') as f:
             writer = csv.writer(f)
@@ -671,7 +675,7 @@ class RPEPerformanceTest:
                 ])
         
         # 同时生成文本格式的汇总报告（可选，不包含 system_total_time）
-        report_file = os.path.join(self.perf_dir, "summary_report.txt")
+        report_file = os.path.join(self.perf_dir, "summary_report%s.txt" % suffix)
         
         with open(report_file, 'w') as f:
             f.write("=" * 80 + "\n")
@@ -739,6 +743,34 @@ class RPEPerformanceTest:
         logger.info("Summary report (CSV) saved to: %s" % csv_file)
         logger.info("Summary report (TXT) saved to: %s" % report_file)
 
+    def generate_summary_report_from_existing(self, rpe_counts):
+        """从现有 test_result_*rpes.json 读取结果并生成带参与方后缀的汇总报告"""
+        all_results = []
+        missing_counts = []
+
+        for num_rpes in rpe_counts:
+            result_file = os.path.join(self.perf_dir, "test_result_%drpes.json" % num_rpes)
+            if not os.path.exists(result_file):
+                missing_counts.append(num_rpes)
+                continue
+            try:
+                with open(result_file, "r") as f:
+                    all_results.append(json.load(f))
+            except Exception as e:
+                logger.warning("Failed to read existing result file %s: %s" % (result_file, e))
+
+        if missing_counts:
+            logger.warning("Missing test result files for RPE counts: %s" % ", ".join(str(count) for count in missing_counts))
+
+        if not all_results:
+            logger.error("No existing test results found under %s" % self.perf_dir)
+            return None
+
+        all_results.sort(key=lambda result: result.get("num_rpes", 0))
+        name_suffix = "_".join(str(result["num_rpes"]) for result in all_results)
+        self.generate_summary_report(all_results, name_suffix=name_suffix)
+        return all_results
+
 
 if __name__ == "__main__":
     import argparse
@@ -757,6 +789,8 @@ if __name__ == "__main__":
                         help="Manual start: you start RPE then RPO; script waits for pre-init ready, prints signal to start RPO, then waits for completion and collects results")
     parser.add_argument("--rpe-dirs", type=str, nargs="+", default=None,
                         help="List of RPE directories (e.g., ../RPE ../RPE1 ../RPE2)")
+    parser.add_argument("--report-from", type=int, nargs="+", default=None,
+                        help="Generate summary report from existing test_result_*rpes.json files, e.g. --report-from 2 4 8")
     
     args = parser.parse_args()
     
@@ -791,7 +825,9 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, _stop_rpo_rpe_on_signal)
     signal.signal(signal.SIGTERM, _stop_rpo_rpe_on_signal)
     
-    if args.single:
+    if args.report_from:
+        test.generate_summary_report_from_existing(args.report_from)
+    elif args.single:
         test.run_test(args.single)
     else:
         test.run_series(start=args.start, end=args.end)
