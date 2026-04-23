@@ -5,9 +5,9 @@
   "client": {
     "organization": "org1.example.com",
     "credentialStore": {
-      "path": "/tmp/hfc-kvs",
+      "path": "/tmp/hfc-kvs-${PARTY_ID}",
       "cryptoStore": {
-        "path": "/tmp/hfc-cvs"
+        "path": "/tmp/hfc-cvs-${PARTY_ID}"
       },
       "wallet": "wallet-name"
     }
