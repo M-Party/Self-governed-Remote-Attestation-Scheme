@@ -3,7 +3,7 @@
 
 # IDE
 .vscode/
-.codex/
+.codex
 
 # No editor backup files.
 *.sw*
