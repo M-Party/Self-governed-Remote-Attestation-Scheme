@@ -367,8 +367,8 @@ class FTControlManager:
             return {"status": 1, "error": "missing state update fields"}
 
         nonce = state.get("nonce")
-        if not nonce or not self.state_store.mark_nonce_seen(nonce):
-            return {"status": 1, "error": "replayed or missing nonce"}
+        if not nonce:
+            return {"status": 1, "error": "missing nonce"}
 
         try:
             target_rpe_id = str(state["target_rpe_id"])
@@ -382,6 +382,8 @@ class FTControlManager:
 
         if not verify_json_signature(self._peer_public_key(sender_rpe_id), state, signature):
             return {"status": 1, "error": "invalid state signature"}
+        if not self.state_store.mark_nonce_seen(nonce):
+            return {"status": 1, "error": "replayed nonce"}
 
         self.state_store.record_remote_state(state, payload)
         echo = {

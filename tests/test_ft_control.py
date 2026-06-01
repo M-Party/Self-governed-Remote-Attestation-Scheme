@@ -179,6 +179,49 @@ class FTControlServiceTest(unittest.TestCase):
             finally:
                 receiver.stop()
 
+    def test_invalid_state_update_does_not_consume_nonce(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sender_private, sender_public = self._key_pair()
+            receiver_private, receiver_public = self._key_pair()
+            receiver_config = FTConfig(
+                enabled=True,
+                local_rpe_id="rpe-2",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "receiver_counter.json"),
+                ft_quorum=1,
+            )
+            receiver = FTControlManager(
+                receiver_config,
+                receiver_private,
+                self._pem(receiver_public),
+                {"rpe-1": self._pem(sender_public), "rpe-2": self._pem(receiver_public)},
+            )
+            state = {
+                "target_rpe_id": "rpe-1",
+                "tee_id": "ce-1",
+                "attestation_counter": 1,
+                "nonce": "same-nonce",
+            }
+            bad_update = {
+                "sender_rpe_id": "rpe-1",
+                "state": dict(state),
+                "signature": "not-base64",
+            }
+            self.assertEqual(receiver.handle_state_update(bad_update)["status"], 1)
+
+            good_update = {
+                "sender_rpe_id": "rpe-1",
+                "state": dict(state),
+                "signature": sign_json(sender_private, state),
+            }
+            response = receiver.handle_state_update(good_update)
+            self.assertEqual(response["status"], 0)
+
 
 if __name__ == "__main__":
     unittest.main()
