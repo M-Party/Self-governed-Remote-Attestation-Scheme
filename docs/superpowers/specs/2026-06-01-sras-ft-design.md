@@ -225,8 +225,10 @@ Recovering RPE recovery steps:
 7. Restore the local attestation counter to that maximum.
 8. Regenerate the local RPE signing key pair.
 9. Generate a fresh Evidence Quote binding the new public key and Expt hash.
-10. Broadcast `evidence_update` to online RPEs so they update the recovering RPE's
-   public key.
+10. Broadcast `evidence_update` to online RPEs.
+11. Online RPEs update the recovering RPE's public key only after verifying this
+   fresh Evidence Quote against their own accepted Expt and confirming the Quote
+   binds the advertised public key and Expt hash.
 
 If recovery quorum is not reached, the RPE logs the failure and does not enter
 Phase 3 serving mode.
@@ -247,6 +249,19 @@ When an online RPE receives a recovery query:
 
 If no recorded state exists for the recovering RPE, the handler returns an empty
 state with a nonzero status and logs the event.
+
+## Evidence Update Handler
+
+When an online RPE receives `evidence_update` from a recovering RPE:
+
+1. Verify the request contains the recovering RPE ID, fresh Evidence Quote,
+   advertised public signing key, and Expt hash.
+2. Verify the advertised Expt hash equals the local accepted Expt hash.
+3. Verify the fresh Evidence Quote using the local accepted Expt and collateral.
+4. Confirm the Quote binds the advertised public signing key and Expt hash.
+5. If all checks pass, update `self.rpes[recovering_rpe_id]` with the new public
+   signing key so later CE certificate verification can use it.
+6. Reject and log the update if any check fails.
 
 ## Replay Protection
 
