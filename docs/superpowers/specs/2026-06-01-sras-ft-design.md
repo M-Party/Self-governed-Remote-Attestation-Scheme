@@ -45,7 +45,8 @@ configs:
 ```toml
 [ft]
 enabled = false
-f = 1
+quorum_mode = "auto"
+quorum_override = 0
 listen_host = "127.0.0.1"
 listen_port = "56001"
 peer_addresses = "rpe-1=127.0.0.1:56001,rpe-2=127.0.0.1:56002"
@@ -59,6 +60,26 @@ counter_cache_path = "performance_data/ft_counter_cache.json"
 
 `peer_addresses` maps RPE IDs to FT control endpoints. The local RPE may appear
 in the map, but send paths skip the local ID.
+
+`quorum_mode = "auto"` derives the FT quorum from the number of RPEs in the
+policy:
+
+```text
+n = number of RPEs in policy
+tolerated_faults = floor((n - 1) / 2)
+ft_quorum = tolerated_faults + 1
+```
+
+Examples:
+
+```text
+N=2 -> tolerated_faults=0, ft_quorum=1
+N=4 -> tolerated_faults=1, ft_quorum=2
+N=8 -> tolerated_faults=3, ft_quorum=4
+```
+
+`quorum_override > 0` is an experimental override. If set, the implementation
+uses that value as `ft_quorum` and validates `1 <= quorum_override <= n`.
 
 ## Data Model
 
@@ -141,7 +162,7 @@ build AttestationState(target_rpe_id, tee_id, AC_j, nonce)
 sign state with local RPE signing key
 send state_update RPC to peer RPE FT services in parallel
 validate signed Echo responses
-continue only if valid Echo count >= f + 1
+continue only if valid Echo count >= ft_quorum
 generate_ce_certificate()
 send_ce_cert()
 ```
@@ -188,7 +209,7 @@ Recovering RPE recovery steps:
 
 1. Generate a fresh `recovery_nonce`.
 2. Send `recovery_query(recovering_rpe_id, recovery_nonce)` to peer FT services.
-3. Wait for at least `f + 1` valid responses before `recovery_timeout_sec`.
+3. Wait for at least `ft_quorum` valid responses before `recovery_timeout_sec`.
 4. For each response, verify:
    - The nonce matches the requested recovery nonce.
    - The Evidence Quote binds the same recovery nonce.
@@ -198,7 +219,7 @@ Recovering RPE recovery steps:
    - The Evidence Quote verifies under the local candidate Expt and its
      collateral.
    - The signed state verifies with the public key bound in the Evidence Quote.
-5. Accept the local candidate Expt only if at least `f + 1` responses pass all
+5. Accept the local candidate Expt only if at least `ft_quorum` responses pass all
    checks above.
 6. Select the largest attestation counter across valid responses.
 7. Restore the local attestation counter to that maximum.
@@ -284,7 +305,7 @@ Integration checks:
 - Baseline SRAS with `ft.enabled = false` follows the existing certificate
   issuance path.
 - FT enabled with enough online peers signs a CE certificate only after receiving
-  `f + 1` valid Echoes.
+  `ft_quorum` valid Echoes.
 - FT enabled with insufficient Echoes aborts certificate issuance.
 - Recovery collects valid responses, verifies responder Evidence Quotes, restores
   the maximum attestation counter, and broadcasts a fresh Evidence Quote.
