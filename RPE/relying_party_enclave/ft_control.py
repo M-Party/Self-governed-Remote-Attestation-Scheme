@@ -38,7 +38,12 @@ def _as_bool(value, default=False):
         return default
     if isinstance(value, bool):
         return value
-    return str(value).strip().strip('"').lower() in ("1", "true", "yes", "on")
+    token = str(value).strip().strip('"').lower()
+    if token in ("1", "true", "yes", "on"):
+        return True
+    if token in ("0", "false", "no", "off"):
+        return False
+    raise ValueError("boolean config value must be one of 1,true,yes,on,0,false,no,off")
 
 
 def _as_int(value, default):
@@ -64,7 +69,25 @@ def parse_peer_addresses(raw_value):
         if "=" not in item:
             raise ValueError("peer address must use rpe_id=host:port format")
         rpe_id, address = item.split("=", 1)
-        peers[rpe_id.strip()] = address.strip()
+        rpe_id = rpe_id.strip()
+        address = address.strip()
+        if not rpe_id:
+            raise ValueError("peer rpe_id must not be empty")
+        if rpe_id in peers:
+            raise ValueError("duplicate peer rpe_id")
+        if not address or ":" not in address:
+            raise ValueError("peer address must use host:port format")
+        host, port_text = address.rsplit(":", 1)
+        host = host.strip()
+        port_text = port_text.strip()
+        if not host:
+            raise ValueError("peer address host must not be empty")
+        if not port_text.isdigit():
+            raise ValueError("peer address port must be numeric")
+        port = int(port_text)
+        if port < 1 or port > 65535:
+            raise ValueError("peer address port must be in range 1..65535")
+        peers[rpe_id] = f"{host}:{port_text}"
     return peers
 
 
