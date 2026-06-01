@@ -1,4 +1,5 @@
 import os
+import tempfile
 import unittest
 
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
@@ -88,30 +89,29 @@ class FTSigningStateTest(unittest.TestCase):
         self.assertFalse(verify_json_signature(public_key, dict(payload, nonce="changed"), signature))
 
     def test_counter_cache_round_trip(self):
-        path = "/tmp/sras_ft_counter_cache_test.json"
-        try:
-            os.remove(path)
-        except FileNotFoundError:
-            pass
-        store = FTStateStore(path)
-        self.assertEqual(store.next_local_counter("ce-1"), 1)
-        self.assertEqual(store.next_local_counter("ce-1"), 2)
-        reloaded = FTStateStore(path)
-        self.assertEqual(reloaded.next_local_counter("ce-1"), 3)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = os.path.join(temp_dir, "counter_cache.json")
+            store = FTStateStore(path)
+            self.assertEqual(store.next_local_counter("ce-1"), 1)
+            self.assertEqual(store.next_local_counter("ce-1"), 2)
+            reloaded = FTStateStore(path)
+            self.assertEqual(reloaded.next_local_counter("ce-1"), 3)
 
     def test_remote_state_is_in_memory_and_newer_only(self):
-        store = FTStateStore("/tmp/sras_ft_counter_cache_unused.json")
-        old_state = {"target_rpe_id": "rpe-1", "tee_id": "ce-1", "attestation_counter": 1, "nonce": "a"}
-        new_state = {"target_rpe_id": "rpe-1", "tee_id": "ce-1", "attestation_counter": 2, "nonce": "b"}
-        self.assertTrue(store.record_remote_state(old_state, {"sender_rpe_id": "rpe-1"}))
-        self.assertFalse(store.record_remote_state(old_state, {"sender_rpe_id": "rpe-1"}))
-        self.assertTrue(store.record_remote_state(new_state, {"sender_rpe_id": "rpe-1"}))
-        self.assertEqual(store.get_recorded_state("rpe-1")["state"]["attestation_counter"], 2)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            store = FTStateStore(os.path.join(temp_dir, "counter_cache.json"))
+            old_state = {"target_rpe_id": "rpe-1", "tee_id": "ce-1", "attestation_counter": 1, "nonce": "a"}
+            new_state = {"target_rpe_id": "rpe-1", "tee_id": "ce-1", "attestation_counter": 2, "nonce": "b"}
+            self.assertTrue(store.record_remote_state(old_state, {"sender_rpe_id": "rpe-1"}))
+            self.assertFalse(store.record_remote_state(old_state, {"sender_rpe_id": "rpe-1"}))
+            self.assertTrue(store.record_remote_state(new_state, {"sender_rpe_id": "rpe-1"}))
+            self.assertEqual(store.get_recorded_state("rpe-1")["state"]["attestation_counter"], 2)
 
     def test_replay_nonce_rejected(self):
-        store = FTStateStore("/tmp/sras_ft_counter_cache_unused.json")
-        self.assertTrue(store.mark_nonce_seen("nonce-1"))
-        self.assertFalse(store.mark_nonce_seen("nonce-1"))
+        with tempfile.TemporaryDirectory() as temp_dir:
+            store = FTStateStore(os.path.join(temp_dir, "counter_cache.json"))
+            self.assertTrue(store.mark_nonce_seen("nonce-1"))
+            self.assertFalse(store.mark_nonce_seen("nonce-1"))
 
 
 if __name__ == "__main__":
