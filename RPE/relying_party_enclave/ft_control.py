@@ -254,3 +254,220 @@ class FTStateStore:
                 target_states.values(),
                 key=lambda entry: int(entry["state"]["attestation_counter"]),
             )
+
+
+def random_nonce():
+    return b64encode_bytes(secrets.token_bytes(32))
+
+
+def http_post_json(address, path, payload, timeout):
+    url = "http://%s%s" % (address, path)
+    data = canonical_json_bytes(payload)
+    req = urlrequest.Request(
+        url,
+        data=data,
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    with urlrequest.urlopen(req, timeout=timeout) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+class FTControlManager:
+    def __init__(
+        self,
+        config,
+        signing_private_key,
+        signing_public_key_pem,
+        peer_public_keys,
+        quote_verifier=None,
+    ):
+        self.config = config
+        self.signing_private_key = signing_private_key
+        self.signing_public_key_pem = signing_public_key_pem
+        self.peer_public_keys = dict(peer_public_keys)
+        self.quote_verifier = quote_verifier
+        self.state_store = FTStateStore(config.counter_cache_path)
+        self._server = None
+        self._thread = None
+
+    def start(self):
+        if not self.config.enabled:
+            return
+        manager = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, fmt, *args):
+                logger.debug("FT control: " + fmt, *args)
+
+            def do_POST(self):
+                length = int(self.headers.get("Content-Length", "0"))
+                body = self.rfile.read(length)
+                try:
+                    payload = json.loads(body.decode("utf-8"))
+                    if self.path == "/state_update":
+                        response = manager.handle_state_update(payload)
+                    elif self.path == "/recovery_query":
+                        response = manager.handle_recovery_query(payload)
+                    elif self.path == "/evidence_update":
+                        response = manager.handle_evidence_update(payload)
+                    else:
+                        response = {"status": 1, "error": "unknown endpoint"}
+                except Exception as exc:
+                    logger.exception("FT control request failed")
+                    response = {"status": 1, "error": str(exc)}
+
+                response_bytes = canonical_json_bytes(response)
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(response_bytes)))
+                self.end_headers()
+                self.wfile.write(response_bytes)
+
+        self._server = ThreadingHTTPServer(
+            (self.config.listen_host, self.config.listen_port), Handler
+        )
+        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        server = self._server
+        thread = self._thread
+        if server is not None:
+            server.shutdown()
+            server.server_close()
+            self._server = None
+        if thread is not None:
+            thread.join(timeout=2)
+            self._thread = None
+
+    def bound_address(self):
+        if self._server is None:
+            raise RuntimeError("FT control server is not started")
+        host, port = self._server.server_address
+        return "%s:%d" % (host, port)
+
+    def _peer_public_key(self, rpe_id):
+        pem = self.peer_public_keys.get(rpe_id)
+        if not pem:
+            raise ValueError("unknown peer public key for %s" % rpe_id)
+        return load_public_key_pem(pem)
+
+    def handle_recovery_query(self, payload):
+        return {"status": 1, "error": "recovery_query is not implemented"}
+
+    def handle_evidence_update(self, payload):
+        return {"status": 1, "error": "evidence_update is not implemented"}
+
+    def handle_state_update(self, payload):
+        sender_rpe_id = payload.get("sender_rpe_id")
+        state = payload.get("state")
+        signature = payload.get("signature")
+        if not sender_rpe_id or not isinstance(state, dict) or not signature:
+            return {"status": 1, "error": "missing state update fields"}
+
+        nonce = state.get("nonce")
+        if not nonce or not self.state_store.mark_nonce_seen(nonce):
+            return {"status": 1, "error": "replayed or missing nonce"}
+
+        try:
+            target_rpe_id = str(state["target_rpe_id"])
+            tee_id = str(state["tee_id"])
+            attestation_counter = int(state["attestation_counter"])
+        except (KeyError, TypeError, ValueError):
+            return {"status": 1, "error": "invalid attestation state"}
+
+        if not target_rpe_id or not tee_id or attestation_counter < 1:
+            return {"status": 1, "error": "invalid attestation state"}
+
+        if not verify_json_signature(self._peer_public_key(sender_rpe_id), state, signature):
+            return {"status": 1, "error": "invalid state signature"}
+
+        self.state_store.record_remote_state(state, payload)
+        echo = {
+            "responder_rpe_id": self.config.local_rpe_id,
+            "target_rpe_id": target_rpe_id,
+            "tee_id": tee_id,
+            "attestation_counter": attestation_counter,
+            "nonce": nonce,
+        }
+        echo["signature"] = sign_json(self.signing_private_key, echo)
+        return {"status": 0, "echo": echo}
+
+    def _validate_echo(self, echo, expected_state):
+        if not isinstance(echo, dict):
+            return False
+        responder_rpe_id = echo.get("responder_rpe_id")
+        signature = echo.get("signature")
+        if not responder_rpe_id or not signature:
+            return False
+        try:
+            if echo.get("nonce") != expected_state["nonce"]:
+                return False
+            if echo.get("target_rpe_id") != expected_state["target_rpe_id"]:
+                return False
+            if echo.get("tee_id") != expected_state["tee_id"]:
+                return False
+            if int(echo.get("attestation_counter", -1)) != int(
+                expected_state["attestation_counter"]
+            ):
+                return False
+        except (KeyError, TypeError, ValueError):
+            return False
+
+        signed_echo = dict(echo)
+        signed_echo.pop("signature", None)
+        return verify_json_signature(
+            self._peer_public_key(responder_rpe_id), signed_echo, signature
+        )
+
+    def propagate_attestation_state(self, tee_id):
+        counter = self.state_store.next_local_counter(tee_id)
+        state = {
+            "target_rpe_id": self.config.local_rpe_id,
+            "tee_id": str(tee_id),
+            "attestation_counter": counter,
+            "nonce": random_nonce(),
+        }
+        update = {
+            "sender_rpe_id": self.config.local_rpe_id,
+            "state": state,
+            "signature": sign_json(self.signing_private_key, state),
+        }
+        valid_echoes = []
+        threads = []
+        lock = threading.Lock()
+
+        def send_one(peer_id, address):
+            if peer_id == self.config.local_rpe_id:
+                return
+            try:
+                response = http_post_json(
+                    address, "/state_update", update, self.config.echo_timeout_sec
+                )
+                echo = response.get("echo") if response.get("status") == 0 else None
+                if echo is not None and self._validate_echo(echo, state):
+                    with lock:
+                        if len(valid_echoes) < self.config.ft_quorum:
+                            valid_echoes.append(echo)
+            except Exception as exc:
+                logger.warning("FT state update to %s failed: %s", peer_id, exc)
+
+        for peer_id, address in self.config.peer_addresses.items():
+            if peer_id == self.config.local_rpe_id:
+                continue
+            thread = threading.Thread(target=send_one, args=(peer_id, address), daemon=True)
+            thread.start()
+            threads.append(thread)
+
+        deadline = time.time() + self.config.echo_timeout_sec
+        for thread in threads:
+            remaining = max(0.0, deadline - time.time())
+            thread.join(timeout=remaining)
+            with lock:
+                if len(valid_echoes) >= self.config.ft_quorum:
+                    break
+
+        with lock:
+            echoes = list(valid_echoes)
+        return len(echoes) >= self.config.ft_quorum, echoes

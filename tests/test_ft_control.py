@@ -3,9 +3,11 @@ import tempfile
 import unittest
 
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from RPE.relying_party_enclave.ft_control import (
     FTConfig,
+    FTControlManager,
     FTStateStore,
     canonical_json_bytes,
     derive_ft_quorum,
@@ -112,6 +114,70 @@ class FTSigningStateTest(unittest.TestCase):
             store = FTStateStore(os.path.join(temp_dir, "counter_cache.json"))
             self.assertTrue(store.mark_nonce_seen("nonce-1"))
             self.assertFalse(store.mark_nonce_seen("nonce-1"))
+
+
+class FTControlServiceTest(unittest.TestCase):
+    def _key_pair(self):
+        private_key = ec.generate_private_key(ec.SECP384R1(), backend=openssl_backend)
+        return private_key, private_key.public_key()
+
+    def _pem(self, public_key):
+        return public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        ).decode("utf-8")
+
+    def test_state_update_returns_signed_echo_and_records_state(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sender_private, sender_public = self._key_pair()
+            receiver_private, receiver_public = self._key_pair()
+            receiver_config = FTConfig(
+                enabled=True,
+                local_rpe_id="rpe-2",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "receiver_counter.json"),
+                ft_quorum=1,
+            )
+            receiver = FTControlManager(
+                receiver_config,
+                receiver_private,
+                self._pem(receiver_public),
+                {"rpe-1": self._pem(sender_public), "rpe-2": self._pem(receiver_public)},
+            )
+            receiver.start()
+            try:
+                sender_config = FTConfig(
+                    enabled=True,
+                    local_rpe_id="rpe-1",
+                    listen_host="127.0.0.1",
+                    listen_port=0,
+                    peer_addresses={"rpe-2": receiver.bound_address()},
+                    echo_timeout_sec=2,
+                    recovery_timeout_sec=2,
+                    expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                    counter_cache_path=os.path.join(temp_dir, "sender_counter.json"),
+                    ft_quorum=1,
+                )
+                sender = FTControlManager(
+                    sender_config,
+                    sender_private,
+                    self._pem(sender_public),
+                    {"rpe-1": self._pem(sender_public), "rpe-2": self._pem(receiver_public)},
+                )
+                ok, echoes = sender.propagate_attestation_state("ce-1")
+                self.assertTrue(ok)
+                self.assertEqual(len(echoes), 1)
+                self.assertEqual(echoes[0]["responder_rpe_id"], "rpe-2")
+                self.assertEqual(
+                    receiver.state_store.get_recorded_state("rpe-1")["state"]["tee_id"], "ce-1"
+                )
+            finally:
+                receiver.stop()
 
 
 if __name__ == "__main__":
