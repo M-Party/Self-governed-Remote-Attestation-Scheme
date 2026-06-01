@@ -69,8 +69,7 @@ Attestation state:
   "target_rpe_id": "rpe-1",
   "tee_id": "ce-1",
   "attestation_counter": 3,
-  "nonce": "base64-random",
-  "timestamp": 1710000000.123
+  "nonce": "base64-random"
 }
 ```
 
@@ -168,8 +167,8 @@ When an online RPE receives a state update:
 7. Sign and return a Signed Echo using the local RPE signing key.
 
 Replay protection for state updates is nonce-based. Each processed nonce is
-remembered with a bounded in-memory cache and persisted state is updated only for
-newer counters.
+remembered with a bounded in-memory cache, and the in-memory recorded remote
+state is updated only for newer counters.
 
 ## Recovery Flow
 
@@ -215,11 +214,12 @@ Phase 3 serving mode.
 
 When an online RPE receives a recovery query:
 
-1. Verify the request contains a valid `recovering_rpe_id` and nonce.
+1. Verify the request contains a valid `recovering_rpe_id` and the
+   `recovery_nonce` supplied by the recovering RPE.
 2. Generate or refresh an Evidence Quote that binds:
    - responder public signing key
    - local Expt hash
-   - recovery nonce
+   - the supplied recovery nonce
 3. Look up the latest state recorded for the recovering RPE.
 4. Return the Evidence Quote, public key, Expt hash, recorded state, signed state,
    and nonce.
