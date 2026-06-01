@@ -1,6 +1,17 @@
+import os
 import unittest
 
-from RPE.relying_party_enclave.ft_control import FTConfig, derive_ft_quorum, parse_peer_addresses
+from cryptography.hazmat.backends.openssl import backend as openssl_backend
+from cryptography.hazmat.primitives.asymmetric import ec
+from RPE.relying_party_enclave.ft_control import (
+    FTConfig,
+    FTStateStore,
+    canonical_json_bytes,
+    derive_ft_quorum,
+    parse_peer_addresses,
+    sign_json,
+    verify_json_signature,
+)
 
 
 class FTConfigTest(unittest.TestCase):
@@ -57,6 +68,50 @@ class FTConfigTest(unittest.TestCase):
     def test_config_rejects_invalid_enabled_value(self):
         with self.assertRaises(ValueError):
             FTConfig.from_conf({"ft": {"enabled": "treu"}}, num_rpes=4, local_rpe_id="rpe-1")
+
+
+class FTSigningStateTest(unittest.TestCase):
+    def _key_pair(self):
+        private_key = ec.generate_private_key(ec.SECP384R1(), backend=openssl_backend)
+        return private_key, private_key.public_key()
+
+    def test_canonical_json_is_order_independent(self):
+        left = {"b": 2, "a": 1}
+        right = {"a": 1, "b": 2}
+        self.assertEqual(canonical_json_bytes(left), canonical_json_bytes(right))
+
+    def test_sign_and_verify_json(self):
+        private_key, public_key = self._key_pair()
+        payload = {"target_rpe_id": "rpe-1", "tee_id": "ce-1", "attestation_counter": 1, "nonce": "n"}
+        signature = sign_json(private_key, payload)
+        self.assertTrue(verify_json_signature(public_key, payload, signature))
+        self.assertFalse(verify_json_signature(public_key, dict(payload, nonce="changed"), signature))
+
+    def test_counter_cache_round_trip(self):
+        path = "/tmp/sras_ft_counter_cache_test.json"
+        try:
+            os.remove(path)
+        except FileNotFoundError:
+            pass
+        store = FTStateStore(path)
+        self.assertEqual(store.next_local_counter("ce-1"), 1)
+        self.assertEqual(store.next_local_counter("ce-1"), 2)
+        reloaded = FTStateStore(path)
+        self.assertEqual(reloaded.next_local_counter("ce-1"), 3)
+
+    def test_remote_state_is_in_memory_and_newer_only(self):
+        store = FTStateStore("/tmp/sras_ft_counter_cache_unused.json")
+        old_state = {"target_rpe_id": "rpe-1", "tee_id": "ce-1", "attestation_counter": 1, "nonce": "a"}
+        new_state = {"target_rpe_id": "rpe-1", "tee_id": "ce-1", "attestation_counter": 2, "nonce": "b"}
+        self.assertTrue(store.record_remote_state(old_state, {"sender_rpe_id": "rpe-1"}))
+        self.assertFalse(store.record_remote_state(old_state, {"sender_rpe_id": "rpe-1"}))
+        self.assertTrue(store.record_remote_state(new_state, {"sender_rpe_id": "rpe-1"}))
+        self.assertEqual(store.get_recorded_state("rpe-1")["state"]["attestation_counter"], 2)
+
+    def test_replay_nonce_rejected(self):
+        store = FTStateStore("/tmp/sras_ft_counter_cache_unused.json")
+        self.assertTrue(store.mark_nonce_seen("nonce-1"))
+        self.assertFalse(store.mark_nonce_seen("nonce-1"))
 
 
 if __name__ == "__main__":
