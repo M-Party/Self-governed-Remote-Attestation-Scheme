@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-批量启动多个 RPE
+Start multiple RPE instances.
 """
 import os
 import sys
@@ -22,10 +22,10 @@ class RPEStarter:
         self.processes = []
     
     def start_all(self):
-        """启动所有 RPE（并行启动）"""
+        """Start all RPEs concurrently."""
         logger.info("Starting RPEs...")
         
-        # 先收集所有需要启动的 RPE 信息
+        # Collect RPE instances to start.
         rpe_configs = []
         for i in range(1, self.num_parties + 1):
             rpe_dir = os.path.join(self.base_dir, f"RPE_party{i}")
@@ -43,7 +43,7 @@ class RPEStarter:
             
             rpe_configs.append((i, rpe_dir, log_dir, startup_script))
             
-        # 清理所有 RPE 的性能文件（启动前清理）
+        # Clean all RPE performance files before startup.
         import glob
         logger.info("Cleaning up performance data files...")
         for i, rpe_dir, log_dir, startup_script in rpe_configs:
@@ -56,7 +56,7 @@ class RPEStarter:
                     except Exception as e:
                         logger.warning("Failed to remove performance file %s: %s" % (perf_file, e))
         
-        # 并行启动所有 RPE
+        # Start all RPEs concurrently.
         for i, rpe_dir, log_dir, startup_script in rpe_configs:
             try:
                 rpe_id = f"rpe-{i}"
@@ -73,10 +73,10 @@ class RPEStarter:
             except Exception as e:
                 logger.error("Failed to start RPE Party %d: %s" % (i, str(e)))
         
-        # 所有 RPE 启动后，等待一小段时间确保启动完成
+        # Wait briefly after startup to let all RPEs initialize.
         if self.processes:
             logger.info("Waiting for all RPEs to initialize...")
-            time.sleep(3)  # 等待所有 RPE 完成启动初始化
+            time.sleep(3)  # Wait for all RPEs to finish startup initialization.
         
         logger.info("=" * 60)
         logger.info("All RPEs started!")
@@ -84,11 +84,11 @@ class RPEStarter:
         logger.info("=" * 60)
     
     def stop_all(self):
-        """停止所有进程（含子进程，释放端口），并删除各 RPE 目录下的 rpe_pre_init_ready_*.flag"""
+        """Stop all processes, including children, release ports, and remove RPE ready flags."""
         import os
         import glob
 
-        # 先删除 flag，让 performance_test --manual 在 0.5s 内检测到「已清空」并重试，再慢慢停进程
+        # Remove flags first so performance_test --manual can detect cleanup quickly and retry.
         for i in range(1, self.num_parties + 1):
             perf_data_dir = os.path.join(self.base_dir, f"RPE_party{i}", "performance_data")
             if os.path.isdir(perf_data_dir):
@@ -121,7 +121,7 @@ class RPEStarter:
         self.processes.clear()
 
     def stop_by_port(self):
-        """通过各 party 的 RPE 端口查找并终止进程，并删除各 RPE 目录下的 rpe_pre_init_ready_*.flag"""
+        """Find and terminate processes by each party's RPE port, then remove ready flags."""
         import glob
 
         for i in range(1, self.num_parties + 1):
@@ -183,13 +183,13 @@ def main():
     import argparse
     import glob
 
-    parser = argparse.ArgumentParser(description="批量启动多个 RPE")
-    parser.add_argument("--num-parties", type=int, required=True, help="参与方数量")
-    parser.add_argument("--wait", type=int, default=0, help="等待时间（秒），0 表示持续运行")
+    parser = argparse.ArgumentParser(description="Start multiple RPE instances")
+    parser.add_argument("--num-parties", type=int, required=True, help="Number of parties")
+    parser.add_argument("--wait", type=int, default=0, help="Wait time in seconds; 0 means keep running")
     parser.add_argument("--delete-flags-only", action="store_true",
-                        help="仅删除各 RPE 目录下 performance_data 中的 rpe_pre_init_ready_*.flag（不启动、不停止进程），用于手动退出 RPE 后清空 flag 以便 performance_test 自动重试")
-    parser.add_argument("--base-dir", type=str, default=None, help="项目根目录（默认：performance 的上级）")
-    parser.add_argument("--stop", action="store_true", help="仅按端口清理已启动的 RPE 进程")
+                        help="Only delete rpe_pre_init_ready_*.flag under each RPE performance_data directory")
+    parser.add_argument("--base-dir", type=str, default=None, help="Project root directory; defaults to the parent of performance")
+    parser.add_argument("--stop", action="store_true", help="Only clean up started RPE processes by port")
     
     args = parser.parse_args()
     

@@ -43,7 +43,7 @@ class RPE:
         import json
         import os
         
-        # 性能测试：CE 初始化就绪后写 flag，供 phase3 检测
+        # Performance test: write a flag after CE initialization so phase3 can detect readiness.
         perf_dir = "./performance_data"
         os.makedirs(perf_dir, exist_ok=True)
         pre_connect_flag = os.path.join(perf_dir, "ce_pre_connect_ready_{}.flag".format(self.local_ce))
@@ -54,7 +54,7 @@ class RPE:
             logger.info("CE %s pre-connect ready..." % self.local_ce)
         except Exception as e:
             logger.warning("Failed to write pre-connect flag: %s" % e)
-        # 总时间模式（CE_WAIT_FOR_START_RPE=1）：等 START_RPE_NOW.flag 后再开始计时连 RPE，保证「第一个 CE 开始计时到最后一个 CE 完成」为真实认证总时间
+        # Total-time mode: wait for START_RPE_NOW.flag before timing the RPE connection.
         if os.environ.get("CE_WAIT_FOR_START_RPE", "").strip().lower() in ("1", "true", "yes"):
             wait_timeout = 300
             wait_start = time.time()
@@ -65,7 +65,7 @@ class RPE:
                 time.sleep(0.001)
             logger.info("CE %s START_RPE_NOW.flag detected, starting auth timer and connecting to RPE..." % self.local_ce)
 
-        # 性能测试：记录认证开始时间（总时间模式下为 RPE 就绪后开始）
+        # Performance test: record authentication start time.
         auth_start_time = time.time()
         perf_data = {
             "ce_id": self.local_ce,
@@ -87,7 +87,7 @@ class RPE:
         cert_start_time = time.time()
         CECertBase64 = ratls.get_cert_from_rpe(self.local_ce)
         cert_end_time = time.time()
-        # 性能测试：记录认证完成时间
+        # Performance test: record authentication completion time.
         auth_end_time = time.time()
         auth_duration = auth_end_time - auth_start_time
         cert_duration = cert_end_time - cert_start_time
@@ -99,7 +99,7 @@ class RPE:
         logger.info("CE %s authentication completed in %.3f seconds (cert request: %.3f seconds)" % 
                    (self.local_ce, auth_duration, cert_duration))
         
-        # 保存性能数据
+        # Save performance data.
         perf_dir = "./performance_data"
         os.makedirs(perf_dir, exist_ok=True)
         perf_file = os.path.join(perf_dir, f"ce_perf_{self.local_ce}.json")

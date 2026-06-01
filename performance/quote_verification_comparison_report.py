@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-汇总 Stage 2 / Stage 3 expectation-policy enforcement overhead 对比结果。
+Summarize Stage 2 / Stage 3 expectation-policy enforcement overhead comparison results.
 
-输入：
+Inputs:
 - Stage 2: performance_data/test_result_*rpes.json
 - Stage 3: performance_data/phase3_test_result_*ces.json
 
-输出：
+Outputs:
 - quote_verification_comparison_report.json
 - quote_verification_comparison_report.csv
 - quote_verification_comparison_report.txt

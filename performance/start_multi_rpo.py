@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-批量启动多个 RPO
+Start multiple RPO instances.
 """
 import os
 import sys
@@ -22,7 +22,7 @@ class RPOStarter:
         self.processes = []
     
     def update_policies_path(self):
-        """根据参与方数量更新所有 RPO 的 config.toml 中的 policies_path"""
+        """Update policies_path in all RPO config.toml files based on the party count."""
         policies_filename = f"policies-{self.num_parties}.json"
         logger.info("Updating policies_path to '%s' for all RPOs..." % policies_filename)
         
@@ -49,7 +49,7 @@ class RPOStarter:
                 logger.error("Failed to update config for RPO Party %d: %s" % (i, str(e)))
 
     def start_all(self):
-        """启动所有 RPO（并行启动）"""
+        """Start all RPOs concurrently."""
         self.update_policies_path()
         logger.info("Starting RPOs...")
         rpo_configs = []
@@ -88,7 +88,7 @@ class RPOStarter:
         logger.info("=" * 60)
     
     def stop_all(self):
-        """停止所有进程（含子进程，释放端口）"""
+        """Stop all processes, including child processes, and release ports."""
         import os
         logger.info("Stopping all RPOs...")
         for name, process, log_file in reversed(self.processes):
@@ -113,7 +113,7 @@ class RPOStarter:
         self.processes.clear()
 
     def stop_by_port(self):
-        """通过各 party 的 RPO 端口查找并终止进程"""
+        """Find and terminate processes by each party's RPO port."""
         logger.info("Stopping RPOs by ports...")
         for i in range(1, self.num_parties + 1):
             rpo_dir = os.path.join(self.base_dir, f"RPO_party{i}")
@@ -161,10 +161,10 @@ class RPOStarter:
 def main():
     import argparse
     
-    parser = argparse.ArgumentParser(description="批量启动多个 RPO")
-    parser.add_argument("--num-parties", type=int, required=True, help="参与方数量")
-    parser.add_argument("--wait", type=int, default=0, help="等待时间（秒），0 表示持续运行")
-    parser.add_argument("--stop", action="store_true", help="仅按端口清理已启动的 RPO 进程")
+    parser = argparse.ArgumentParser(description="Start multiple RPO instances")
+    parser.add_argument("--num-parties", type=int, required=True, help="Number of parties")
+    parser.add_argument("--wait", type=int, default=0, help="Wait time in seconds; 0 means keep running")
+    parser.add_argument("--stop", action="store_true", help="Only clean up started RPO processes by port")
     
     args = parser.parse_args()
     

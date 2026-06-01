@@ -41,16 +41,16 @@ bin/configtxgen \
 
 # NEW NEW NEW
 # Generate channel configuration transaction file
-# 清理并重建目录
+# Clean and rebuild directories.
 rm -rf fixtures/network/crypto-config fixtures/network/channel-artifacts
 mkdir -p fixtures/network/crypto-config fixtures/network/channel-artifacts
 
-# 生成证书
+# Generate certificates.
 ./bin/cryptogen generate \
   --config=fixtures/network/crypto-config.yaml \
   --output=fixtures/network/crypto-config
 
-# 生成创世块和通道 TX
+# Generate the genesis block and channel transaction.
 export FABRIC_CFG_PATH="$(pwd)/fixtures/network"
 ./bin/configtxgen -profile TwoOrgsOrdererGenesis \
   -channelID byfn-sys-channel \

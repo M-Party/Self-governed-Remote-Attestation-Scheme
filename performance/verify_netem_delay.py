@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-用本地 TCP echo RTT 验证 netem delay 是否生效。
+Verify whether netem delay is effective using local TCP echo RTT.
 
-示例：
+Example:
 python3 performance/verify_netem_delay.py --host 127.0.0.1 --port 39001 --count 10
 """
 import argparse

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-批量启动多个 CE 实例
+Start multiple CE instances.
 """
 import os
 import sys
@@ -22,10 +22,10 @@ class MultiCEStarter:
         self.processes = []
     
     def start_all(self, concurrent=True):
-        """启动所有 CE（并行或顺序）"""
+        """Start all CEs concurrently or sequentially."""
         logger.info("Starting CEs...")
         
-        # 收集所有需要启动的 CE 信息
+        # Collect CE instances to start.
         ce_configs = []
         for i in range(1, self.num_parties + 1):
             ce_dir = os.path.join(self.base_dir, f"CE_party{i}")
@@ -43,7 +43,7 @@ class MultiCEStarter:
             
             ce_configs.append((i, ce_dir, log_dir, startup_script))
         
-        # 清理性能文件
+        # Clean performance data files.
         logger.info("Cleaning up performance data files...")
         for i, ce_dir, log_dir, startup_script in ce_configs:
             perf_data_dir = os.path.join(ce_dir, "performance_data")
@@ -55,9 +55,9 @@ class MultiCEStarter:
                     except Exception as e:
                         logger.warning("Failed to remove performance file %s: %s" % (perf_file, e))
         
-        # 启动所有 CE
+        # Start all CEs.
         if concurrent:
-            # 并发启动：先创建所有进程，然后一次性启动
+            # Concurrent startup: prepare all processes first, then start them together.
             logger.info("Starting %d CEs concurrently..." % len(ce_configs))
             processes_to_start = []
             
@@ -69,7 +69,7 @@ class MultiCEStarter:
                 except Exception as e:
                     logger.error("Failed to prepare CE Party %d: %s" % (i, str(e)))
             
-            # 一次性启动所有进程（减少启动时间差异）
+            # Start all processes together to reduce startup skew.
             for i, ce_id, ce_dir, log_dir, startup_script, log_file in processes_to_start:
                 try:
                     process = subprocess.Popen(
@@ -87,7 +87,7 @@ class MultiCEStarter:
             if self.processes:
                 logger.info("All %d CEs started concurrently. Waiting for them to initialize..." % len(self.processes))
         else:
-            # 顺序启动：等待当前进程完成
+            # Sequential startup: wait for each process to finish.
             logger.info("Starting CEs sequentially...")
             for i, ce_dir, log_dir, startup_script in ce_configs:
                 try:
@@ -106,7 +106,7 @@ class MultiCEStarter:
                     logger.error("Failed to start CE Party %d: %s" % (i, str(e)))
     
     def stop_all(self):
-        """停止所有 CE"""
+        """Stop all CEs."""
         logger.info("Stopping all CEs...")
         for name, process, log_file in self.processes:
             try:
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     
     try:
         starter.start_all(concurrent=not args.sequential)
-        # 保持运行直到用户中断
+        # Keep running until interrupted.
         import signal
         def signal_handler(sig, frame):
             logger.info("Received interrupt signal, stopping all CEs...")
@@ -144,7 +144,7 @@ if __name__ == "__main__":
         signal.signal(signal.SIGINT, signal_handler)
         signal.signal(signal.SIGTERM, signal_handler)
         
-        # 等待所有进程
+        # Wait for all processes.
         for name, process, log_file in starter.processes:
             process.wait()
             log_file.close()

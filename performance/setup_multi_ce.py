@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-批量复制和配置多个 CE 实例
-用于 Phase 3 性能测试
+Copy and configure multiple CE instances for Phase 3 performance tests.
 """
 import os
 import sys
@@ -19,18 +18,18 @@ class MultiCESetup:
         self.base_dir = base_dir
         self.num_ces = num_ces
         
-        # CE 基础目录
+        # Base CE directory.
         self.ce_base = os.path.join(base_dir, "CE")
     
     def copy_and_config_ce(self, ce_id, party_id, rpe_address, rpe_port):
         """
-        复制并配置 CE
+        Copy and configure one CE.
         
         Args:
-            ce_id: CE ID，例如 "ce-1"
-            party_id: Party ID，例如 1
-            rpe_address: RPE 地址
-            rpe_port: RPE 端口
+            ce_id: CE ID, for example "ce-1"
+            party_id: Party ID, for example 1
+            rpe_address: RPE address
+            rpe_port: RPE port
         """
         party_ce_dir = os.path.join(self.base_dir, f"CE_party{party_id}")
         
@@ -41,11 +40,11 @@ class MultiCESetup:
         logger.info("Copying CE for Party %d (CE: %s)..." % (party_id, ce_id))
         shutil.copytree(self.ce_base, party_ce_dir, ignore=shutil.ignore_patterns('*.pyc', '__pycache__', '*.log', 'logs', 'performance_data'))
         
-        # 创建必要的目录
+        # Create required directories.
         os.makedirs(os.path.join(party_ce_dir, "logs"), exist_ok=True)
         os.makedirs(os.path.join(party_ce_dir, "performance_data"), exist_ok=True)
         
-        # 修改 config.toml
+        # Update config.toml.
         config_file = os.path.join(party_ce_dir, "config.toml")
         if os.path.exists(config_file):
             config = configparser.ConfigParser()
@@ -54,12 +53,12 @@ class MultiCESetup:
                 config['ce']['local_ce'] = f'"{ce_id}"'
                 config['ce']['rpe_address'] = f'"{rpe_address}"'
                 config['ce']['rpe_port'] = f'"{rpe_port}"'
-                # 保持其他字段不变（collaborative_ce_address, collaborative_ce_port, ce_port）
+                # Keep other fields unchanged: collaborative_ce_address, collaborative_ce_port, ce_port.
                 with open(config_file, 'w') as f:
                     config.write(f)
             logger.info("Updated config.toml for CE Party %d" % party_id)
         else:
-            # 如果 config.toml 不存在，从模板创建
+            # Create config.toml from the template when it does not exist.
             template_file = os.path.join(party_ce_dir, "config.toml.template")
             if os.path.exists(template_file):
                 shutil.copy(template_file, config_file)
@@ -79,11 +78,11 @@ class MultiCESetup:
     
     def setup_multiple_ces(self, rpe_address="127.0.0.1", rpe_port="4455"):
         """
-        设置多个 CE
+        Set up multiple CEs.
         
         Args:
-            rpe_address: RPE 地址（所有 CE 连接到同一个 RPE）
-            rpe_port: RPE 端口（所有 CE 连接到同一个 RPE）
+            rpe_address: RPE address; all CEs connect to the same RPE
+            rpe_port: RPE port; all CEs connect to the same RPE
         """
         ce_dirs = []
         
@@ -104,11 +103,11 @@ class MultiCESetup:
 def main():
     import argparse
     
-    parser = argparse.ArgumentParser(description="批量复制和配置多个 CE")
-    parser.add_argument("--num-ces", type=int, default=1, help="CE 数量")
-    parser.add_argument("--rpe-address", type=str, default="127.0.0.1", help="RPE 地址")
-    parser.add_argument("--rpe-port", type=str, default="4455", help="RPE 端口")
-    parser.add_argument("--base-dir", type=str, default=None, help="基础目录")
+    parser = argparse.ArgumentParser(description="Copy and configure multiple CEs")
+    parser.add_argument("--num-ces", type=int, default=1, help="Number of CEs")
+    parser.add_argument("--rpe-address", type=str, default="127.0.0.1", help="RPE address")
+    parser.add_argument("--rpe-port", type=str, default="4455", help="RPE port")
+    parser.add_argument("--base-dir", type=str, default=None, help="Base directory")
     
     args = parser.parse_args()
     

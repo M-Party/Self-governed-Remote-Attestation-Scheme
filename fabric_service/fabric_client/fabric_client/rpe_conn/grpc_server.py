@@ -17,19 +17,19 @@ class RpeService(rpe_pb2_grpc.RpeServiceServicer):
         self.fabric_client = fabric_client
     
     def _ensure_event_loop(self):
-        """为当前线程确保有事件循环（Fabric SDK 需要）"""
+        """Ensure the current thread has an event loop required by the Fabric SDK."""
         try:
             loop = asyncio.get_event_loop()
             if loop.is_closed():
                 raise RuntimeError("Event loop is closed")
         except RuntimeError:
-            # 当前线程没有事件循环，创建一个
+            # The current thread has no event loop, so create one.
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         return loop
     
     def SendRPEVerificationInfo(self, request, context):
-        self._ensure_event_loop()  # 确保有事件循环
+        self._ensure_event_loop()  # Ensure an event loop exists.
         logger.info("RPEVerificationInfo: %s" % request.rpeVerificationInfo)
         rpe_verification_info = json.loads(request.rpeVerificationInfo)
         worker = {
@@ -64,7 +64,7 @@ class RpeService(rpe_pb2_grpc.RpeServiceServicer):
         return rpe_pb2.Response(status=status, content=content)
     
     def SendQuote(self, request, context):
-        self._ensure_event_loop()  # 确保有事件循环
+        self._ensure_event_loop()  # Ensure an event loop exists.
         logger.info("Quote: %s" % request.base64EncodedQuote)
         if self.fabric_client.upload_quote(request.rpeId, request.base64EncodedQuote):
             status = 0
@@ -78,7 +78,7 @@ class RpeService(rpe_pb2_grpc.RpeServiceServicer):
         return rpe_pb2.Response(status=0, content=quote)
     
     def QueryQuoteByIds(self, request, context):
-        self._ensure_event_loop()  # 确保有事件循环
+        self._ensure_event_loop()  # Ensure an event loop exists.
         try:
             quote_dict = self.fabric_client.get_quote_by_ids(request.rpeIds)
             quotes = json.dumps(quote_dict)

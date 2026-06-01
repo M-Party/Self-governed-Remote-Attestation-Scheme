@@ -107,37 +107,37 @@ $ sed -i 's/0.0.0.0/ip-of-fabric-network/g' config/network.json  # Modify the IP
 
 ### Phase 2 ledger-overhead ablation: SRAS-Fabric vs SRAS-P2P
 
-SRAS 默认在 Phase 2 使用 Hyperledger Fabric 交换各参与方的 RPE Quotes。为了分离协议本身开销与交换底座开销，仓库中补充了一个退化版本的实验底座：
+SRAS uses Hyperledger Fabric by default in Phase 2 to exchange RPE Quotes among participants. To separate the protocol overhead from the exchange substrate overhead, this repository also provides a degraded experimental substrate:
 
 - `performance/p2p_quote_exchange.py`
-  - 兼容现有 gRPC 接口的内存型 Quote 交换服务，不依赖 Fabric 账本。
+  - An in-memory Quote exchange service compatible with the existing gRPC interface, without relying on the Fabric ledger.
 - `performance/start_multi_p2p.py`
-  - 用于启动/停止上述 P2P 服务。
+  - Starts and stops the P2P service above.
 - `performance/phase2_transport_ablation_test.py`
-  - 在相同的 Phase 2 流程下，对比 `Fabric` 与 `P2P` 两种交换底座的时延。
+  - Compares the latency of the `Fabric` and `P2P` exchange substrates under the same Phase 2 workflow.
 
-实验目标：
+Experiment goals:
 
-- 对比在 `N` 个参与者下，`SRAS-Fabric` 与 `SRAS-P2P` 的 Phase 2 延迟。
-- 承认引入 Fabric 会增加相互证明时间。
-- 将协议核开销与账本/交换底座开销拆开观测。
+- Compare the Phase 2 latency of `SRAS-Fabric` and `SRAS-P2P` with `N` participants.
+- Quantify the mutual-attestation latency added by introducing Fabric.
+- Observe the core protocol overhead separately from the ledger/exchange-substrate overhead.
 
-运行示例：
+Example:
 
 ```bash
 python3 performance/phase2_transport_ablation_test.py --party-counts 2,4,8 --repeats 3
 ```
 
-输出位置：
+Output files:
 
 - `performance_data/phase2_transport_ablation/summary.csv`
 - `performance_data/phase2_transport_ablation/summary_aggregated.csv`
 - `performance_data/phase2_transport_ablation/summary.json`
 
-其中：
+Metrics:
 
-- `phase2_wall_clock_s` 表示系统视角的 Phase 2 总墙钟时间：`max(phase2_end) - min(phase2_start)`
-- `phase2_avg_s` / `phase2_min_s` / `phase2_max_s` 表示各 RPE 本地记录的 Phase 2 时延统计
+- `phase2_wall_clock_s` is the system-level Phase 2 wall-clock time: `max(phase2_end) - min(phase2_start)`.
+- `phase2_avg_s` / `phase2_min_s` / `phase2_max_s` are Phase 2 latency statistics recorded locally by each RPE.
 
 ### Build and config Relying Party Owner (RPO)
 RPO should be deployed in every relying party

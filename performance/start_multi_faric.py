@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-批量启动多个 Fabric Client
+Start multiple Fabric Client instances.
 """
 import os
 import sys
@@ -21,7 +21,7 @@ class FabricClientStarter:
         self.processes = []
     
     def start_all(self):
-        """启动所有 Fabric Client"""
+        """Start all Fabric Client instances."""
         logger.info("Starting Fabric Clients...")
         for i in range(1, self.num_parties + 1):
             fc_dir = os.path.join(self.base_dir, f"fabric_client_party{i}")
@@ -47,7 +47,7 @@ class FabricClientStarter:
                 )
                 self.processes.append((f"fabric_client_party{i}", process, log_file))
                 logger.info("Fabric Client Party %d started (PID: %d)" % (i, process.pid))
-                time.sleep(3)  # 等待启动
+                time.sleep(3)  # Wait for startup.
             except Exception as e:
                 logger.error("Failed to start Fabric Client Party %d: %s" % (i, str(e)))
         
@@ -57,7 +57,7 @@ class FabricClientStarter:
         logger.info("=" * 60)
     
     def stop_all(self):
-        """停止所有进程"""
+        """Stop all processes."""
         logger.info("Stopping all Fabric Clients...")
         for name, process, log_file in reversed(self.processes):
             try:
@@ -74,7 +74,7 @@ class FabricClientStarter:
         self.processes.clear()
 
     def stop_all_by_ports(self):
-        """通过各 party 的 gRPC 端口查找并终止进程（用于 SSH 断开后无法 Ctrl+C 时在远程执行 --stop 清理）"""
+        """Find and terminate processes by each party's gRPC port."""
         import configparser
         logger.info("Stopping Fabric Clients by ports...")
         base_port = 50051
@@ -106,7 +106,7 @@ class FabricClientStarter:
                         except Exception as e:
                             logger.warning("Failed to kill PID %d: %s" % (pid, e))
             except FileNotFoundError:
-                # 无 lsof 时用 fuser（若存在）
+                # Fall back to fuser when lsof is unavailable.
                 try:
                     out = subprocess.run(
                         ["fuser", "-k", "%d/tcp" % port],
@@ -123,10 +123,10 @@ class FabricClientStarter:
 def main():
     import argparse
     
-    parser = argparse.ArgumentParser(description="批量启动多个 Fabric Client")
-    parser.add_argument("--num-parties", type=int, required=True, help="参与方数量")
-    parser.add_argument("--wait", type=int, default=0, help="等待时间（秒），0 表示持续运行")
-    parser.add_argument("--stop", action="store_true", help="仅按端口清理已启动的 Fabric Client 进程（SSH 断开后可在远程执行此选项）")
+    parser = argparse.ArgumentParser(description="Start multiple Fabric Client instances")
+    parser.add_argument("--num-parties", type=int, required=True, help="Number of parties")
+    parser.add_argument("--wait", type=int, default=0, help="Wait time in seconds; 0 means keep running")
+    parser.add_argument("--stop", action="store_true", help="Only clean up started Fabric Client processes by port")
     
     args = parser.parse_args()
     

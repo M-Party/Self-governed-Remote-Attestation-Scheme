@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-启动/停止多实例 P2P Quote 交换服务。
+Start or stop multiple P2P Quote exchange service instances.
 """
 import argparse
 import configparser

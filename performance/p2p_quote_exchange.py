@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-轻量级多点直连 P2P Quote 交换服务。
+Lightweight multi-peer direct P2P Quote exchange service.
 
-该服务复用 fabric_client 的 gRPC proto 接口，但不依赖 Fabric 账本。
-每个参与方启动一个本地节点，节点之间通过简单广播复制状态，用于
-Phase 2「移除 Fabric 账本，仅保留 Quote 广播交换」的消融实验。
+This service reuses the fabric_client gRPC proto interface but does not depend on
+the Fabric ledger. Each participant starts one local node; nodes replicate state
+through simple broadcast for the Phase 2 ablation experiment that removes the
+Fabric ledger and keeps only Quote broadcast exchange.
 """
 from concurrent import futures
 import argparse

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-对指定网卡注入 netem delay，执行测试命令，结束后自动清理。
+Inject netem delay on a specified network device, run a test command, and clean
+up automatically afterward.
 
-示例：
+Example:
 python3 performance/run_with_netem_delay.py --delay-ms 20 -- \
   python3 performance/performance_test.py --test phase2 --single 2
 """
