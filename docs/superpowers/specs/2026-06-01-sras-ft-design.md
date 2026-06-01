@@ -51,8 +51,8 @@ listen_port = "56001"
 peer_addresses = "rpe-1=127.0.0.1:56001,rpe-2=127.0.0.1:56002"
 echo_timeout_sec = 3
 recovery_timeout_sec = 5
-state_store_path = "performance_data/ft_state.json"
 expt_cache_path = "performance_data/expt_cache.json"
+counter_cache_path = "performance_data/ft_counter_cache.json"
 ```
 
 `enabled = false` preserves baseline SRAS.
@@ -150,8 +150,9 @@ send_ce_cert()
 If the FT quorum is not reached before `echo_timeout_sec`, certificate issuance
 is aborted for that CE connection.
 
-The local RPE persists its local attestation counter and remote recorded states
-to `state_store_path`.
+The local RPE updates its local attestation counter after a successful quorum.
+The counter may be cached locally under `counter_cache_path`, but recovery does
+not trust this cache as authoritative.
 
 ## State Update Handler
 
@@ -175,9 +176,14 @@ newer counters.
 At RPE startup:
 
 1. If no local Expt cache exists, run the normal RPO authorization path.
-2. After successful RPO authorization, persist the Expt/policies cache locally.
-3. If the Expt cache exists and FT is enabled, run recovery before accepting CE
-   authentications.
+2. After successful RPO authorization, persist the Expt/policies cache locally
+   for future recovery.
+3. If a local Expt cache exists and FT is enabled, treat the cached Expt as a
+   candidate recovery anchor. It is accepted only after enough online RPEs return
+   fresh nonce-bound Evidence Quotes that bind the same Expt hash and verify
+   successfully under that candidate Expt.
+4. Only after this online quorum accepts the candidate Expt can the recovering
+   RPE use it to recover attestation counters and enter Phase 3 serving mode.
 
 Recovering RPE recovery steps:
 
@@ -186,15 +192,20 @@ Recovering RPE recovery steps:
 3. Wait for at least `f + 1` valid responses before `recovery_timeout_sec`.
 4. For each response, verify:
    - The nonce matches the requested recovery nonce.
-   - The Evidence Quote is valid under the locally cached Expt and collateral.
+   - The Evidence Quote binds the same recovery nonce.
    - The Evidence Quote binds the returned RPE public key.
-   - The returned Expt hash matches the local Expt hash.
+   - The Evidence Quote binds an Expt hash equal to the local candidate Expt
+     hash.
+   - The Evidence Quote verifies under the local candidate Expt and its
+     collateral.
    - The signed state verifies with the public key bound in the Evidence Quote.
-5. Select the largest attestation counter across valid responses.
-6. Restore the local attestation counter to that maximum.
-7. Regenerate the local RPE signing key pair.
-8. Generate a fresh Evidence Quote binding the new public key and Expt hash.
-9. Broadcast `evidence_update` to online RPEs so they update the recovering RPE's
+5. Accept the local candidate Expt only if at least `f + 1` responses pass all
+   checks above.
+6. Select the largest attestation counter across valid responses.
+7. Restore the local attestation counter to that maximum.
+8. Regenerate the local RPE signing key pair.
+9. Generate a fresh Evidence Quote binding the new public key and Expt hash.
+10. Broadcast `evidence_update` to online RPEs so they update the recovering RPE's
    public key.
 
 If recovery quorum is not reached, the RPE logs the failure and does not enter
@@ -234,27 +245,27 @@ Recovery:
 
 ## Persistence
 
-FT state is persisted as JSON under `state_store_path`:
+The Expt cache is persisted under `expt_cache_path` after normal RPO
+authorization. During recovery it is only a candidate anchor; it becomes
+acceptable only after the online quorum validation described above.
+
+The local counter cache is persisted as JSON under `counter_cache_path`:
 
 ```json
 {
   "local_attestation_counters": {
     "ce-1": 3
-  },
-  "recorded_remote_state": {
-    "rpe-1": {
-      "ce-1": {
-        "target_rpe_id": "rpe-1",
-        "tee_id": "ce-1",
-        "attestation_counter": 3,
-        "nonce": "base64-random",
-        "signature": "base64-ecdsa-signature",
-        "sender_rpe_id": "rpe-1"
-      }
-    }
   }
 }
 ```
+
+This cache is not authoritative during recovery. Recovery overwrites it with the
+maximum counter accepted from valid online RPE responses.
+
+`recorded_remote_state` is maintained in memory by default. A future optimization
+may persist it or synchronize remote-state snapshots during recovery, but the
+first implementation does not rely on local recorded remote state as a trusted
+recovery source.
 
 Writes use a temporary file and atomic rename, matching the existing performance
 data persistence style.
