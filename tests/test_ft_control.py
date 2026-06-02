@@ -1,4 +1,5 @@
 import os
+import configparser
 import tempfile
 import unittest
 
@@ -221,6 +222,39 @@ class FTControlServiceTest(unittest.TestCase):
             }
             response = receiver.handle_state_update(good_update)
             self.assertEqual(response["status"], 0)
+
+
+class FTGeneratedConfigTest(unittest.TestCase):
+    def test_generated_ft_peer_addresses_are_per_party(self):
+        from performance.setup_multi_party import MultiPartySetup
+
+        with tempfile.TemporaryDirectory(prefix="sras_ft_setup_") as root:
+            for name in ("fabric_service/fabric_client/config", "RPO", "RPE"):
+                os.makedirs(os.path.join(root, name), exist_ok=True)
+            with open(os.path.join(root, "fabric_service/fabric_client/config/config.toml"), "w") as f:
+                f.write("[grpc]\nport = \"50051\"\n")
+            with open(os.path.join(root, "RPO/config.toml"), "w") as f:
+                f.write("[rpo]\nrpe_id = \"rpe-1\"\nport = \"4433\"\npolicies_path = \"policies.json\"\n")
+            with open(os.path.join(root, "RPO/policies.json.template"), "w") as f:
+                f.write(
+                    '{"session_id":"s","rpe":[],"rpe_info":{},"tcb":[],"job":[],"ce":[],"connection":[]}'
+                )
+            with open(os.path.join(root, "RPE/config.toml"), "w") as f:
+                f.write(
+                    "[rpe]\n"
+                    "rpe_id = \"rpe-1\"\n"
+                    "rpe_port = \"4455\"\n"
+                    "rpo_address = \"127.0.0.1\"\n"
+                    "rpo_port = \"4433\"\n"
+                    "grpc_server_address = \"127.0.0.1:50051\"\n"
+                )
+            setup = MultiPartySetup(base_dir=root, num_parties=2, ft_enabled=True, ft_base_port=56001)
+            setup.setup_multiple_parties()
+            cfg = configparser.ConfigParser()
+            cfg.read(os.path.join(root, "RPE_party1/config.toml"))
+            self.assertEqual(cfg["ft"]["enabled"], "true")
+            self.assertEqual(cfg["ft"]["listen_port"].strip('"'), "56001")
+            self.assertIn("rpe-2=127.0.0.1:56002", cfg["ft"]["peer_addresses"])
 
 
 if __name__ == "__main__":

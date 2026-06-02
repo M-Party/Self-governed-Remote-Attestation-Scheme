@@ -14,7 +14,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(mes
 logger = logging.getLogger(__name__)
 
 class MultiPartySetup:
-    def __init__(self, base_dir=None, num_parties=3, transport="fabric", p2p_port=51051, p2p_host="127.0.0.1"):
+    def __init__(
+        self,
+        base_dir=None,
+        num_parties=3,
+        transport="fabric",
+        p2p_port=51051,
+        p2p_host="127.0.0.1",
+        ft_enabled=False,
+        ft_base_port=56001,
+        ft_host="127.0.0.1",
+    ):
         if base_dir is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         self.base_dir = base_dir
@@ -22,6 +32,9 @@ class MultiPartySetup:
         self.transport = transport
         self.p2p_port = p2p_port
         self.p2p_host = p2p_host
+        self.ft_enabled = ft_enabled
+        self.ft_base_port = ft_base_port
+        self.ft_host = ft_host
         
         # Base directories.
         self.fabric_client_base = os.path.join(base_dir, "fabric_service", "fabric_client")
@@ -39,6 +52,12 @@ class MultiPartySetup:
             for peer_index in range(1, self.num_parties + 1)
             if peer_index != party_index
         ]
+
+    def _get_ft_peer_addresses(self):
+        return ",".join(
+            "rpe-%d=%s:%d" % (party_index, self.ft_host, self.ft_base_port + party_index - 1)
+            for party_index in range(1, self.num_parties + 1)
+        )
     
     def copy_and_config_fabric_client(self, party_id, grpc_port):
         """Copy and configure a Fabric Client instance."""
@@ -186,6 +205,18 @@ class MultiPartySetup:
                     config['rpe']['grpc_peer_addresses'] = '"%s"' % ",".join(
                         self._get_p2p_peer_addresses(party_id)
                     )
+                if "ft" not in config:
+                    config["ft"] = {}
+                config["ft"]["enabled"] = "true" if self.ft_enabled else "false"
+                config["ft"]["quorum_mode"] = '"auto"'
+                config["ft"]["quorum_override"] = "0"
+                config["ft"]["listen_host"] = '"%s"' % self.ft_host
+                config["ft"]["listen_port"] = '"%d"' % (self.ft_base_port + party_id - 1)
+                config["ft"]["peer_addresses"] = '"%s"' % self._get_ft_peer_addresses()
+                config["ft"]["echo_timeout_sec"] = "3"
+                config["ft"]["recovery_timeout_sec"] = "5"
+                config["ft"]["expt_cache_path"] = '"performance_data/expt_cache.json"'
+                config["ft"]["counter_cache_path"] = '"performance_data/ft_counter_cache.json"'
                 with open(config_file, 'w') as f:
                     config.write(f)
         
@@ -277,6 +308,9 @@ def main():
                         help="Base P2P node port for transport=p2p; party i uses p2p-port+i-1")
     parser.add_argument("--p2p-host", type=str, default="127.0.0.1",
                         help="Host address used by P2P nodes for listening and peering when transport=p2p")
+    parser.add_argument("--ft-enabled", action="store_true", help="Enable SRAS-FT in generated RPE configs")
+    parser.add_argument("--ft-base-port", type=int, default=56001, help="Base SRAS-FT control port")
+    parser.add_argument("--ft-host", type=str, default="127.0.0.1", help="SRAS-FT control host")
     
     args = parser.parse_args()
     
@@ -285,6 +319,9 @@ def main():
         transport=args.transport,
         p2p_port=args.p2p_port,
         p2p_host=args.p2p_host,
+        ft_enabled=args.ft_enabled,
+        ft_base_port=args.ft_base_port,
+        ft_host=args.ft_host,
     )
     setup.setup_multiple_parties(
         base_rpo_port=args.base_rpo_port,

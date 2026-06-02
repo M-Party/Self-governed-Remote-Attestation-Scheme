@@ -5,3 +5,15 @@ rpo_address = "192.168.122.53"
 rpo_port = "4433"
 rpe_port = "4455"
 socket_port = "9001"
+
+[ft]
+enabled = false
+quorum_mode = "auto"
+quorum_override = 0
+listen_host = "127.0.0.1"
+listen_port = "56001"
+peer_addresses = ""
+echo_timeout_sec = 3
+recovery_timeout_sec = 5
+expt_cache_path = "performance_data/expt_cache.json"
+counter_cache_path = "performance_data/ft_counter_cache.json"
