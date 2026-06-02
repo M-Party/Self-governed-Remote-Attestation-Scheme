@@ -6,6 +6,7 @@ import sys
 import time
 import hashlib
 import grpc_client
+import ft_control
 from Cryptodome.Hash import SHA384
 from ecdsa import SigningKey, VerifyingKey, NIST384p
 from Cryptodome.PublicKey import RSA
@@ -61,6 +62,8 @@ class RPE:
         self.num_rpes_in_policies = None
         self.rpo_verification_result = None
         self.ratls = ratls.RATLS()
+        self.ft_manager = None
+        self.policies_json_text = None
     
     def start(self):
         # =============== Performance test: record initialization start time ===============
@@ -122,6 +125,7 @@ class RPE:
         if policies is None:
             logger.error("Get policies from RPO failed")
             return
+        self.policies_json_text = policies
         logger.info("RPE successfully attested by RPO, verification result: %s" % self.rpo_verification_result)
 
         # Parse policies
@@ -401,6 +405,7 @@ class RPE:
         # =============== Phase three ===============
         logger.info("======================= Starting phase three... =======================")
         logger.error("====== Performace test: phase three start =======")
+        self.initialize_ft_if_enabled()
         # Performance test: initialize Phase 3 performance data.
         phase3_perf_data = {
             "rpe_id": self.local_rpe["rpe_id"],
@@ -480,6 +485,17 @@ class RPE:
                 # Get CE public keys
                 CESigningkey = self.ratls.get_ce_cert_pubkey_pem()
                 ce_public_signing_key_obj = serialization.load_pem_public_key(CESigningkey, backend=openssl_backend)
+
+                if self.ft_manager is not None and self.ft_manager.config.enabled:
+                    ft_ok, ft_echoes = self.ft_manager.propagate_attestation_state(ce_id)
+                    if not ft_ok:
+                        logger.error(
+                            "SRAS-FT quorum not reached for CE %s; aborting certificate issuance",
+                            ce_id,
+                        )
+                        self.ratls.close_connection()
+                        continue
+                    logger.info("SRAS-FT quorum reached for CE %s with %d echo(es)", ce_id, len(ft_echoes))
                 
                 # Sign CE's public signing key and generate a cert.
                 ce_cert = certificate.generate_ce_certificate(self.signing_keys["private"], ce_public_signing_key_obj, self.local_rpe["rpe_id"])
@@ -635,6 +651,38 @@ class RPE:
         except Exception as e:
             logger.error("Failed to load public key for RPE %s: %s", collaborativeRPEid, str(e))
             return None
+
+    def build_ft_peer_public_keys(self):
+        keys = {}
+        local_public_signing_key_pem = self.signing_keys["public"].public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        ).decode()
+        keys[self.local_rpe["rpe_id"]] = local_public_signing_key_pem
+        if self.rpes:
+            for rpe_id, rpe_info in self.rpes.items():
+                key = rpe_info.get("details", {}).get("rpe_public_signing_key")
+                if key:
+                    keys[rpe_id] = key
+        return keys
+
+    def initialize_ft_if_enabled(self):
+        self.ft_manager = ft_control.FTControlManager(
+            ft_control.FTConfig.from_conf(
+                self.conf,
+                num_rpes=self.num_rpes_in_policies or 1,
+                local_rpe_id=self.local_rpe["rpe_id"],
+            ),
+            self.signing_keys["private"],
+            self.signing_keys["public"].public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            ).decode(),
+            self.build_ft_peer_public_keys(),
+        )
+        if self.ft_manager.config.enabled:
+            self.ft_manager.start()
+            logger.info("SRAS-FT control service started at %s", self.ft_manager.bound_address())
 
     def generate_keys(self):
         private_signing_key = ec.generate_private_key(
