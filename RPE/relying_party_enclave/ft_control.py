@@ -354,10 +354,41 @@ class FTControlManager:
         return load_public_key_pem(pem)
 
     def handle_recovery_query(self, payload):
-        return {"status": 1, "error": "recovery_query is not implemented"}
+        recovering_rpe_id = payload.get("recovering_rpe_id")
+        recovery_nonce = payload.get("recovery_nonce")
+        if not recovering_rpe_id or not recovery_nonce:
+            return {"status": 1, "error": "missing recovering_rpe_id or recovery_nonce"}
+        recorded = self.state_store.get_recorded_state(recovering_rpe_id)
+        if recorded is None:
+            return {"status": 1, "error": "no recorded state for recovering RPE"}
+        if self.quote_verifier is None or not hasattr(self.quote_verifier, "generate_evidence_quote"):
+            return {"status": 1, "error": "quote generator is not configured"}
+        evidence = self.quote_verifier.generate_evidence_quote(recovery_nonce)
+        return {
+            "status": 0,
+            "responder_rpe_id": self.config.local_rpe_id,
+            "evidence_quote": evidence["evidence_quote"],
+            "rpe_public_key": self.signing_public_key_pem,
+            "expt_hash": evidence["expt_hash"],
+            "recorded_attestation_state": recorded["state"],
+            "signed_state": recorded["signed_update"],
+            "recovery_nonce": recovery_nonce,
+        }
 
     def handle_evidence_update(self, payload):
-        return {"status": 1, "error": "evidence_update is not implemented"}
+        recovering_rpe_id = payload.get("recovering_rpe_id")
+        evidence_quote = payload.get("evidence_quote")
+        public_key_pem = payload.get("rpe_public_key")
+        expt_hash = payload.get("expt_hash")
+        nonce = payload.get("nonce")
+        if not recovering_rpe_id or not evidence_quote or not public_key_pem or not expt_hash or not nonce:
+            return {"status": 1, "error": "missing evidence update fields"}
+        if self.quote_verifier is None:
+            return {"status": 1, "error": "quote verifier is not configured"}
+        if not self.quote_verifier(evidence_quote, public_key_pem, expt_hash, nonce):
+            return {"status": 1, "error": "evidence quote verification failed"}
+        self.peer_public_keys[recovering_rpe_id] = public_key_pem
+        return {"status": 0, "content": ""}
 
     def handle_state_update(self, payload):
         sender_rpe_id = payload.get("sender_rpe_id")

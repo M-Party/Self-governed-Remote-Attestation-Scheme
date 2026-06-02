@@ -257,5 +257,90 @@ class FTGeneratedConfigTest(unittest.TestCase):
             self.assertIn("rpe-2=127.0.0.1:56002", cfg["ft"]["peer_addresses"])
 
 
+class FTRecoveryTest(unittest.TestCase):
+    def _key_pair(self):
+        private_key = ec.generate_private_key(ec.SECP384R1(), backend=openssl_backend)
+        return private_key, private_key.public_key()
+
+    def _pem(self, public_key):
+        return public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        ).decode("utf-8")
+
+    def test_evidence_update_updates_key_only_after_quote_verifier_accepts(self):
+        _old_private, old_public = self._key_pair()
+        _new_private, new_public = self._key_pair()
+        local_private, local_public = self._key_pair()
+        calls = []
+
+        def verifier(evidence_quote, public_key_pem, expt_hash, nonce):
+            calls.append((evidence_quote, public_key_pem, expt_hash, nonce))
+            return evidence_quote == "fresh-quote" and public_key_pem == self._pem(new_public)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = FTConfig(
+                enabled=True,
+                local_rpe_id="rpe-2",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "counter.json"),
+                ft_quorum=1,
+            )
+            manager = FTControlManager(
+                config,
+                local_private,
+                self._pem(local_public),
+                {"rpe-1": self._pem(old_public), "rpe-2": self._pem(local_public)},
+                quote_verifier=verifier,
+            )
+            response = manager.handle_evidence_update({
+                "recovering_rpe_id": "rpe-1",
+                "evidence_quote": "fresh-quote",
+                "rpe_public_key": self._pem(new_public),
+                "expt_hash": "hash-a",
+                "nonce": "recovery-nonce",
+            })
+            self.assertEqual(response["status"], 0)
+            self.assertEqual(manager.peer_public_keys["rpe-1"], self._pem(new_public))
+            self.assertEqual(len(calls), 1)
+
+    def test_evidence_update_rejects_failed_quote_verification(self):
+        local_private, local_public = self._key_pair()
+        _peer_private, peer_public = self._key_pair()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            config = FTConfig(
+                enabled=True,
+                local_rpe_id="rpe-2",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "counter.json"),
+                ft_quorum=1,
+            )
+            manager = FTControlManager(
+                config,
+                local_private,
+                self._pem(local_public),
+                {"rpe-1": self._pem(peer_public), "rpe-2": self._pem(local_public)},
+                quote_verifier=lambda evidence_quote, public_key_pem, expt_hash, nonce: False,
+            )
+            response = manager.handle_evidence_update({
+                "recovering_rpe_id": "rpe-1",
+                "evidence_quote": "bad-quote",
+                "rpe_public_key": self._pem(peer_public),
+                "expt_hash": "hash-a",
+                "nonce": "recovery-nonce",
+            })
+            self.assertEqual(response["status"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -679,10 +679,18 @@ class RPE:
                 format=serialization.PublicFormat.SubjectPublicKeyInfo,
             ).decode(),
             self.build_ft_peer_public_keys(),
+            quote_verifier=self.verify_ft_evidence_update,
         )
         if self.ft_manager.config.enabled:
             self.ft_manager.start()
             logger.info("SRAS-FT control service started at %s", self.ft_manager.bound_address())
+
+    def verify_ft_evidence_update(self, evidence_quote, public_key_pem, expt_hash, nonce):
+        logger.error(
+            "SRAS-FT evidence_update verification is not fully implemented; rejecting update for nonce %s",
+            nonce,
+        )
+        return False
 
     def generate_keys(self):
         private_signing_key = ec.generate_private_key(
