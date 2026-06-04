@@ -108,27 +108,45 @@ class RPE:
         except Exception as e:
             logger.warning("Could not write pre-init ready file %s: %s" % (pre_init_ready_file, e))
 
-        # =============== Phase one ===============
-        logger.info("======================= Starting phase one... =======================")
-        logger.error("====== Performace test: phase one start =======")
-        perf_timestamps["phase1_start"] = time.time()
-        # Initialize RA-TLS client (init only, does not connect to RPO)
-        success = self.ratls.client(self.rpo_address, self.rpo_port)
-        if not success:
-            return
-        # Set public keys to RPO
-        # if self.ratls.set_public_keys(public_signing_key_pem, public_encryption_key_pem) != 0:
-        #     logger.error("Failed to pass public keys")
-        #     return
-        
-        # Get policies from RPO
-        policies, self.rpo_verification_result = self.ratls.get_policies()
-        if policies is None:
-            logger.error("Get policies from RPO failed")
-            return
         self.ft_recovery_cache_available = self.has_ft_expt_cache()
-        self.policies_json_text = policies
-        logger.info("RPE successfully attested by RPO, verification result: %s" % self.rpo_verification_result)
+        policies = None
+        phase1_duration = 0.0
+        skip_phase2_for_recovery = False
+
+        # =============== Phase one ===============
+        if self.ft_recovery_cache_available:
+            logger.info("======================= Starting FT recovery startup... =======================")
+            logger.error("====== SRAS-FT recovery startup: using cached Expt; skip RPO authorization and phase two =======")
+            perf_timestamps["phase1_start"] = time.time()
+            policies = self.load_ft_expt_cache()
+            if policies is None:
+                logger.error("SRAS-FT recovery startup failed: cannot load cached Expt")
+                return
+            self.policies_json_text = policies
+            self.rpo_verification_result = "RECOVERY_CACHE"
+            perf_timestamps["phase1_end"] = time.time()
+            phase1_duration = perf_timestamps["phase1_end"] - perf_timestamps["phase1_start"]
+            skip_phase2_for_recovery = True
+        else:
+            logger.info("======================= Starting phase one... =======================")
+            logger.error("====== Performace test: phase one start =======")
+            perf_timestamps["phase1_start"] = time.time()
+            # Initialize RA-TLS client (init only, does not connect to RPO)
+            success = self.ratls.client(self.rpo_address, self.rpo_port)
+            if not success:
+                return
+            # Set public keys to RPO
+            # if self.ratls.set_public_keys(public_signing_key_pem, public_encryption_key_pem) != 0:
+            #     logger.error("Failed to pass public keys")
+            #     return
+            
+            # Get policies from RPO
+            policies, self.rpo_verification_result = self.ratls.get_policies()
+            if policies is None:
+                logger.error("Get policies from RPO failed")
+                return
+            self.policies_json_text = policies
+            logger.info("RPE successfully attested by RPO, verification result: %s" % self.rpo_verification_result)
 
         # Parse policies
         policies_json = json.loads(policies)
@@ -222,11 +240,15 @@ class RPE:
         self.rpes = rpes
 
         logger.info("Verify TCBs' collateral Succeed! ")
-        perf_timestamps["phase1_end"] = time.time()
-        phase1_duration = perf_timestamps["phase1_end"] - perf_timestamps["phase1_start"]
-        logger.error("Phase 1 duration: %.3f seconds" % phase1_duration)
-        logger.info("======================= Phase one finished =======================\n")
-        
+        if not skip_phase2_for_recovery:
+            perf_timestamps["phase1_end"] = time.time()
+            phase1_duration = perf_timestamps["phase1_end"] - perf_timestamps["phase1_start"]
+            logger.error("Phase 1 duration: %.3f seconds" % phase1_duration)
+            logger.info("======================= Phase one finished =======================\n")
+        else:
+            logger.error("FT recovery cached Expt load duration: %.3f seconds" % phase1_duration)
+            logger.info("======================= FT recovery startup Expt load finished =======================\n")
+	        
         # =============== Phase two ===============
         perf_timestamps["phase2_start"] = time.time()
         logger.info("======================= Starting phase two... =======================")
@@ -234,183 +256,208 @@ class RPE:
         phase2_policy_enforcement_duration = 0.0
         if self.rpes is not None:
             self.rpe_ids = ",".join(self.rpes.keys())
-        
-        policies_hash = None
-        if policies is not None:
-            policies_hash_bytes = self.compute_message_hash(policies.encode('UTF-8'), SHA384)
-            policies_hash = bytes(policies_hash_bytes)
 
-        # Generate quote
-        perf_timestamps["phase2_quote_generation_start"] = time.time()
-        quote = None
-        if policies is not None:
-            quote = self.generate_quote(policies)
-        else:
-            logger.error(" Get policies failed ! Can't generate quote !")
-            return
-        
-        # Build Evidence Quote: combine quote with public keys
-        if quote is not None:
-            # Create Evidence Quote JSON
-            evidence_quote = {
-                "quote": quote,
-                "rpe_public_signing_key": public_signing_key_pem.decode(),
-                "rpe_public_encryption_key": public_encryption_key_pem.decode()
+        if skip_phase2_for_recovery:
+            logger.info("SRAS-FT recovery startup skips phase two mutual attestation")
+            perf_timestamps["init_complete"] = time.time()
+            total_duration = perf_timestamps["init_complete"] - perf_timestamps["init_start"]
+            logger.error("Phase 2 skipped for SRAS-FT recovery startup")
+            logger.error("Total initialization duration: %.3f seconds" % total_duration)
+            perf_data = {
+                "rpe_id": perf_timestamps["rpe_id"],
+                "timestamps": perf_timestamps,
+                "durations": {
+                    "phase1": phase1_duration,
+                    "total": total_duration,
+                    "ft_recovery_startup": True,
+                    "phase2_skipped": True,
+                    "phase2_skip_reason": "cached_expt_recovery",
+                }
             }
-            evidence_quote_json = json.dumps(evidence_quote)
-            # Base64 encode the Evidence Quote JSON for transmission
-            evidence_quote_base64 = crypto_utility.byte_array_to_base64(evidence_quote_json.encode('UTF-8'))
-            perf_timestamps["phase2_quote_generation_end"] = time.time()
-
-            logger.error("Sending Evidence Quote (quote + public keys) to blockchain...")
-            perf_timestamps["phase2_exchange_start"] = time.time()
-            perf_timestamps["phase2_send_local_quote_start"] = perf_timestamps["phase2_exchange_start"]
-            if not grpc_client.sendQuote(self.grpc_server_address, self.local_rpe["rpe_id"], evidence_quote_base64):
-                logger.error(" Send Evidence Quote to fabric failed !")
-                return
-            perf_timestamps["phase2_send_local_quote_end"] = time.time()
-            perf_timestamps["phase2_wait_remote_quotes_start"] = perf_timestamps["phase2_send_local_quote_end"]
-            logger.error("Done")
+            perf_file = f"./performance_data/rpe_perf_{self.local_rpe['rpe_id']}.json"
+            with open(perf_file, 'w') as f:
+                json.dump(perf_data, f, indent=2)
+            logger.error("Performance data saved to %s" % perf_file)
         else:
-            logger.error(" Generate qoute failed !")
-            return
+	        
+            policies_hash = None
+            if policies is not None:
+                policies_hash_bytes = self.compute_message_hash(policies.encode('UTF-8'), SHA384)
+                policies_hash = bytes(policies_hash_bytes)
+
+            # Generate quote
+            perf_timestamps["phase2_quote_generation_start"] = time.time()
+            quote = None
+            if policies is not None:
+                quote = self.generate_quote(policies)
+            else:
+                logger.error(" Get policies failed ! Can't generate quote !")
+                return
         
-        # Get all RPEs' Evidence Quote from transport service before verification.
-        rpe_id_dict_to_be_fetched = set(self.rpes.keys())
-        fetched_evidence_quotes = {}
-        while True:
-            rpe_ids = ",".join(rpe_id_dict_to_be_fetched)
-            logger.error("Querying quotes for ids: %s", rpe_ids)
-            query_started_at = time.time()
-
-            status, evidence_quotes_base64 = grpc_client.queryQuoteByIds(self.grpc_server_address, rpe_ids)
-            if not status:
-                logger.error("Failed to query quotes from blockchain")
-                return
-            query_finished_at = time.time()
-
-            evidence_quotes_dict = json.loads(evidence_quotes_base64)
-            logger.error(
-                "QueryQuoteByIds finished in %.3fs, returned ids=%s",
-                query_finished_at - query_started_at,
-                sorted(evidence_quotes_dict.keys()),
-            )
-            if not evidence_quotes_dict:
-                continue
-            
-            for rpe_id, evidence_quote_base64 in evidence_quotes_dict.items():
-                fetched_evidence_quotes[rpe_id] = evidence_quote_base64
-                rpe_id_dict_to_be_fetched.remove(rpe_id)
-                
-            if len(rpe_id_dict_to_be_fetched) == 0:
-                break
-
-        perf_timestamps["phase2_wait_remote_quotes_end"] = time.time()
-        perf_timestamps["phase2_exchange_end"] = time.time()
-        perf_timestamps["phase2_verification_start"] = time.time()
-
-        for rpe_id, evidence_quote_base64 in fetched_evidence_quotes.items():
-            native_verify_start = time.time()
-            rpe_info = self.rpes[rpe_id]
-
-            # Parse Evidence Quote: decode and extract quote and public keys
-            try:
-                evidence_quote_json = crypto_utility.base64_to_byte_array(evidence_quote_base64).decode('UTF-8')
-                evidence_quote = json.loads(evidence_quote_json)
-                base64_encoded_quote = evidence_quote["quote"]
-                rpe_public_signing_key = evidence_quote["rpe_public_signing_key"]
-                rpe_public_encryption_key = evidence_quote["rpe_public_encryption_key"]
-            except Exception as e:
-                logger.error(" Failed to parse Evidence Quote for rpe %s: %s", (rpe_id, str(e)))
-                return
-            
-            # Verify quote using DCAP
-            quote_bytes = crypto_utility.base64_to_byte_array(base64_encoded_quote)
-            collateral = rpe_info["collateral"]
-            ret = verify_dcap_quote.teeVerifyQuote(base64_encoded_quote, len(quote_bytes), collateral)
-            phase2_native_quote_verification_duration += time.time() - native_verify_start
-            logger.info("quote verification for rpe %s result: %x" % (rpe_id, ret))
-            if ret != 0 and ret != 0xa002 and ret != 0xa008:
-                logger.error("Quote verification failed for rpe %s", rpe_id)
-                return
-
-            # Generate report_data using public keys from Evidence Quote and local policies
-            policy_verify_start = time.time()
-            worker_data = rpe_public_signing_key + rpe_public_encryption_key
-            keys_bytes = self.compute_message_hash(worker_data.encode('UTF-8'), SHA384)
-            report_data = bytes(keys_bytes) + policies_hash
-            base64_encoded_report_data = crypto_utility.byte_array_to_base64(report_data)
+            # Build Evidence Quote: combine quote with public keys
+            if quote is not None:
+                # Create Evidence Quote JSON
+                evidence_quote = {
+                    "quote": quote,
+                    "rpe_public_signing_key": public_signing_key_pem.decode(),
+                    "rpe_public_encryption_key": public_encryption_key_pem.decode()
+                }
+                evidence_quote_json = json.dumps(evidence_quote)
+                # Base64 encode the Evidence Quote JSON for transmission
+                evidence_quote_base64 = crypto_utility.byte_array_to_base64(evidence_quote_json.encode('UTF-8'))
+                perf_timestamps["phase2_quote_generation_end"] = time.time()
     
-            rpe_policies_to_verify = {
-                "mr_enclave": self.rpe_mr,
-                "mr_signer": self.rpe_mrsigner,
-                "isv_prod_id": self.rpe_isvprodid,
-                "isv_svn": self.rpe_isvsvn,
-                "base64_encoded_report_data": base64_encoded_report_data,
-                "qeid": rpe_info["qeid"][0]
-            }
-            rpe_policies_to_verify_json = json.dumps(rpe_policies_to_verify)
-            ret = verify_dcap_quote.sgxVerifyQuoteBody(base64_encoded_quote, rpe_policies_to_verify_json)
-            phase2_policy_enforcement_duration += time.time() - policy_verify_start
-            logger.info("quote body verification for rpe %s result: %x" % (rpe_id, ret))
-            if ret != 0:
-                logger.error("Quote body verification failed for rpe %s", rpe_id)
+                logger.error("Sending Evidence Quote (quote + public keys) to blockchain...")
+                perf_timestamps["phase2_exchange_start"] = time.time()
+                perf_timestamps["phase2_send_local_quote_start"] = perf_timestamps["phase2_exchange_start"]
+                if not grpc_client.sendQuote(self.grpc_server_address, self.local_rpe["rpe_id"], evidence_quote_base64):
+                    logger.error(" Send Evidence Quote to fabric failed !")
+                    return
+                perf_timestamps["phase2_send_local_quote_end"] = time.time()
+                perf_timestamps["phase2_wait_remote_quotes_start"] = perf_timestamps["phase2_send_local_quote_end"]
+                logger.error("Done")
+            else:
+                logger.error(" Generate qoute failed !")
                 return
-
-            # Verification successful, update public keys in self.rpes
-            logger.info("Verification successful for rpe %s, updating public keys", rpe_id)
-            rpe_info["details"]["rpe_public_signing_key"] = rpe_public_signing_key
-            rpe_info["details"]["rpe_public_encryption_key"] = rpe_public_encryption_key
-
-        perf_timestamps["phase2_verification_end"] = time.time()
+            
+            # Get all RPEs' Evidence Quote from transport service before verification.
+            rpe_id_dict_to_be_fetched = set(self.rpes.keys())
+            fetched_evidence_quotes = {}
+            while True:
+                rpe_ids = ",".join(rpe_id_dict_to_be_fetched)
+                logger.error("Querying quotes for ids: %s", rpe_ids)
+                query_started_at = time.time()
+    
+                status, evidence_quotes_base64 = grpc_client.queryQuoteByIds(self.grpc_server_address, rpe_ids)
+                if not status:
+                    logger.error("Failed to query quotes from blockchain")
+                    return
+                query_finished_at = time.time()
+    
+                evidence_quotes_dict = json.loads(evidence_quotes_base64)
+                logger.error(
+                    "QueryQuoteByIds finished in %.3fs, returned ids=%s",
+                    query_finished_at - query_started_at,
+                    sorted(evidence_quotes_dict.keys()),
+                )
+                if not evidence_quotes_dict:
+                    continue
+                
+                for rpe_id, evidence_quote_base64 in evidence_quotes_dict.items():
+                    fetched_evidence_quotes[rpe_id] = evidence_quote_base64
+                    rpe_id_dict_to_be_fetched.remove(rpe_id)
+                    
+                if len(rpe_id_dict_to_be_fetched) == 0:
+                    break
+    
+            perf_timestamps["phase2_wait_remote_quotes_end"] = time.time()
+            perf_timestamps["phase2_exchange_end"] = time.time()
+            perf_timestamps["phase2_verification_start"] = time.time()
+    
+            for rpe_id, evidence_quote_base64 in fetched_evidence_quotes.items():
+                native_verify_start = time.time()
+                rpe_info = self.rpes[rpe_id]
+    
+                # Parse Evidence Quote: decode and extract quote and public keys
+                try:
+                    evidence_quote_json = crypto_utility.base64_to_byte_array(evidence_quote_base64).decode('UTF-8')
+                    evidence_quote = json.loads(evidence_quote_json)
+                    base64_encoded_quote = evidence_quote["quote"]
+                    rpe_public_signing_key = evidence_quote["rpe_public_signing_key"]
+                    rpe_public_encryption_key = evidence_quote["rpe_public_encryption_key"]
+                except Exception as e:
+                    logger.error(" Failed to parse Evidence Quote for rpe %s: %s", (rpe_id, str(e)))
+                    return
+                
+                # Verify quote using DCAP
+                quote_bytes = crypto_utility.base64_to_byte_array(base64_encoded_quote)
+                collateral = rpe_info["collateral"]
+                ret = verify_dcap_quote.teeVerifyQuote(base64_encoded_quote, len(quote_bytes), collateral)
+                phase2_native_quote_verification_duration += time.time() - native_verify_start
+                logger.info("quote verification for rpe %s result: %x" % (rpe_id, ret))
+                if ret != 0 and ret != 0xa002 and ret != 0xa008:
+                    logger.error("Quote verification failed for rpe %s", rpe_id)
+                    return
+    
+                # Generate report_data using public keys from Evidence Quote and local policies
+                policy_verify_start = time.time()
+                worker_data = rpe_public_signing_key + rpe_public_encryption_key
+                keys_bytes = self.compute_message_hash(worker_data.encode('UTF-8'), SHA384)
+                report_data = bytes(keys_bytes) + policies_hash
+                base64_encoded_report_data = crypto_utility.byte_array_to_base64(report_data)
         
-        logger.info("======================= Phase two finished =======================\n")
-        perf_timestamps["phase2_end"] = time.time()
-        perf_timestamps["init_complete"] = perf_timestamps["phase2_end"]
-        phase2_quote_generation_duration = perf_timestamps["phase2_quote_generation_end"] - perf_timestamps["phase2_quote_generation_start"]
-        phase2_send_local_quote_duration = perf_timestamps["phase2_send_local_quote_end"] - perf_timestamps["phase2_send_local_quote_start"]
-        phase2_wait_remote_quotes_duration = perf_timestamps["phase2_wait_remote_quotes_end"] - perf_timestamps["phase2_wait_remote_quotes_start"]
-        phase2_exchange_duration = perf_timestamps["phase2_exchange_end"] - perf_timestamps["phase2_exchange_start"]
-        phase2_verification_duration = perf_timestamps["phase2_verification_end"] - perf_timestamps["phase2_verification_start"]
-        phase2_duration = perf_timestamps["phase2_end"] - perf_timestamps["phase2_start"]
-        total_duration = perf_timestamps["init_complete"] - perf_timestamps["init_start"]
-        logger.error("Phase 2 duration: %.3f seconds" % phase2_duration)
-        logger.error("Phase 2.1 local quote generation duration: %.3f seconds" % phase2_quote_generation_duration)
-        logger.error("Phase 2.2 quote exchange duration: %.3f seconds" % phase2_exchange_duration)
-        logger.error("Phase 2.2.1 send local quote duration: %.3f seconds" % phase2_send_local_quote_duration)
-        logger.error("Phase 2.2.2 wait remote quotes duration: %.3f seconds" % phase2_wait_remote_quotes_duration)
-        logger.error("Phase 2.3 quote verification duration: %.3f seconds" % phase2_verification_duration)
-        logger.error("Phase 2.3.1 native quote verification duration: %.3f seconds" % phase2_native_quote_verification_duration)
-        logger.error("Phase 2.3.2 policy enforcement duration: %.3f seconds" % phase2_policy_enforcement_duration)
-        logger.error("Total initialization duration: %.3f seconds" % total_duration)
-
-        # =============== Performance test: save timestamps to file ===============
-        perf_data = {
-            "rpe_id": perf_timestamps["rpe_id"],
-            "timestamps": perf_timestamps,
-            "durations": {
-                "phase1": phase1_duration,
-                "phase2": phase2_duration,
-                "phase2_quote_generation": phase2_quote_generation_duration,
-                "phase2_exchange": phase2_exchange_duration,
-                "phase2_send_local_quote": phase2_send_local_quote_duration,
-                "phase2_wait_remote_quotes": phase2_wait_remote_quotes_duration,
-                "phase2_verification": phase2_verification_duration,
-                "phase2_native_quote_verification": phase2_native_quote_verification_duration,
-                "phase2_policy_enforcement": phase2_policy_enforcement_duration,
-                "total": total_duration
+                rpe_policies_to_verify = {
+                    "mr_enclave": self.rpe_mr,
+                    "mr_signer": self.rpe_mrsigner,
+                    "isv_prod_id": self.rpe_isvprodid,
+                    "isv_svn": self.rpe_isvsvn,
+                    "base64_encoded_report_data": base64_encoded_report_data,
+                    "qeid": rpe_info["qeid"][0]
+                }
+                rpe_policies_to_verify_json = json.dumps(rpe_policies_to_verify)
+                ret = verify_dcap_quote.sgxVerifyQuoteBody(base64_encoded_quote, rpe_policies_to_verify_json)
+                phase2_policy_enforcement_duration += time.time() - policy_verify_start
+                logger.info("quote body verification for rpe %s result: %x" % (rpe_id, ret))
+                if ret != 0:
+                    logger.error("Quote body verification failed for rpe %s", rpe_id)
+                    return
+    
+                # Verification successful, update public keys in self.rpes
+                logger.info("Verification successful for rpe %s, updating public keys", rpe_id)
+                rpe_info["details"]["rpe_public_signing_key"] = rpe_public_signing_key
+                rpe_info["details"]["rpe_public_encryption_key"] = rpe_public_encryption_key
+    
+            perf_timestamps["phase2_verification_end"] = time.time()
+            
+            logger.info("======================= Phase two finished =======================\n")
+            perf_timestamps["phase2_end"] = time.time()
+            perf_timestamps["init_complete"] = perf_timestamps["phase2_end"]
+            phase2_quote_generation_duration = perf_timestamps["phase2_quote_generation_end"] - perf_timestamps["phase2_quote_generation_start"]
+            phase2_send_local_quote_duration = perf_timestamps["phase2_send_local_quote_end"] - perf_timestamps["phase2_send_local_quote_start"]
+            phase2_wait_remote_quotes_duration = perf_timestamps["phase2_wait_remote_quotes_end"] - perf_timestamps["phase2_wait_remote_quotes_start"]
+            phase2_exchange_duration = perf_timestamps["phase2_exchange_end"] - perf_timestamps["phase2_exchange_start"]
+            phase2_verification_duration = perf_timestamps["phase2_verification_end"] - perf_timestamps["phase2_verification_start"]
+            phase2_duration = perf_timestamps["phase2_end"] - perf_timestamps["phase2_start"]
+            total_duration = perf_timestamps["init_complete"] - perf_timestamps["init_start"]
+            logger.error("Phase 2 duration: %.3f seconds" % phase2_duration)
+            logger.error("Phase 2.1 local quote generation duration: %.3f seconds" % phase2_quote_generation_duration)
+            logger.error("Phase 2.2 quote exchange duration: %.3f seconds" % phase2_exchange_duration)
+            logger.error("Phase 2.2.1 send local quote duration: %.3f seconds" % phase2_send_local_quote_duration)
+            logger.error("Phase 2.2.2 wait remote quotes duration: %.3f seconds" % phase2_wait_remote_quotes_duration)
+            logger.error("Phase 2.3 quote verification duration: %.3f seconds" % phase2_verification_duration)
+            logger.error("Phase 2.3.1 native quote verification duration: %.3f seconds" % phase2_native_quote_verification_duration)
+            logger.error("Phase 2.3.2 policy enforcement duration: %.3f seconds" % phase2_policy_enforcement_duration)
+            logger.error("Total initialization duration: %.3f seconds" % total_duration)
+    
+            # =============== Performance test: save timestamps to file ===============
+            perf_data = {
+                "rpe_id": perf_timestamps["rpe_id"],
+                "timestamps": perf_timestamps,
+                "durations": {
+                    "phase1": phase1_duration,
+                    "phase2": phase2_duration,
+                    "phase2_quote_generation": phase2_quote_generation_duration,
+                    "phase2_exchange": phase2_exchange_duration,
+                    "phase2_send_local_quote": phase2_send_local_quote_duration,
+                    "phase2_wait_remote_quotes": phase2_wait_remote_quotes_duration,
+                    "phase2_verification": phase2_verification_duration,
+                    "phase2_native_quote_verification": phase2_native_quote_verification_duration,
+                    "phase2_policy_enforcement": phase2_policy_enforcement_duration,
+                    "total": total_duration
+                }
             }
-        }
-        perf_file = f"./performance_data/rpe_perf_{self.local_rpe['rpe_id']}.json"
-        with open(perf_file, 'w') as f:
-            json.dump(perf_data, f, indent=2)
-        logger.error("Performance data saved to %s" % perf_file)
+            perf_file = f"./performance_data/rpe_perf_{self.local_rpe['rpe_id']}.json"
+            with open(perf_file, 'w') as f:
+                json.dump(perf_data, f, indent=2)
+            logger.error("Performance data saved to %s" % perf_file)
 
         # =============== Phase three ===============
         logger.info("======================= Starting phase three... =======================")
         logger.error("====== Performace test: phase three start =======")
         self.initialize_ft_if_enabled()
-        self.perform_ft_recovery_if_cached()
+        if not self.perform_ft_recovery_if_cached():
+            logger.error("SRAS-FT recovery startup failed; aborting before phase three serving")
+            return
         # Performance test: initialize Phase 3 performance data.
         phase3_perf_data = {
             "rpe_id": self.local_rpe["rpe_id"],
@@ -727,6 +774,26 @@ class RPE:
         except Exception as e:
             logger.error("SRAS-FT failed to cache Expt: %s", str(e))
 
+    def load_ft_expt_cache(self):
+        try:
+            with open(self.get_ft_expt_cache_path(), "r", encoding="utf-8") as cache_file:
+                payload = json.load(cache_file)
+            policies = payload.get("expt")
+            expt_hash = payload.get("expt_hash")
+            if not policies or not expt_hash:
+                logger.error("SRAS-FT Expt cache is missing expt or expt_hash")
+                return None
+            computed_hash = crypto_utility.byte_array_to_base64(
+                self.compute_message_hash(policies.encode("UTF-8"), SHA384)
+            )
+            if computed_hash != expt_hash:
+                logger.error("SRAS-FT Expt cache hash mismatch")
+                return None
+            return policies
+        except Exception as e:
+            logger.error("SRAS-FT failed to load Expt cache: %s", str(e))
+            return None
+
     def validate_ft_expt_cache(self):
         try:
             with open(self.get_ft_expt_cache_path(), "r", encoding="utf-8") as cache_file:
@@ -738,14 +805,13 @@ class RPE:
 
     def perform_ft_recovery_if_cached(self):
         if self.ft_manager is None or not self.ft_manager.config.enabled:
-            return
+            return True
         if not self.ft_recovery_cache_available:
             logger.info("SRAS-FT recovery skipped: no startup Expt cache")
-            return
+            return True
         if not self.validate_ft_expt_cache():
             logger.error("SRAS-FT recovery aborted: cached Expt hash does not match current Expt")
-            return
-
+            return False
         ok, selected_state, responses = self.ft_manager.recover_latest_attestation_state()
         if not ok:
             logger.error(
@@ -753,7 +819,7 @@ class RPE:
                 len(responses),
                 self.ft_manager.config.ft_quorum,
             )
-            return
+            return False
         logger.info(
             "SRAS-FT recovery restored state for tee %s with counter %s",
             selected_state["state"]["tee_id"],
@@ -768,9 +834,10 @@ class RPE:
                 len(peers),
                 self.ft_manager.config.ft_quorum,
             )
-            return
+            return False
         self.cache_ft_expt_if_enabled()
         logger.info("SRAS-FT evidence update accepted by %d peer(s)", len(peers))
+        return True
 
     def get_public_signing_key_pem(self):
         return self.signing_keys["public"].public_bytes(

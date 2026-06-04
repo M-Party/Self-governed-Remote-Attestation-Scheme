@@ -514,6 +514,7 @@ class FTRecoveryTest(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             recovering_private, recovering_public = self._key_pair()
+            _old_peer_private, old_peer_public = self._key_pair()
             peer_private, peer_public = self._key_pair()
             peer_config = FTConfig(
                 enabled=True,
@@ -576,7 +577,7 @@ class FTRecoveryTest(unittest.TestCase):
                     recovering_config,
                     recovering_private,
                     self._pem(recovering_public),
-                    {"rpe-1": self._pem(recovering_public), "rpe-2": peer_public_pem},
+                    {"rpe-1": self._pem(recovering_public), "rpe-2": self._pem(old_peer_public)},
                     quote_verifier=quote_provider,
                     nonce_factory=lambda: "fixed-nonce",
                 )
@@ -584,6 +585,7 @@ class FTRecoveryTest(unittest.TestCase):
                 self.assertTrue(ok)
                 self.assertEqual(selected["state"]["attestation_counter"], 9)
                 self.assertEqual(recovering.state_store.next_local_counter("ce-1"), 10)
+                self.assertEqual(recovering.peer_public_keys["rpe-2"], peer_public_pem)
                 self.assertEqual(len(responses), 1)
                 self.assertEqual(len(quote_provider.verified), 1)
             finally:
@@ -661,6 +663,32 @@ class FTRecoveryTest(unittest.TestCase):
                 self.assertEqual(updated_keys, [("rpe-1", self._pem(new_public), "new-encryption-key")])
             finally:
                 peer.stop()
+
+    def test_recovery_requires_online_peer_even_for_single_rpe_config(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            private_key, public_key = self._key_pair()
+            config = FTConfig(
+                enabled=True,
+                local_rpe_id="rpe-1",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "counter.json"),
+                ft_quorum=1,
+            )
+            manager = FTControlManager(
+                config,
+                private_key,
+                self._pem(public_key),
+                {"rpe-1": self._pem(public_key)},
+            )
+            ok, selected, responses = manager.recover_latest_attestation_state()
+            self.assertFalse(ok)
+            self.assertIsNone(selected)
+            self.assertEqual(responses, [])
 
 
 if __name__ == "__main__":

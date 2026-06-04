@@ -655,6 +655,16 @@ class FTControlManager:
         if len(responses) < self.config.ft_quorum:
             return False, None, responses
 
+        for response in responses:
+            responder_rpe_id = response["responder_rpe_id"]
+            self.peer_public_keys[responder_rpe_id] = response["rpe_public_signing_key"]
+            if self.on_peer_key_update is not None:
+                self.on_peer_key_update(
+                    responder_rpe_id,
+                    response["rpe_public_signing_key"],
+                    response["rpe_public_encryption_key"],
+                )
+
         selected = max(responses, key=lambda item: int(item["state"]["attestation_counter"]))
         self.state_store.restore_local_counter_floor(
             selected["state"]["tee_id"], int(selected["state"]["attestation_counter"])
