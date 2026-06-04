@@ -250,6 +250,32 @@ class FTControlServiceTest(unittest.TestCase):
             finally:
                 receiver.stop()
 
+    def test_single_rpe_state_propagation_succeeds_without_peer_echo(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            private_key, public_key = self._key_pair()
+            config = FTConfig(
+                enabled=True,
+                local_rpe_id="rpe-1",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "counter.json"),
+                ft_quorum=1,
+            )
+            manager = FTControlManager(
+                config,
+                private_key,
+                self._pem(public_key),
+                {"rpe-1": self._pem(public_key)},
+            )
+            ok, echoes = manager.propagate_attestation_state("ce-1")
+            self.assertTrue(ok)
+            self.assertEqual(echoes, [])
+            self.assertEqual(manager.state_store.next_local_counter("ce-1"), 2)
+
     def test_invalid_state_update_does_not_consume_nonce(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             sender_private, sender_public = self._key_pair()

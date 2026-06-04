@@ -693,7 +693,7 @@ class RPE:
 
     def get_ft_expt_cache_path(self):
         ft_conf = self.conf.get("ft", {}) if isinstance(self.conf, dict) else {}
-        return str(ft_conf.get("expt_cache_path", "performance_data/expt_cache.json")).strip().strip('"')
+        return str(ft_conf.get("expt_cache_path", "collaterals/expt_cache.json")).strip().strip('"')
 
     def is_ft_enabled_in_config(self):
         ft_conf = self.conf.get("ft", {}) if isinstance(self.conf, dict) else {}

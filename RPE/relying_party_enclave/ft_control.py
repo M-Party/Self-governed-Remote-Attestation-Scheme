@@ -156,9 +156,9 @@ class FTConfig:
             peer_addresses=parse_peer_addresses(ft_conf.get("peer_addresses", "")),
             echo_timeout_sec=float(_as_str(ft_conf.get("echo_timeout_sec"), "3")),
             recovery_timeout_sec=float(_as_str(ft_conf.get("recovery_timeout_sec"), "5")),
-            expt_cache_path=_as_str(ft_conf.get("expt_cache_path"), "performance_data/expt_cache.json"),
+            expt_cache_path=_as_str(ft_conf.get("expt_cache_path"), "collaterals/expt_cache.json"),
             counter_cache_path=_as_str(
-                ft_conf.get("counter_cache_path"), "performance_data/ft_counter_cache.json"
+                ft_conf.get("counter_cache_path"), "collaterals/ft_counter_cache.json"
             ),
             ft_quorum=derive_ft_quorum(num_rpes, quorum_override),
         )
@@ -511,6 +511,19 @@ class FTControlManager:
             "state": state,
             "signature": sign_json(self.signing_private_key, state),
         }
+        peer_targets = [
+            (peer_id, address)
+            for peer_id, address in self.config.peer_addresses.items()
+            if peer_id != self.config.local_rpe_id
+        ]
+        if not peer_targets:
+            logger.info(
+                "SRAS-FT single-RPE state propagation satisfied locally for TEE %s counter %d",
+                state["tee_id"],
+                state["attestation_counter"],
+            )
+            return True, []
+
         valid_echoes = []
         threads = []
         lock = threading.Lock()
@@ -530,9 +543,7 @@ class FTControlManager:
             except Exception as exc:
                 logger.warning("FT state update to %s failed: %s", peer_id, exc)
 
-        for peer_id, address in self.config.peer_addresses.items():
-            if peer_id == self.config.local_rpe_id:
-                continue
+        for peer_id, address in peer_targets:
             thread = threading.Thread(target=send_one, args=(peer_id, address), daemon=True)
             thread.start()
             threads.append(thread)

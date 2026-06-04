@@ -15,5 +15,5 @@ listen_port = "56001"
 peer_addresses = ""
 echo_timeout_sec = 3
 recovery_timeout_sec = 5
-expt_cache_path = "performance_data/expt_cache.json"
-counter_cache_path = "performance_data/ft_counter_cache.json"
+expt_cache_path = "collaterals/expt_cache.json"
+counter_cache_path = "collaterals/ft_counter_cache.json"
