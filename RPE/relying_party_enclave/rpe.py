@@ -64,6 +64,7 @@ class RPE:
         self.ratls = ratls.RATLS()
         self.ft_manager = None
         self.policies_json_text = None
+        self.ft_recovery_cache_available = False
     
     def start(self):
         # =============== Performance test: record initialization start time ===============
@@ -125,6 +126,7 @@ class RPE:
         if policies is None:
             logger.error("Get policies from RPO failed")
             return
+        self.ft_recovery_cache_available = self.has_ft_expt_cache()
         self.policies_json_text = policies
         logger.info("RPE successfully attested by RPO, verification result: %s" % self.rpo_verification_result)
 
@@ -137,6 +139,8 @@ class RPE:
         self.rpe_isvprodid = self.policies_obj.getRPEISVProdID()
         self.rpe_isvsvn = self.policies_obj.getRPEISVSVN()
         self.num_rpes_in_policies = self.policies_obj.getNumberOfRPE()
+        if not self.ft_recovery_cache_available:
+            self.cache_ft_expt_if_enabled()
             
         # Load collateral
         logger.info("Loading collateral...")
@@ -406,6 +410,7 @@ class RPE:
         logger.info("======================= Starting phase three... =======================")
         logger.error("====== Performace test: phase three start =======")
         self.initialize_ft_if_enabled()
+        self.perform_ft_recovery_if_cached()
         # Performance test: initialize Phase 3 performance data.
         phase3_perf_data = {
             "rpe_id": self.local_rpe["rpe_id"],
@@ -679,18 +684,190 @@ class RPE:
                 format=serialization.PublicFormat.SubjectPublicKeyInfo,
             ).decode(),
             self.build_ft_peer_public_keys(),
-            quote_verifier=self.verify_ft_evidence_update,
+            quote_verifier=self,
+            on_peer_key_update=self.update_ft_peer_public_keys,
         )
         if self.ft_manager.config.enabled:
             self.ft_manager.start()
             logger.info("SRAS-FT control service started at %s", self.ft_manager.bound_address())
 
-    def verify_ft_evidence_update(self, evidence_quote, public_key_pem, expt_hash, nonce):
-        logger.error(
-            "SRAS-FT evidence_update verification is not fully implemented; rejecting update for nonce %s",
-            nonce,
+    def get_ft_expt_cache_path(self):
+        ft_conf = self.conf.get("ft", {}) if isinstance(self.conf, dict) else {}
+        return str(ft_conf.get("expt_cache_path", "performance_data/expt_cache.json")).strip().strip('"')
+
+    def is_ft_enabled_in_config(self):
+        ft_conf = self.conf.get("ft", {}) if isinstance(self.conf, dict) else {}
+        return str(ft_conf.get("enabled", "false")).strip().strip('"').lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
         )
-        return False
+
+    def has_ft_expt_cache(self):
+        return self.is_ft_enabled_in_config() and os.path.exists(self.get_ft_expt_cache_path())
+
+    def cache_ft_expt_if_enabled(self):
+        if not self.is_ft_enabled_in_config() or self.policies_json_text is None:
+            return
+        try:
+            cache_path = self.get_ft_expt_cache_path()
+            cache_dir = os.path.dirname(cache_path)
+            if cache_dir:
+                os.makedirs(cache_dir, exist_ok=True)
+            payload = {
+                "expt": self.policies_json_text,
+                "expt_hash": self.get_ft_expt_hash(),
+            }
+            tmp_path = "%s.tmp" % cache_path
+            with open(tmp_path, "w", encoding="utf-8") as cache_file:
+                json.dump(payload, cache_file, sort_keys=True, separators=(",", ":"))
+            os.replace(tmp_path, cache_path)
+            logger.info("SRAS-FT cached Expt at %s", cache_path)
+        except Exception as e:
+            logger.error("SRAS-FT failed to cache Expt: %s", str(e))
+
+    def validate_ft_expt_cache(self):
+        try:
+            with open(self.get_ft_expt_cache_path(), "r", encoding="utf-8") as cache_file:
+                payload = json.load(cache_file)
+            return payload.get("expt_hash") == self.get_ft_expt_hash()
+        except Exception as e:
+            logger.error("SRAS-FT failed to validate Expt cache: %s", str(e))
+            return False
+
+    def perform_ft_recovery_if_cached(self):
+        if self.ft_manager is None or not self.ft_manager.config.enabled:
+            return
+        if not self.ft_recovery_cache_available:
+            logger.info("SRAS-FT recovery skipped: no startup Expt cache")
+            return
+        if not self.validate_ft_expt_cache():
+            logger.error("SRAS-FT recovery aborted: cached Expt hash does not match current Expt")
+            return
+
+        ok, selected_state, responses = self.ft_manager.recover_latest_attestation_state()
+        if not ok:
+            logger.error(
+                "SRAS-FT recovery failed: valid recovery responses=%d quorum=%d",
+                len(responses),
+                self.ft_manager.config.ft_quorum,
+            )
+            return
+        logger.info(
+            "SRAS-FT recovery restored state for tee %s with counter %s",
+            selected_state["state"]["tee_id"],
+            selected_state["state"]["attestation_counter"],
+        )
+
+        evidence = self.generate_evidence_quote(ft_control.random_nonce())
+        update_ok, peers = self.ft_manager.broadcast_evidence_update(evidence)
+        if not update_ok:
+            logger.error(
+                "SRAS-FT evidence update broadcast failed: accepted=%d quorum=%d",
+                len(peers),
+                self.ft_manager.config.ft_quorum,
+            )
+            return
+        self.cache_ft_expt_if_enabled()
+        logger.info("SRAS-FT evidence update accepted by %d peer(s)", len(peers))
+
+    def get_public_signing_key_pem(self):
+        return self.signing_keys["public"].public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        ).decode()
+
+    def get_public_encryption_key_pem(self):
+        return self.encryption_keys["public"].public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        ).decode()
+
+    def get_ft_expt_hash(self):
+        if self.policies_json_text is None:
+            raise ValueError("policies are not loaded")
+        expt_hash = self.compute_message_hash(self.policies_json_text.encode("UTF-8"), SHA384)
+        return crypto_utility.byte_array_to_base64(expt_hash)
+
+    def build_ft_quote_user_data(self, expt_hash, nonce):
+        payload = {
+            "expt_hash": expt_hash,
+            "nonce": nonce,
+        }
+        return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+    def generate_evidence_quote(self, nonce):
+        expt_hash = self.get_ft_expt_hash()
+        signing_key = self.get_public_signing_key_pem()
+        encryption_key = self.get_public_encryption_key_pem()
+        quote_user_data = self.build_ft_quote_user_data(expt_hash, nonce)
+        quote = self.generate_quote_with_keys(signing_key, encryption_key, quote_user_data)
+        if quote is None:
+            raise RuntimeError("failed to generate SRAS-FT evidence quote")
+        return {
+            "evidence_quote": quote,
+            "rpe_public_signing_key": signing_key,
+            "rpe_public_encryption_key": encryption_key,
+            "expt_hash": expt_hash,
+            "nonce": nonce,
+        }
+
+    def verify_evidence_quote(
+        self,
+        evidence_quote,
+        public_signing_key_pem,
+        public_encryption_key_pem,
+        expt_hash,
+        nonce,
+        rpe_id=None,
+    ):
+        try:
+            if expt_hash != self.get_ft_expt_hash():
+                logger.error("SRAS-FT evidence quote Expt hash mismatch for RPE %s", rpe_id)
+                return False
+            if rpe_id is None or self.rpes is None or rpe_id not in self.rpes:
+                logger.error("SRAS-FT evidence quote verifier cannot resolve RPE %s", rpe_id)
+                return False
+
+            rpe_info = self.rpes[rpe_id]
+            quote_bytes = crypto_utility.base64_to_byte_array(evidence_quote)
+            ret = verify_dcap_quote.teeVerifyQuote(
+                evidence_quote, len(quote_bytes), rpe_info["collateral"]
+            )
+            logger.info("SRAS-FT evidence quote verification for rpe %s result: %x", rpe_id, ret)
+            if ret != 0 and ret != 0xa002 and ret != 0xa008:
+                return False
+
+            quote_user_data = self.build_ft_quote_user_data(expt_hash, nonce)
+            report_data = self.generate_report_data(
+                public_signing_key_pem, public_encryption_key_pem, quote_user_data
+            )
+            rpe_policies_to_verify = {
+                "mr_enclave": self.rpe_mr,
+                "mr_signer": self.rpe_mrsigner,
+                "isv_prod_id": self.rpe_isvprodid,
+                "isv_svn": self.rpe_isvsvn,
+                "base64_encoded_report_data": crypto_utility.byte_array_to_base64(report_data),
+                "qeid": rpe_info["qeid"][0],
+            }
+            ret = verify_dcap_quote.sgxVerifyQuoteBody(
+                evidence_quote, json.dumps(rpe_policies_to_verify)
+            )
+            logger.info("SRAS-FT evidence quote body verification for rpe %s result: %x", rpe_id, ret)
+            return ret == 0
+        except Exception as e:
+            logger.error("SRAS-FT evidence quote verification failed for RPE %s: %s", rpe_id, str(e))
+            return False
+
+    def update_ft_peer_public_keys(self, rpe_id, public_signing_key_pem, public_encryption_key_pem):
+        if self.rpes is None or rpe_id not in self.rpes:
+            logger.error("SRAS-FT cannot update unknown recovering RPE %s", rpe_id)
+            return False
+        self.rpes[rpe_id]["details"]["rpe_public_signing_key"] = public_signing_key_pem
+        self.rpes[rpe_id]["details"]["rpe_public_encryption_key"] = public_encryption_key_pem
+        logger.info("SRAS-FT updated trusted public keys for recovering RPE %s", rpe_id)
+        return True
 
     def generate_keys(self):
         private_signing_key = ec.generate_private_key(
@@ -761,10 +938,23 @@ class RPE:
                                                                           format=serialization.PublicFormat.SubjectPublicKeyInfo)
             public_encryption_key_pem = self.encryption_keys["public"].public_bytes(encoding=serialization.Encoding.PEM,
                                                             format=serialization.PublicFormat.SubjectPublicKeyInfo)
-            fd = os.open("/dev/attestation/user_report_data", os.O_RDWR)
-            report_data = self.generate_report_data(
+            return self.generate_quote_with_keys(
                 public_signing_key_pem.decode(),
                 public_encryption_key_pem.decode(),
+                user_data,
+            )
+        except Exception as e:
+            logger.error(
+                "Generate quote failed!"
+                " Error message %(%s)" % str(e) )
+
+    def generate_quote_with_keys(self, public_signing_key_pem, public_encryption_key_pem, user_data):
+        try:
+            logger.info("Generating Quote...")
+            fd = os.open("/dev/attestation/user_report_data", os.O_RDWR)
+            report_data = self.generate_report_data(
+                public_signing_key_pem,
+                public_encryption_key_pem,
                 user_data)
             os.write(fd, report_data)
             os.close(fd)

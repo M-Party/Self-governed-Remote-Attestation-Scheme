@@ -6,16 +6,18 @@ import os
 import secrets
 import threading
 import time
+from concurrent import futures
 from dataclasses import dataclass
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib import request as urlrequest
 
+import grpc
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
 logger = logging.getLogger(__name__)
+
+FT_GRPC_SERVICE = "srasft.FTControl"
 
 
 def b64encode_bytes(data):
@@ -260,19 +262,6 @@ def random_nonce():
     return b64encode_bytes(secrets.token_bytes(32))
 
 
-def http_post_json(address, path, payload, timeout):
-    url = "http://%s%s" % (address, path)
-    data = canonical_json_bytes(payload)
-    req = urlrequest.Request(
-        url,
-        data=data,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    with urlrequest.urlopen(req, timeout=timeout) as response:
-        return json.loads(response.read().decode("utf-8"))
-
-
 class FTControlManager:
     def __init__(
         self,
@@ -281,71 +270,79 @@ class FTControlManager:
         signing_public_key_pem,
         peer_public_keys,
         quote_verifier=None,
+        on_peer_key_update=None,
+        nonce_factory=None,
     ):
         self.config = config
         self.signing_private_key = signing_private_key
         self.signing_public_key_pem = signing_public_key_pem
         self.peer_public_keys = dict(peer_public_keys)
         self.quote_verifier = quote_verifier
+        self.on_peer_key_update = on_peer_key_update
+        self.nonce_factory = nonce_factory or random_nonce
         self.state_store = FTStateStore(config.counter_cache_path)
         self._server = None
-        self._thread = None
+        self._bound_address = None
 
     def start(self):
         if not self.config.enabled:
             return
         manager = self
 
-        class Handler(BaseHTTPRequestHandler):
-            def log_message(self, fmt, *args):
-                logger.debug("FT control: " + fmt, *args)
-
-            def do_POST(self):
-                length = int(self.headers.get("Content-Length", "0"))
-                body = self.rfile.read(length)
+        def make_handler(fn):
+            def handler(request_bytes, _context):
                 try:
-                    payload = json.loads(body.decode("utf-8"))
-                    if self.path == "/state_update":
-                        response = manager.handle_state_update(payload)
-                    elif self.path == "/recovery_query":
-                        response = manager.handle_recovery_query(payload)
-                    elif self.path == "/evidence_update":
-                        response = manager.handle_evidence_update(payload)
-                    else:
-                        response = {"status": 1, "error": "unknown endpoint"}
+                    payload = json.loads(request_bytes.decode("utf-8"))
+                    response = fn(payload)
                 except Exception as exc:
-                    logger.exception("FT control request failed")
+                    logger.exception("FT gRPC request failed")
                     response = {"status": 1, "error": str(exc)}
+                return canonical_json_bytes(response)
 
-                response_bytes = canonical_json_bytes(response)
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.send_header("Content-Length", str(len(response_bytes)))
-                self.end_headers()
-                self.wfile.write(response_bytes)
+            return grpc.unary_unary_rpc_method_handler(
+                handler,
+                request_deserializer=lambda value: value,
+                response_serializer=lambda value: value,
+            )
 
-        self._server = ThreadingHTTPServer(
-            (self.config.listen_host, self.config.listen_port), Handler
+        generic_handler = grpc.method_handlers_generic_handler(
+            FT_GRPC_SERVICE,
+            {
+                "StateUpdate": make_handler(manager.handle_state_update),
+                "RecoveryQuery": make_handler(manager.handle_recovery_query),
+                "EvidenceUpdate": make_handler(manager.handle_evidence_update),
+            },
         )
-        self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
-        self._thread.start()
+        self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=16))
+        self._server.add_generic_rpc_handlers((generic_handler,))
+        bind_address = "%s:%d" % (self.config.listen_host, self.config.listen_port)
+        bound_port = self._server.add_insecure_port(bind_address)
+        if bound_port == 0:
+            raise RuntimeError("failed to bind SRAS-FT gRPC server at %s" % bind_address)
+        self._bound_address = "%s:%d" % (self.config.listen_host, bound_port)
+        self._server.start()
 
     def stop(self):
         server = self._server
-        thread = self._thread
         if server is not None:
-            server.shutdown()
-            server.server_close()
+            server.stop(0)
             self._server = None
-        if thread is not None:
-            thread.join(timeout=2)
-            self._thread = None
+            self._bound_address = None
 
     def bound_address(self):
-        if self._server is None:
+        if self._bound_address is None:
             raise RuntimeError("FT control server is not started")
-        host, port = self._server.server_address
-        return "%s:%d" % (host, port)
+        return self._bound_address
+
+    def grpc_post_json(self, address, method, payload, timeout):
+        channel = grpc.insecure_channel(address)
+        rpc = channel.unary_unary(
+            "/%s/%s" % (FT_GRPC_SERVICE, method),
+            request_serializer=lambda value: value,
+            response_deserializer=lambda value: value,
+        )
+        response_bytes = rpc(canonical_json_bytes(payload), timeout=timeout)
+        return json.loads(response_bytes.decode("utf-8"))
 
     def _peer_public_key(self, rpe_id):
         pem = self.peer_public_keys.get(rpe_id)
@@ -364,31 +361,78 @@ class FTControlManager:
         if self.quote_verifier is None or not hasattr(self.quote_verifier, "generate_evidence_quote"):
             return {"status": 1, "error": "quote generator is not configured"}
         evidence = self.quote_verifier.generate_evidence_quote(recovery_nonce)
+        recovery_state = {
+            "responder_rpe_id": self.config.local_rpe_id,
+            "recovering_rpe_id": recovering_rpe_id,
+            "recorded_attestation_state": recorded["state"],
+            "recovery_nonce": recovery_nonce,
+        }
         return {
             "status": 0,
             "responder_rpe_id": self.config.local_rpe_id,
             "evidence_quote": evidence["evidence_quote"],
-            "rpe_public_key": self.signing_public_key_pem,
+            "rpe_public_signing_key": evidence.get(
+                "rpe_public_signing_key", self.signing_public_key_pem
+            ),
+            "rpe_public_encryption_key": evidence.get("rpe_public_encryption_key", ""),
             "expt_hash": evidence["expt_hash"],
             "recorded_attestation_state": recorded["state"],
-            "signed_state": recorded["signed_update"],
+            "signed_state": {
+                "state": recovery_state,
+                "signature": sign_json(self.signing_private_key, recovery_state),
+            },
             "recovery_nonce": recovery_nonce,
         }
 
     def handle_evidence_update(self, payload):
         recovering_rpe_id = payload.get("recovering_rpe_id")
         evidence_quote = payload.get("evidence_quote")
-        public_key_pem = payload.get("rpe_public_key")
+        public_key_pem = payload.get("rpe_public_signing_key") or payload.get("rpe_public_key")
+        encryption_key_pem = payload.get("rpe_public_encryption_key", "")
         expt_hash = payload.get("expt_hash")
         nonce = payload.get("nonce")
-        if not recovering_rpe_id or not evidence_quote or not public_key_pem or not expt_hash or not nonce:
+        if (
+            not recovering_rpe_id
+            or not evidence_quote
+            or not public_key_pem
+            or not encryption_key_pem
+            or not expt_hash
+            or not nonce
+        ):
             return {"status": 1, "error": "missing evidence update fields"}
         if self.quote_verifier is None:
             return {"status": 1, "error": "quote verifier is not configured"}
-        if not self.quote_verifier(evidence_quote, public_key_pem, expt_hash, nonce):
+        if not self._verify_evidence_quote(
+            evidence_quote,
+            public_key_pem,
+            encryption_key_pem,
+            expt_hash,
+            nonce,
+            recovering_rpe_id,
+        ):
             return {"status": 1, "error": "evidence quote verification failed"}
         self.peer_public_keys[recovering_rpe_id] = public_key_pem
+        if self.on_peer_key_update is not None:
+            self.on_peer_key_update(recovering_rpe_id, public_key_pem, encryption_key_pem)
         return {"status": 0, "content": ""}
+
+    def _verify_evidence_quote(
+        self, evidence_quote, signing_key_pem, encryption_key_pem, expt_hash, nonce, rpe_id=None
+    ):
+        verifier = self.quote_verifier
+        if hasattr(verifier, "verify_evidence_quote"):
+            try:
+                return verifier.verify_evidence_quote(
+                    evidence_quote, signing_key_pem, encryption_key_pem, expt_hash, nonce, rpe_id
+                )
+            except TypeError:
+                return verifier.verify_evidence_quote(
+                    evidence_quote, signing_key_pem, encryption_key_pem, expt_hash, nonce
+                )
+        try:
+            return verifier(evidence_quote, signing_key_pem, encryption_key_pem, expt_hash, nonce, rpe_id)
+        except TypeError:
+            return verifier(evidence_quote, signing_key_pem, encryption_key_pem, expt_hash, nonce)
 
     def handle_state_update(self, payload):
         sender_rpe_id = payload.get("sender_rpe_id")
@@ -475,8 +519,8 @@ class FTControlManager:
             if peer_id == self.config.local_rpe_id:
                 return
             try:
-                response = http_post_json(
-                    address, "/state_update", update, self.config.echo_timeout_sec
+                response = self.grpc_post_json(
+                    address, "StateUpdate", update, self.config.echo_timeout_sec
                 )
                 echo = response.get("echo") if response.get("status") == 0 else None
                 if echo is not None and self._validate_echo(echo, state):
@@ -504,3 +548,145 @@ class FTControlManager:
         with lock:
             echoes = list(valid_echoes)
         return len(echoes) >= self.config.ft_quorum, echoes
+
+    def _validate_recovery_response(self, response, expected_nonce):
+        if response.get("status") != 0:
+            return None
+        if response.get("recovery_nonce") != expected_nonce:
+            return None
+        responder_rpe_id = response.get("responder_rpe_id")
+        evidence_quote = response.get("evidence_quote")
+        signing_key_pem = response.get("rpe_public_signing_key") or response.get("rpe_public_key")
+        encryption_key_pem = response.get("rpe_public_encryption_key", "")
+        expt_hash = response.get("expt_hash")
+        signed_state = response.get("signed_state")
+        if (
+            not responder_rpe_id
+            or not evidence_quote
+            or not signing_key_pem
+            or not encryption_key_pem
+            or not expt_hash
+            or not isinstance(signed_state, dict)
+        ):
+            return None
+        if not self._verify_evidence_quote(
+            evidence_quote,
+            signing_key_pem,
+            encryption_key_pem,
+            expt_hash,
+            expected_nonce,
+            responder_rpe_id,
+        ):
+            return None
+
+        recovery_state = signed_state.get("state")
+        signature = signed_state.get("signature")
+        if not isinstance(recovery_state, dict) or not signature:
+            return None
+        if recovery_state.get("responder_rpe_id") != responder_rpe_id:
+            return None
+        if recovery_state.get("recovering_rpe_id") != self.config.local_rpe_id:
+            return None
+        if recovery_state.get("recovery_nonce") != expected_nonce:
+            return None
+        recorded_state = recovery_state.get("recorded_attestation_state")
+        if not isinstance(recorded_state, dict):
+            return None
+        if recorded_state.get("target_rpe_id") != self.config.local_rpe_id:
+            return None
+        if not verify_json_signature(load_public_key_pem(signing_key_pem), recovery_state, signature):
+            return None
+        return {
+            "responder_rpe_id": responder_rpe_id,
+            "state": recorded_state,
+            "signed_state": signed_state,
+            "rpe_public_signing_key": signing_key_pem,
+            "rpe_public_encryption_key": encryption_key_pem,
+            "expt_hash": expt_hash,
+        }
+
+    def recover_latest_attestation_state(self):
+        recovery_nonce = self.nonce_factory()
+        valid_responses = []
+        threads = []
+        lock = threading.Lock()
+
+        def query_one(peer_id, address):
+            if peer_id == self.config.local_rpe_id:
+                return
+            payload = {
+                "recovering_rpe_id": self.config.local_rpe_id,
+                "recovery_nonce": recovery_nonce,
+            }
+            try:
+                response = self.grpc_post_json(
+                    address, "RecoveryQuery", payload, self.config.recovery_timeout_sec
+                )
+                valid_response = self._validate_recovery_response(response, recovery_nonce)
+                if valid_response is not None:
+                    with lock:
+                        valid_responses.append(valid_response)
+            except Exception as exc:
+                logger.warning("FT recovery query to %s failed: %s", peer_id, exc)
+
+        for peer_id, address in self.config.peer_addresses.items():
+            thread = threading.Thread(target=query_one, args=(peer_id, address), daemon=True)
+            thread.start()
+            threads.append(thread)
+
+        deadline = time.time() + self.config.recovery_timeout_sec
+        for thread in threads:
+            remaining = max(0.0, deadline - time.time())
+            thread.join(timeout=remaining)
+
+        with lock:
+            responses = list(valid_responses)
+        if len(responses) < self.config.ft_quorum:
+            return False, None, responses
+
+        selected = max(responses, key=lambda item: int(item["state"]["attestation_counter"]))
+        self.state_store.restore_local_counter_floor(
+            selected["state"]["tee_id"], int(selected["state"]["attestation_counter"])
+        )
+        return True, selected, responses
+
+    def broadcast_evidence_update(self, evidence):
+        nonce = evidence.get("nonce") or self.nonce_factory()
+        payload = {
+            "recovering_rpe_id": self.config.local_rpe_id,
+            "evidence_quote": evidence["evidence_quote"],
+            "rpe_public_signing_key": evidence["rpe_public_signing_key"],
+            "rpe_public_encryption_key": evidence["rpe_public_encryption_key"],
+            "expt_hash": evidence["expt_hash"],
+            "nonce": nonce,
+        }
+        accepted = []
+        threads = []
+        lock = threading.Lock()
+
+        def send_one(peer_id, address):
+            if peer_id == self.config.local_rpe_id:
+                return
+            try:
+                response = self.grpc_post_json(
+                    address, "EvidenceUpdate", payload, self.config.recovery_timeout_sec
+                )
+                if response.get("status") == 0:
+                    with lock:
+                        accepted.append(peer_id)
+            except Exception as exc:
+                logger.warning("FT evidence update to %s failed: %s", peer_id, exc)
+
+        for peer_id, address in self.config.peer_addresses.items():
+            thread = threading.Thread(target=send_one, args=(peer_id, address), daemon=True)
+            thread.start()
+            threads.append(thread)
+
+        deadline = time.time() + self.config.recovery_timeout_sec
+        for thread in threads:
+            remaining = max(0.0, deadline - time.time())
+            thread.join(timeout=remaining)
+
+        with lock:
+            peers = list(accepted)
+        return len(peers) >= self.config.ft_quorum, peers
