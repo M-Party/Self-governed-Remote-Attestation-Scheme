@@ -162,7 +162,7 @@ class FTControlServiceTest(unittest.TestCase):
                     recovery_timeout_sec=2,
                     expt_cache_path=os.path.join(temp_dir, "expt.json"),
                     counter_cache_path=os.path.join(temp_dir, "sender_counter.json"),
-                    ft_quorum=1,
+                    ft_quorum=2,
                 )
                 sender = FTControlManager(
                     sender_config,
@@ -172,8 +172,9 @@ class FTControlServiceTest(unittest.TestCase):
                 )
                 ok, echoes = sender.propagate_attestation_state("ce-1")
                 self.assertTrue(ok)
-                self.assertEqual(len(echoes), 1)
-                self.assertEqual(echoes[0]["responder_rpe_id"], "rpe-2")
+                self.assertEqual(len(echoes), 2)
+                responders = {echo["responder_rpe_id"] for echo in echoes}
+                self.assertEqual(responders, {"rpe-1", "rpe-2"})
                 self.assertEqual(
                     receiver.state_store.get_recorded_state("rpe-1")["state"]["tee_id"], "ce-1"
                 )
@@ -273,8 +274,61 @@ class FTControlServiceTest(unittest.TestCase):
             )
             ok, echoes = manager.propagate_attestation_state("ce-1")
             self.assertTrue(ok)
-            self.assertEqual(echoes, [])
+            self.assertEqual(len(echoes), 1)
+            self.assertEqual(echoes[0]["responder_rpe_id"], "rpe-1")
             self.assertEqual(manager.state_store.next_local_counter("ce-1"), 2)
+
+    def test_propagation_counts_local_echo_toward_quorum(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sender_private, sender_public = self._key_pair()
+            receiver_private, receiver_public = self._key_pair()
+            receiver_config = FTConfig(
+                enabled=True,
+                local_rpe_id="rpe-2",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "receiver_counter.json"),
+                ft_quorum=2,
+            )
+            receiver = FTControlManager(
+                receiver_config,
+                receiver_private,
+                self._pem(receiver_public),
+                {"rpe-1": self._pem(sender_public), "rpe-2": self._pem(receiver_public)},
+            )
+            receiver.start()
+            try:
+                sender_config = FTConfig(
+                    enabled=True,
+                    local_rpe_id="rpe-1",
+                    listen_host="127.0.0.1",
+                    listen_port=0,
+                    peer_addresses={
+                        "rpe-2": receiver.bound_address(),
+                        "rpe-3": "127.0.0.1:1",
+                    },
+                    echo_timeout_sec=2,
+                    recovery_timeout_sec=2,
+                    expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                    counter_cache_path=os.path.join(temp_dir, "sender_counter.json"),
+                    ft_quorum=2,
+                )
+                sender = FTControlManager(
+                    sender_config,
+                    sender_private,
+                    self._pem(sender_public),
+                    {"rpe-1": self._pem(sender_public), "rpe-2": self._pem(receiver_public)},
+                )
+                ok, echoes = sender.propagate_attestation_state("ce-1")
+                self.assertTrue(ok)
+                responders = {echo["responder_rpe_id"] for echo in echoes}
+                self.assertEqual(responders, {"rpe-1", "rpe-2"})
+            finally:
+                receiver.stop()
 
     def test_invalid_state_update_does_not_consume_nonce(self):
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -344,13 +398,20 @@ class FTGeneratedConfigTest(unittest.TestCase):
                     "rpo_port = \"4433\"\n"
                     "grpc_server_address = \"127.0.0.1:50051\"\n"
                 )
-            setup = MultiPartySetup(base_dir=root, num_parties=2, ft_enabled=True, ft_base_port=56001)
+            setup = MultiPartySetup(base_dir=root, num_parties=3, ft_enabled=True, ft_base_port=56001)
             setup.setup_multiple_parties()
             cfg = configparser.ConfigParser()
             cfg.read(os.path.join(root, "RPE_party1/config.toml"))
             self.assertEqual(cfg["ft"]["enabled"], "true")
             self.assertEqual(cfg["ft"]["listen_port"].strip('"'), "56001")
             self.assertIn("rpe-2=127.0.0.1:56002", cfg["ft"]["peer_addresses"])
+            self.assertIn("rpe-3=127.0.0.1:56003", cfg["ft"]["peer_addresses"])
+
+            for party_id in (1, 2, 3):
+                rpo_cfg = configparser.ConfigParser()
+                rpo_cfg.read(os.path.join(root, "RPO_party%d/config.toml" % party_id))
+                self.assertEqual(rpo_cfg["rpo"]["rpe_id"].strip('"'), "rpe-%d" % party_id)
+                self.assertEqual(rpo_cfg["rpo"]["policies_path"].strip('"'), "policies-3.json")
 
 
 class FTRecoveryTest(unittest.TestCase):

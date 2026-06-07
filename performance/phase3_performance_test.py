@@ -385,6 +385,7 @@ class Phase3PerformanceTest:
         rpe_auth_durations = []
         stage3_native_quote_verification_durations = []
         stage3_expectation_policy_enforcement_durations = []
+        ft_state_propagation_durations = []
         all_rpe_ce_auths = []
         first_auth_start = None
         last_auth_end = None
@@ -412,6 +413,9 @@ class Phase3PerformanceTest:
                     stage3_native_quote_verification_durations.append(native_duration)
                 if policy_duration is not None:
                     stage3_expectation_policy_enforcement_durations.append(policy_duration)
+                ft_duration = auth.get("ft_state_propagation_duration")
+                if ft_duration is not None:
+                    ft_state_propagation_durations.append(ft_duration)
             
             # Find first auth_start and last auth_end on the RPE side.
             valid_auths = [auth for auth in all_rpe_ce_auths 
@@ -517,6 +521,13 @@ class Phase3PerformanceTest:
                     "min": min(stage3_expectation_policy_enforcement_durations) if stage3_expectation_policy_enforcement_durations else 0,
                     "max": max(stage3_expectation_policy_enforcement_durations) if stage3_expectation_policy_enforcement_durations else 0,
                     "count": len(stage3_expectation_policy_enforcement_durations)
+                },
+                "ft_state_propagation": {
+                    "avg": sum(ft_state_propagation_durations) / len(ft_state_propagation_durations)
+                    if ft_state_propagation_durations else 0,
+                    "min": min(ft_state_propagation_durations) if ft_state_propagation_durations else 0,
+                    "max": max(ft_state_propagation_durations) if ft_state_propagation_durations else 0,
+                    "count": len(ft_state_propagation_durations)
                 }
             }
         }
@@ -558,6 +569,12 @@ class Phase3PerformanceTest:
                 result["statistics"]["stage3_native_quote_verification"]["min"],
                 result["statistics"]["stage3_native_quote_verification"]["max"]
             ))
+            if result["statistics"]["ft_state_propagation"]["count"] > 0:
+                logger.info("  SRAS-FT State Propagation - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+                    result["statistics"]["ft_state_propagation"]["avg"],
+                    result["statistics"]["ft_state_propagation"]["min"],
+                    result["statistics"]["ft_state_propagation"]["max"]
+                ))
             logger.info("  Stage 3 Expectation-Policy Enforcement - Avg: %.3f, Min: %.3f, Max: %.3f" % (
                 result["statistics"]["stage3_expectation_policy_enforcement"]["avg"],
                 result["statistics"]["stage3_expectation_policy_enforcement"]["min"],
@@ -613,6 +630,10 @@ class Phase3PerformanceTest:
                 "Stage3 Expectation-Policy Enforcement Avg (s)",
                 "Stage3 Expectation-Policy Enforcement Min (s)",
                 "Stage3 Expectation-Policy Enforcement Max (s)",
+                "SRAS-FT State Propagation Avg (s)",
+                "SRAS-FT State Propagation Min (s)",
+                "SRAS-FT State Propagation Max (s)",
+                "SRAS-FT State Propagation Count",
                 "Auth Count",
                 "Throughput (CEs/min)"
             ])
@@ -623,6 +644,7 @@ class Phase3PerformanceTest:
                 stats = result["statistics"]["auth_duration"]
                 stage3_native_stats = result["statistics"]["stage3_native_quote_verification"]
                 stage3_policy_stats = result["statistics"]["stage3_expectation_policy_enforcement"]
+                ft_stats = result["statistics"].get("ft_state_propagation", {})
                 rpe_total_time = result.get("rpe_total_time", 0)
                 first_start = result.get("first_auth_start", 0)
                 last_end = result.get("last_auth_end", 0)
@@ -647,6 +669,10 @@ class Phase3PerformanceTest:
                     "%.3f" % stage3_policy_stats.get("avg", 0),
                     "%.3f" % stage3_policy_stats.get("min", 0),
                     "%.3f" % stage3_policy_stats.get("max", 0),
+                    "%.3f" % ft_stats.get("avg", 0),
+                    "%.3f" % ft_stats.get("min", 0),
+                    "%.3f" % ft_stats.get("max", 0),
+                    ft_stats.get("count", 0),
                     stats.get("count", 0),
                     "%.2f" % result["throughput_per_minute"]
                 ])
@@ -659,15 +685,16 @@ class Phase3PerformanceTest:
             f.write("Phase 3 Performance Test Summary (RPE Authentication of CEs)\n")
             f.write("=" * 100 + "\n\n")
             
-            f.write("Number | First Auth  | Last Auth   | Total Time | Start Spread| Proc Range  | Total Auth | Avg Auth   | Min Auth   | Max Auth   | Native Avg | Policy Avg | Count | Throughput\n")
-            f.write("of CEs | Start        | End          | (s)        | (s)         | (s)         | Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)|       | (CEs/min)\n")
-            f.write("-" * 168 + "\n")
+            f.write("Number | First Auth  | Last Auth   | Total Time | Start Spread| Proc Range  | Total Auth | Avg Auth   | Min Auth   | Max Auth   | Native Avg | Policy Avg | FT Prop Avg| Count | Throughput\n")
+            f.write("of CEs | Start        | End          | (s)        | (s)         | (s)         | Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)|       | (CEs/min)\n")
+            f.write("-" * 181 + "\n")
             
             for result in all_results:
                 num_ces = result["num_ces"]
                 stats = result["statistics"]["auth_duration"]
                 stage3_native_stats = result["statistics"]["stage3_native_quote_verification"]
                 stage3_policy_stats = result["statistics"]["stage3_expectation_policy_enforcement"]
+                ft_stats = result["statistics"].get("ft_state_propagation", {})
                 rpe_total_time = result.get("rpe_total_time", 0)
                 first_start = result.get("first_auth_start", 0)
                 last_end = result.get("last_auth_end", 0)
@@ -675,7 +702,7 @@ class Phase3PerformanceTest:
                 processing_range = result.get("processing_time_range")
                 total_auth_duration = result.get("total_auth_duration", 0)
                 
-                f.write("%6d | %12.3f | %12.3f | %10.3f | %11.3f | %11.3f | %11.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %5d | %10.2f\n" % (
+                f.write("%6d | %12.3f | %12.3f | %10.3f | %11.3f | %11.3f | %11.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %5d | %10.2f\n" % (
                     num_ces,
                     first_start if first_start else 0,
                     last_end if last_end else 0,
@@ -688,6 +715,7 @@ class Phase3PerformanceTest:
                     stats.get("max", 0),
                     stage3_native_stats.get("avg", 0),
                     stage3_policy_stats.get("avg", 0),
+                    ft_stats.get("avg", 0),
                     stats.get("count", 0),
                     result["throughput_per_minute"]
                 ))

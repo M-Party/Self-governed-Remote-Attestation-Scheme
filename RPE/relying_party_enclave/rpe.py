@@ -491,6 +491,8 @@ class RPE:
             stage3_native_quote_verification_duration = None
             stage3_expectation_policy_enforcement_duration = None
             stage3_verification_duration = None
+            ft_state_propagation_duration = None
+            ft_echo_count = 0
 
             if self.ratls.perform_handshake() != 0:
                 logger.error("RA-TLS handshake with CE failed")
@@ -539,7 +541,10 @@ class RPE:
                 ce_public_signing_key_obj = serialization.load_pem_public_key(CESigningkey, backend=openssl_backend)
 
                 if self.ft_manager is not None and self.ft_manager.config.enabled:
+                    ft_state_propagation_start = time.time()
                     ft_ok, ft_echoes = self.ft_manager.propagate_attestation_state(ce_id)
+                    ft_state_propagation_duration = time.time() - ft_state_propagation_start
+                    ft_echo_count = len(ft_echoes)
                     if not ft_ok:
                         logger.error(
                             "SRAS-FT quorum not reached for CE %s; aborting certificate issuance",
@@ -547,7 +552,12 @@ class RPE:
                         )
                         self.ratls.close_connection()
                         continue
-                    logger.info("SRAS-FT quorum reached for CE %s with %d echo(es)", ce_id, len(ft_echoes))
+                    logger.info(
+                        "SRAS-FT quorum reached for CE %s with %d echo(es) in %.3f seconds",
+                        ce_id,
+                        ft_echo_count,
+                        ft_state_propagation_duration,
+                    )
                 
                 # Sign CE's public signing key and generate a cert.
                 ce_cert = certificate.generate_ce_certificate(self.signing_keys["private"], ce_public_signing_key_obj, self.local_rpe["rpe_id"])
@@ -568,6 +578,9 @@ class RPE:
                     ce_id, stage3_native_quote_verification_duration))
                 logger.info("CE %s stage3 expectation-policy enforcement duration: %.3f seconds" % (
                     ce_id, stage3_expectation_policy_enforcement_duration))
+                if ft_state_propagation_duration is not None:
+                    logger.info("CE %s SRAS-FT state propagation duration: %.3f seconds" % (
+                        ce_id, ft_state_propagation_duration))
                 
                 # Save performance data.
                 # Check whether the file exists before writing after each authentication.
@@ -610,7 +623,9 @@ class RPE:
                     "auth_duration": ce_auth_duration,
                     "stage3_native_quote_verification_duration": stage3_native_quote_verification_duration,
                     "stage3_expectation_policy_enforcement_duration": stage3_expectation_policy_enforcement_duration,
-                    "stage3_verification_duration": stage3_verification_duration
+                    "stage3_verification_duration": stage3_verification_duration,
+                    "ft_state_propagation_duration": ft_state_propagation_duration,
+                    "ft_echo_count": ft_echo_count
                 })
                 
                 # Save to file after each authentication.
@@ -1085,15 +1100,15 @@ class RPE:
         return hash_obj.digest()
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.ERROR, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
-    logging.getLogger().setLevel(logging.ERROR)
-    logging.getLogger('__main__').setLevel(logging.ERROR)
-    logging.getLogger('rpe').setLevel(logging.ERROR)
-    logging.getLogger('certificate').setLevel(logging.ERROR)
-    logging.getLogger('ratls').setLevel(logging.ERROR)
-    logging.getLogger('policies').setLevel(logging.ERROR)
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s: %(message)s')
+    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger('__main__').setLevel(logging.INFO)
+    logging.getLogger('rpe').setLevel(logging.INFO)
+    logging.getLogger('certificate').setLevel(logging.INFO)
+    logging.getLogger('ratls').setLevel(logging.INFO)
+    logging.getLogger('policies').setLevel(logging.INFO)
     for name in logging.Logger.manager.loggerDict:
-        logging.getLogger(name).setLevel(logging.ERROR)
+        logging.getLogger(name).setLevel(logging.INFO)
         
     rpe = RPE()
     rpe.start()

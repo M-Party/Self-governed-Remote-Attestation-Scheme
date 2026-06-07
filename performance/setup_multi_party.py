@@ -100,6 +100,7 @@ class MultiPartySetup:
             if 'rpo' in config:
                 config['rpo']['rpe_id'] = f'"{rpe_id}"'
                 config['rpo']['port'] = f'"{rpo_port}"'
+                config['rpo']['policies_path'] = '"policies-%d.json"' % self.num_parties
                 with open(config_file, 'w') as f:
                     config.write(f)
         
@@ -179,6 +180,9 @@ class MultiPartySetup:
                 rpo_dir,
                 participant_count,
             )
+        full_policy = policies_variants[max(policies_variants.keys())]
+        with open(os.path.join(rpo_dir, "policies.json"), 'w') as f:
+            json.dump(full_policy, f, indent=4)
     
     def copy_and_config_rpe(self, party_id, rpe_id, rpe_port, rpo_address, rpo_port, grpc_address):
         """Copy and configure an RPE instance."""

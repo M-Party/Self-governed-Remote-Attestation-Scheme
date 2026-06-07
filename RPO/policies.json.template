@@ -2,7 +2,7 @@
     "session_id": "uuid",
     "description": "This is an example for policies description.",
     "rpe_info":{
-        "mrenclave": "d61f8a4e3ad89d2c2237097fcaaa14b699f1a69af17282fbd709d42f5a6c35db",
+        "mrenclave": "12b140842beb588c96017aadc341d99c15a8354a456679faba71ec4b6c37f0ba",
         "mrsigner": "8f755b4333f50b53b8a5e33c1cd91733945746933915cf626bad92ed8bb095ee",
         "isv_prod_id": "0",
         "isv_svn": "0"
@@ -37,14 +37,14 @@
     "ce": [
         {
             "id": "ce-1",
-            "mrenclave": "12707b25c43e9b7acf8e8e2a3ede812056cc54da0a1aef1613c0fc243c8c8179",
+            "mrenclave": "1f2db77bdc1ccb59a67f5daffba0d18d7965030a4a77e3aeef789f4cadeeab9e",
             "mrsigner": "8f755b4333f50b53b8a5e33c1cd91733945746933915cf626bad92ed8bb095ee",
             "isvprodid_allow_any": true,
             "isvsvn_allow_any": true
         },
         {
             "id": "ce-2",
-            "mrenclave": "12707b25c43e9b7acf8e8e2a3ede812056cc54da0a1aef1613c0fc243c8c8179",
+            "mrenclave": "1f2db77bdc1ccb59a67f5daffba0d18d7965030a4a77e3aeef789f4cadeeab9e",
             "mrsigner": "8f755b4333f50b53b8a5e33c1cd91733945746933915cf626bad92ed8bb095ee",
             "isv_prod_id": "0",
             "isv_svn": "0"

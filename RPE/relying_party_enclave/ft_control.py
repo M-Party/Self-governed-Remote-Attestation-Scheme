@@ -439,10 +439,12 @@ class FTControlManager:
         state = payload.get("state")
         signature = payload.get("signature")
         if not sender_rpe_id or not isinstance(state, dict) or not signature:
+            logger.warning("FT StateUpdate rejected: missing state update fields")
             return {"status": 1, "error": "missing state update fields"}
 
         nonce = state.get("nonce")
         if not nonce:
+            logger.warning("FT StateUpdate from %s rejected: missing nonce", sender_rpe_id)
             return {"status": 1, "error": "missing nonce"}
 
         try:
@@ -450,14 +452,18 @@ class FTControlManager:
             tee_id = str(state["tee_id"])
             attestation_counter = int(state["attestation_counter"])
         except (KeyError, TypeError, ValueError):
+            logger.warning("FT StateUpdate from %s rejected: invalid attestation state", sender_rpe_id)
             return {"status": 1, "error": "invalid attestation state"}
 
         if not target_rpe_id or not tee_id or attestation_counter < 1:
+            logger.warning("FT StateUpdate from %s rejected: invalid attestation state", sender_rpe_id)
             return {"status": 1, "error": "invalid attestation state"}
 
         if not verify_json_signature(self._peer_public_key(sender_rpe_id), state, signature):
+            logger.warning("FT StateUpdate from %s rejected: invalid state signature", sender_rpe_id)
             return {"status": 1, "error": "invalid state signature"}
         if not self.state_store.mark_nonce_seen(nonce):
+            logger.warning("FT StateUpdate from %s rejected: replayed nonce", sender_rpe_id)
             return {"status": 1, "error": "replayed nonce"}
 
         self.state_store.record_remote_state(state, payload)
@@ -469,34 +475,76 @@ class FTControlManager:
             "nonce": nonce,
         }
         echo["signature"] = sign_json(self.signing_private_key, echo)
+        logger.info(
+            "FT StateUpdate accepted from %s for TEE %s counter %d; echo sent by %s",
+            sender_rpe_id,
+            tee_id,
+            attestation_counter,
+            self.config.local_rpe_id,
+        )
         return {"status": 0, "echo": echo}
 
-    def _validate_echo(self, echo, expected_state):
+    def _validate_echo_with_reason(self, echo, expected_state):
         if not isinstance(echo, dict):
-            return False
+            return False, "echo is not a JSON object"
         responder_rpe_id = echo.get("responder_rpe_id")
         signature = echo.get("signature")
         if not responder_rpe_id or not signature:
-            return False
+            return False, "missing responder_rpe_id or signature"
         try:
             if echo.get("nonce") != expected_state["nonce"]:
-                return False
+                return (
+                    False,
+                    "nonce mismatch (echo=%r expected=%r)"
+                    % (echo.get("nonce"), expected_state["nonce"]),
+                )
             if echo.get("target_rpe_id") != expected_state["target_rpe_id"]:
-                return False
+                return (
+                    False,
+                    "target_rpe_id mismatch (echo=%r expected=%r)"
+                    % (echo.get("target_rpe_id"), expected_state["target_rpe_id"]),
+                )
             if echo.get("tee_id") != expected_state["tee_id"]:
-                return False
-            if int(echo.get("attestation_counter", -1)) != int(
-                expected_state["attestation_counter"]
-            ):
-                return False
-        except (KeyError, TypeError, ValueError):
-            return False
+                return (
+                    False,
+                    "tee_id mismatch (echo=%r expected=%r)"
+                    % (echo.get("tee_id"), expected_state["tee_id"]),
+                )
+            echo_counter = int(echo.get("attestation_counter", -1))
+            expected_counter = int(expected_state["attestation_counter"])
+            if echo_counter != expected_counter:
+                return (
+                    False,
+                    "attestation_counter mismatch (echo=%r expected=%r)"
+                    % (echo_counter, expected_counter),
+                )
+        except (KeyError, TypeError, ValueError) as exc:
+            return False, "invalid echo state fields (%s)" % exc
 
         signed_echo = dict(echo)
         signed_echo.pop("signature", None)
-        return verify_json_signature(
-            self._peer_public_key(responder_rpe_id), signed_echo, signature
-        )
+        try:
+            public_key = self._peer_public_key(responder_rpe_id)
+        except ValueError as exc:
+            return False, "unknown peer public key for %s (%s)" % (responder_rpe_id, exc)
+        if not verify_json_signature(public_key, signed_echo, signature):
+            return False, "signature verification failed for responder %s" % responder_rpe_id
+        return True, None
+
+    def _validate_echo(self, echo, expected_state):
+        valid, _reason = self._validate_echo_with_reason(echo, expected_state)
+        return valid
+
+    def _build_local_echo(self, state):
+        echo = {
+            "responder_rpe_id": self.config.local_rpe_id,
+            "target_rpe_id": state["target_rpe_id"],
+            "tee_id": state["tee_id"],
+            "attestation_counter": state["attestation_counter"],
+            "nonce": state["nonce"],
+        }
+        echo["signature"] = sign_json(self.signing_private_key, echo)
+        return echo
 
     def propagate_attestation_state(self, tee_id):
         counter = self.state_store.next_local_counter(tee_id)
@@ -511,6 +559,9 @@ class FTControlManager:
             "state": state,
             "signature": sign_json(self.signing_private_key, state),
         }
+        local_echo = self._build_local_echo(state)
+        valid_echoes = [local_echo]
+        quorum_target = self.config.ft_quorum
         peer_targets = [
             (peer_id, address)
             for peer_id, address in self.config.peer_addresses.items()
@@ -518,13 +569,22 @@ class FTControlManager:
         ]
         if not peer_targets:
             logger.info(
-                "SRAS-FT single-RPE state propagation satisfied locally for TEE %s counter %d",
+                "SRAS-FT state propagation satisfied with local echo for TEE %s counter %d",
                 state["tee_id"],
                 state["attestation_counter"],
             )
-            return True, []
+            return len(valid_echoes) >= quorum_target, list(valid_echoes)
 
-        valid_echoes = []
+        logger.info(
+            "SRAS-FT propagating state for TEE %s counter %d with local echo; need %d/%d echoes from peers %s",
+            state["tee_id"],
+            state["attestation_counter"],
+            max(0, quorum_target - len(valid_echoes)),
+            quorum_target,
+            [peer_id for peer_id, _ in peer_targets],
+        )
+        propagation_started_at = time.time()
+
         threads = []
         lock = threading.Lock()
 
@@ -535,11 +595,35 @@ class FTControlManager:
                 response = self.grpc_post_json(
                     address, "StateUpdate", update, self.config.echo_timeout_sec
                 )
-                echo = response.get("echo") if response.get("status") == 0 else None
-                if echo is not None and self._validate_echo(echo, state):
-                    with lock:
-                        if len(valid_echoes) < self.config.ft_quorum:
-                            valid_echoes.append(echo)
+                if response.get("status") != 0:
+                    logger.warning(
+                        "FT state update to %s rejected: %s",
+                        peer_id,
+                        response.get("error", "unknown error"),
+                    )
+                    return
+                echo = response.get("echo")
+                if echo is None:
+                    logger.warning("FT state update to %s returned no echo", peer_id)
+                    return
+                echo_valid, echo_reason = self._validate_echo_with_reason(echo, state)
+                if not echo_valid:
+                    logger.warning(
+                        "FT state update to %s returned invalid echo: %s",
+                        peer_id,
+                        echo_reason,
+                    )
+                    return
+                with lock:
+                    if len(valid_echoes) < quorum_target:
+                        valid_echoes.append(echo)
+                logger.info(
+                    "FT state update to %s succeeded; echo from %s accepted for TEE %s counter %d",
+                    peer_id,
+                    echo.get("responder_rpe_id"),
+                    state["tee_id"],
+                    state["attestation_counter"],
+                )
             except Exception as exc:
                 logger.warning("FT state update to %s failed: %s", peer_id, exc)
 
@@ -549,16 +633,45 @@ class FTControlManager:
             threads.append(thread)
 
         deadline = time.time() + self.config.echo_timeout_sec
-        for thread in threads:
-            remaining = max(0.0, deadline - time.time())
-            thread.join(timeout=remaining)
+        while time.time() < deadline:
             with lock:
-                if len(valid_echoes) >= self.config.ft_quorum:
+                if len(valid_echoes) >= quorum_target:
                     break
+            any_alive = False
+            for thread in threads:
+                thread.join(timeout=0.05)
+                if thread.is_alive():
+                    any_alive = True
+            with lock:
+                if len(valid_echoes) >= quorum_target:
+                    break
+            if not any_alive:
+                break
 
         with lock:
             echoes = list(valid_echoes)
-        return len(echoes) >= self.config.ft_quorum, echoes
+        met = len(echoes) >= quorum_target
+        propagation_duration = time.time() - propagation_started_at
+        responders = [echo.get("responder_rpe_id") for echo in echoes]
+        if met:
+            logger.info(
+                "SRAS-FT state propagation quorum reached for TEE %s: %d/%d echoes from %s in %.3f seconds",
+                state["tee_id"],
+                len(echoes),
+                quorum_target,
+                responders,
+                propagation_duration,
+            )
+        else:
+            logger.error(
+                "SRAS-FT state propagation quorum not met for TEE %s: %d/%d echoes (responders=%s) after %.3f seconds",
+                state["tee_id"],
+                len(echoes),
+                quorum_target,
+                responders,
+                propagation_duration,
+            )
+        return met, echoes
 
     def _validate_recovery_response(self, response, expected_nonce):
         if response.get("status") != 0:
