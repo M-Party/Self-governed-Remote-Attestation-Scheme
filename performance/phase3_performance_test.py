@@ -11,6 +11,7 @@ import subprocess
 import glob
 import logging
 import csv
+import re
 from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -194,7 +195,503 @@ class Phase3PerformanceTest:
         
         logger.info("All CEs completed authentication!")
         return True
-    
+
+    def _get_issuing_rpe_perf_file(self):
+        """Return the issuing RPE phase3 performance file path."""
+        rpe_dir = None
+        if hasattr(self, "rpe_dir") and self.rpe_dir and os.path.isdir(self.rpe_dir):
+            rpe_dir = self.rpe_dir
+        else:
+            party1 = os.path.join(self.rpe_base_dir, "RPE_party1")
+            if os.path.isdir(party1):
+                rpe_dir = party1
+            else:
+                rpe_dirs = self._discover_rpe_dirs()
+                if rpe_dirs:
+                    rpe_dir = rpe_dirs[0]
+        if rpe_dir is None:
+            return None
+        return self._find_rpe_perf_file(rpe_dir)
+
+    def _read_all_issuing_rpe_authentications(self):
+        """Read all CE authentication records from the issuing RPE performance file."""
+        perf_file = self._get_issuing_rpe_perf_file()
+        if not perf_file or not os.path.exists(perf_file):
+            return []
+        try:
+            with open(perf_file, 'r') as f:
+                data = json.load(f)
+        except Exception as e:
+            logger.warning("Error reading issuing RPE perf file %s: %s" % (perf_file, e))
+            return []
+        if not isinstance(data, dict):
+            return []
+        return list(data.get("ce_authentications", []))
+
+    def wait_for_auth_count_target(self, target_count, timeout=600):
+        """Poll until the issuing RPE has at least target_count total CE authentication records."""
+        perf_file = self._get_issuing_rpe_perf_file()
+        logger.info(
+            "Waiting for issuing RPE auth count target %d (perf file: %s)" %
+            (target_count, perf_file or "unknown")
+        )
+        start_time = time.time()
+        while True:
+            if time.time() - start_time > timeout:
+                logger.error(
+                    "Timeout waiting for %d total CE authentication(s) on issuing RPE" % target_count
+                )
+                return False
+            auths = self._read_all_issuing_rpe_authentications()
+            if len(auths) >= target_count:
+                logger.info(
+                    "Issuing RPE has %d CE authentication record(s) (target %d)" %
+                    (len(auths), target_count)
+                )
+                return True
+            logger.debug(
+                "Issuing RPE auth count %d < %d, waiting..." % (len(auths), target_count)
+            )
+            time.sleep(1)
+
+    def _fmt_ms(self, val):
+        if val is None:
+            return "N/A"
+        return "%.0fms" % float(val)
+
+    def _stats_ms(self, values):
+        if not values:
+            return {"avg": None, "min": None, "max": None, "count": 0}
+        return {
+            "avg": sum(values) / len(values),
+            "min": min(values),
+            "max": max(values),
+            "count": len(values),
+        }
+
+    def _max_peer_ms(self, peers_raw, field, accepted_only=False):
+        """Return MAX of a peer timing field; prefer accepted peers, else all peers."""
+        accepted = []
+        all_values = []
+        for peer in peers_raw.values():
+            val = peer.get(field)
+            if val is None:
+                continue
+            val = float(val)
+            all_values.append(val)
+            if peer.get("accepted"):
+                accepted.append(val)
+        if accepted_only:
+            return max(accepted) if accepted else None
+        source = accepted if accepted else all_values
+        return max(source) if source else None
+
+    def _select_bottleneck_peer(self, peers_raw, accepted_only=True):
+        """Pick accepted peer with largest rpc_total_ms + local_verify_echo_ms (critical path)."""
+        candidates = []
+        for peer_id, peer in peers_raw.items():
+            if not isinstance(peer, dict):
+                continue
+            if accepted_only and not peer.get("accepted"):
+                continue
+            rpc = peer.get("rpc_total_ms")
+            verify = peer.get("local_verify_echo_ms")
+            if rpc is None and verify is None:
+                continue
+            score = float(rpc or 0) + float(verify or 0)
+            candidates.append((score, peer_id, peer))
+        if not candidates and accepted_only:
+            return self._select_bottleneck_peer(peers_raw, accepted_only=False)
+        if not candidates:
+            return None, None
+        candidates.sort(key=lambda item: item[0], reverse=True)
+        return candidates[0][1], candidates[0][2]
+
+    def _peer_remote_veri_record_ms(self, peer):
+        remote = peer.get("remote_timings") or {}
+        verify_ms = remote.get("verify_state_signature_ms")
+        record_ms = remote.get("record_state_ms")
+        if verify_ms is None and record_ms is None:
+            return None
+        return float(verify_ms or 0) + float(record_ms or 0)
+
+    def _max_peer_remote_veri_record_ms(self, peers_raw, accepted_only=True):
+        """MAX(verify_state_signature_ms + record_state_ms) among peers."""
+        values = []
+        for peer in peers_raw.values():
+            if accepted_only and not peer.get("accepted"):
+                continue
+            remote = peer.get("remote_timings") or {}
+            verify_ms = remote.get("verify_state_signature_ms")
+            record_ms = remote.get("record_state_ms")
+            if verify_ms is None and record_ms is None:
+                continue
+            values.append(float(verify_ms or 0) + float(record_ms or 0))
+        if not values and accepted_only:
+            return self._max_peer_remote_veri_record_ms(peers_raw, accepted_only=False)
+        return max(values) if values else None
+
+    def _breakdown_table_columns(self):
+        return [
+            ("counter", "counter"),
+            ("ce_id", "ce_id"),
+            ("bottleneck_peer_id", "bottleneck_peer"),
+            ("auth_total_ms", "auth_total"),
+            ("quote_verify_ms", "quote_verify"),
+            ("rpc_ms", "rpc(incl.remote.veri+record)"),
+            ("remote_veri_record_ms", "remote.veri+record"),
+            ("verify_echo_ms", "verify_echo"),
+        ]
+
+    def _write_breakdown_excel(self, xlsx_path, csv_path, breakdown_rows, breakdown_summary):
+        columns = self._breakdown_table_columns()
+        header_keys = [c[0] for c in columns]
+        header_labels = [c[1] for c in columns]
+
+        def row_values(row):
+            out = []
+            for key, _ in columns:
+                val = row.get(key)
+                if key in ("counter", "ce_id", "bottleneck_peer_id"):
+                    out.append(val if val is not None else "")
+                elif val is None:
+                    out.append("")
+                else:
+                    out.append(round(float(val), 3))
+            return out
+
+        import csv
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(header_labels)
+            for row in breakdown_rows:
+                writer.writerow(row_values(row))
+            writer.writerow([])
+            writer.writerow(["summary", "avg", "min", "max", "count"])
+            for key, label in columns[2:]:
+                s = breakdown_summary.get(key, {})
+                writer.writerow([
+                    label,
+                    round(s["avg"], 3) if s.get("avg") is not None else "",
+                    round(s["min"], 3) if s.get("min") is not None else "",
+                    round(s["max"], 3) if s.get("max") is not None else "",
+                    s.get("count", 0),
+                ])
+
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "breakdown"
+            ws.append(header_labels)
+            for cell in ws[1]:
+                cell.font = Font(bold=True)
+            for row in breakdown_rows:
+                ws.append(row_values(row))
+            ws.append([])
+            ws.append(["summary", "avg", "min", "max", "count"])
+            for key, label in columns[2:]:
+                s = breakdown_summary.get(key, {})
+                ws.append([
+                    label,
+                    round(s["avg"], 3) if s.get("avg") is not None else None,
+                    round(s["min"], 3) if s.get("min") is not None else None,
+                    round(s["max"], 3) if s.get("max") is not None else None,
+                    s.get("count", 0),
+                ])
+            wb.save(xlsx_path)
+            return True
+        except ImportError:
+            return False
+
+    def _extract_ft_breakdown_row(self, auth):
+        timings = auth.get("ft_state_propagation_timings") or {}
+        peers_raw = timings.get("peers") or {}
+        peers = {}
+        for peer_id, peer in peers_raw.items():
+            remote = peer.get("remote_timings") or {}
+            peers[peer_id] = {
+                "address": peer.get("address"),
+                "rpc_total_ms": peer.get("rpc_total_ms"),
+                "local_verify_echo_ms": peer.get("local_verify_echo_ms"),
+                "remote": {
+                    "total_ms": remote.get("total_ms"),
+                    "verify_state_signature_ms": remote.get("verify_state_signature_ms"),
+                    "record_state_ms": remote.get("record_state_ms"),
+                    "sign_echo_ms": remote.get("sign_echo_ms"),
+                },
+                "accepted": peer.get("accepted"),
+                "error": peer.get("error"),
+            }
+
+        if timings.get("local_sign_state_ms") is not None or timings.get("local_sign_echo_ms") is not None:
+            local_sign_ms = float(timings.get("local_sign_state_ms") or 0) + float(
+                timings.get("local_sign_echo_ms") or 0
+            )
+        else:
+            local_sign_ms = None
+
+        bottleneck_peer_id, bottleneck_peer = self._select_bottleneck_peer(peers_raw, accepted_only=True)
+        if bottleneck_peer is not None:
+            rpc_ms = float(bottleneck_peer["rpc_total_ms"]) if bottleneck_peer.get("rpc_total_ms") is not None else None
+            verify_echo_ms = (
+                float(bottleneck_peer["local_verify_echo_ms"])
+                if bottleneck_peer.get("local_verify_echo_ms") is not None
+                else None
+            )
+            remote_veri_record_ms = self._peer_remote_veri_record_ms(bottleneck_peer)
+        else:
+            rpc_ms = None
+            verify_echo_ms = None
+            remote_veri_record_ms = None
+
+        ft_total_ms = timings.get("total_ms")
+        ft_total_ms = float(ft_total_ms) if ft_total_ms is not None else None
+
+        if ft_total_ms is not None:
+            ft_overhead_ms = max(
+                0.0,
+                ft_total_ms
+                - (local_sign_ms or 0)
+                - (rpc_ms or 0)
+                - (verify_echo_ms or 0),
+            )
+        else:
+            ft_overhead_ms = None
+
+        auth_duration = auth.get("auth_duration")
+        auth_total_ms = float(auth_duration) * 1000 if auth_duration is not None else None
+
+        native = auth.get("stage3_native_quote_verification_duration")
+        quote_verify_ms = float(native) * 1000 if native is not None else None
+
+        policy = auth.get("stage3_expectation_policy_enforcement_duration")
+        policy_ms = float(policy) * 1000 if policy is not None else None
+
+        ft_wall = auth.get("ft_state_propagation_duration") or auth.get("ft_state_propagation")
+        ft_wall_ms = float(ft_wall) * 1000 if ft_wall is not None else None
+
+        if auth_total_ms is not None:
+            other_ms = auth_total_ms - (quote_verify_ms or 0) - (policy_ms or 0) - (ft_wall_ms or 0)
+        else:
+            other_ms = None
+
+        return {
+            "counter": timings.get("attestation_counter"),
+            "ce_id": auth.get("ce_id"),
+            "auth_total_ms": auth_total_ms,
+            "quote_verify_ms": quote_verify_ms,
+            "policy_ms": policy_ms,
+            "ft_wall_ms": ft_wall_ms,
+            "ft_total_ms": ft_total_ms,
+            "local_sign_ms": local_sign_ms,
+            "bottleneck_peer_id": bottleneck_peer_id,
+            "rpc_ms": rpc_ms,
+            "remote_veri_record_ms": remote_veri_record_ms,
+            "verify_echo_ms": verify_echo_ms,
+            "ft_overhead_ms": ft_overhead_ms,
+            "other_ms": other_ms,
+            "peers": peers,
+        }
+
+
+    def collect_state_update_report(self, repeat):
+        """Collect N new CE authentications from issuing RPE and write state update reports."""
+        baseline_count = len(self._read_all_issuing_rpe_authentications())
+        target_count = baseline_count + repeat
+        logger.info(
+            "State update collection: baseline %d, waiting for %d new CE authentications (target total %d)" %
+            (baseline_count, repeat, target_count)
+        )
+
+        if not self.wait_for_auth_count_target(target_count):
+            return None
+
+        all_auths = self._read_all_issuing_rpe_authentications()
+        auths = all_auths[baseline_count:baseline_count + repeat]
+
+        breakdown_rows = [self._extract_ft_breakdown_row(auth) for auth in auths]
+        breakdown_summary = {
+            "auth_total_ms": self._stats_ms([r["auth_total_ms"] for r in breakdown_rows if r["auth_total_ms"] is not None]),
+            "quote_verify_ms": self._stats_ms([r["quote_verify_ms"] for r in breakdown_rows if r["quote_verify_ms"] is not None]),
+            "rpc_ms": self._stats_ms([r["rpc_ms"] for r in breakdown_rows if r["rpc_ms"] is not None]),
+            "remote_veri_record_ms": self._stats_ms([r["remote_veri_record_ms"] for r in breakdown_rows if r["remote_veri_record_ms"] is not None]),
+            "verify_echo_ms": self._stats_ms([r["verify_echo_ms"] for r in breakdown_rows if r["verify_echo_ms"] is not None]),
+        }
+
+        def _metric_values(auth_list, primary_key, fallback_key=None):
+            values = []
+            for auth in auth_list:
+                val = auth.get(primary_key)
+                if val is None and fallback_key:
+                    val = auth.get(fallback_key)
+                if val is not None:
+                    values.append(float(val))
+            return values
+
+        def _stats(values):
+            if not values:
+                return {"avg": 0.0, "min": 0.0, "max": 0.0, "count": 0}
+            return {
+                "avg": sum(values) / len(values),
+                "min": min(values),
+                "max": max(values),
+                "count": len(values),
+            }
+
+        auth_durations = _metric_values(auths, "auth_duration")
+        ft_durations = _metric_values(
+            auths, "ft_state_propagation_duration", "ft_state_propagation"
+        )
+        stage3_native = _metric_values(auths, "stage3_native_quote_verification_duration")
+
+        issuing_file = self._get_issuing_rpe_perf_file()
+        result = {
+            "baseline_authentication_count": baseline_count,
+            "target_new_authentications": repeat,
+            "collected_new_authentications": len(auths),
+            "issuing_rpe_perf_file": issuing_file,
+            "statistics": {
+                "auth_duration": _stats(auth_durations),
+                "ft_state_propagation_duration": _stats(ft_durations),
+                "stage3_native_quote_verification_duration": _stats(stage3_native),
+            },
+            "ce_authentications": auths,
+            "ft_breakdown_rows": breakdown_rows,
+            "ft_breakdown_summary": breakdown_summary,
+        }
+
+        json_path = os.path.join(self.perf_dir, "state_update_report.json")
+        txt_path = os.path.join(self.perf_dir, "state_update_report.txt")
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=2)
+
+        stats = result["statistics"]
+        with open(txt_path, "w", encoding="utf-8") as f:
+            f.write("=" * 80 + "\n")
+            f.write("State Update Collection Report (Issuing RPE CE Authentications)\n")
+            f.write("=" * 80 + "\n\n")
+            f.write("Baseline authentication count: %d\n" % baseline_count)
+            f.write("Target new authentications: %d\n" % repeat)
+            f.write("Collected new authentications: %d\n" % len(auths))
+            if issuing_file:
+                f.write("Issuing RPE perf file: %s\n\n" % issuing_file)
+            for name, label in (
+                ("auth_duration", "Auth Duration (s)"),
+                ("ft_state_propagation_duration", "FT State Propagation (s)"),
+                ("stage3_native_quote_verification_duration", "Stage3 Native Quote Verification (s)"),
+            ):
+                s = stats[name]
+                f.write(
+                    "%s — avg: %.6f, min: %.6f, max: %.6f, count: %d\n" %
+                    (label, s["avg"], s["min"], s["max"], s["count"])
+                )
+
+            f.write("\n")
+            f.write("-" * 80 + "\n")
+            f.write("Authentication Breakdown (ms)\n")
+            f.write("-" * 80 + "\n")
+            f.write(
+                "  Each row = one authentication. bottleneck_peer = slowest peer (rpc+verify_echo).\n"
+                "  quote_verify = CE quote verification (before FT).\n"
+                "  rpc(incl.remote.veri+record) = StateUpdate RPC round-trip incl. network + remote veri+record (subset below).\n"
+                "  remote.veri+record = verify_state_signature + record_state on that peer (already inside rpc column).\n"
+                "  verify_echo = local echo verify after rpc returns on that peer (sequential after rpc).\n"
+            )
+            f.write(
+                "%8s %8s %14s %12s %12s %10s %18s %12s\n" %
+                ("counter", "ce_id", "bottleneck_peer", "auth_total", "quote_verify", "rpc(incl.remote.veri+record)", "remote.veri+record", "verify_echo")
+            )
+            for row in breakdown_rows:
+                f.write(
+                    "%8s %8s %14s %12s %12s %10s %18s %12s\n" %
+                    (
+                        row["counter"] if row["counter"] is not None else "N/A",
+                        row["ce_id"] or "N/A",
+                        row.get("bottleneck_peer_id") or "N/A",
+                        self._fmt_ms(row["auth_total_ms"]),
+                        self._fmt_ms(row["quote_verify_ms"]),
+                        self._fmt_ms(row["rpc_ms"]),
+                        self._fmt_ms(row["remote_veri_record_ms"]),
+                        self._fmt_ms(row["verify_echo_ms"]),
+                    )
+                )
+
+            f.write("\nSummary (avg / min / max)\n")
+            for key, label in (
+                ("auth_total_ms", "auth_total"),
+                ("quote_verify_ms", "quote_verify"),
+                ("rpc_ms", "rpc(incl.remote.veri+record)"),
+                ("remote_veri_record_ms", "remote.veri+record"),
+                ("verify_echo_ms", "verify_echo"),
+            ):
+                s = breakdown_summary[key]
+                if s["count"]:
+                    f.write(
+                        "  %-18s avg: %8s  min: %8s  max: %8s  (n=%d)\n" %
+                        (
+                            label,
+                            self._fmt_ms(s["avg"]),
+                            self._fmt_ms(s["min"]),
+                            self._fmt_ms(s["max"]),
+                            s["count"],
+                        )
+                    )
+                else:
+                    f.write("  %-18s N/A\n" % label)
+
+        csv_path = os.path.join(self.perf_dir, "state_update_report.csv")
+        xlsx_path = os.path.join(self.perf_dir, "state_update_report.xlsx")
+        wrote_xlsx = self._write_breakdown_excel(xlsx_path, csv_path, breakdown_rows, breakdown_summary)
+
+        logger.info("=" * 60)
+        logger.info("State update report: %d new authentication(s) collected" % len(auths))
+        for row in breakdown_rows[:5]:
+            logger.info(
+                "  breakdown: counter=%s ce_id=%s auth_total=%s quote_verify=%s rpc=%s "
+                "peer=%s remote.veri+record=%s verify_echo=%s" %
+                (
+                    row["counter"] if row["counter"] is not None else "N/A",
+                    row["ce_id"] or "N/A",
+                    self._fmt_ms(row["auth_total_ms"]),
+                    self._fmt_ms(row["quote_verify_ms"]),
+                    self._fmt_ms(row["rpc_ms"]),
+                    row.get("bottleneck_peer_id") or "N/A",
+                    self._fmt_ms(row["remote_veri_record_ms"]),
+                    self._fmt_ms(row["verify_echo_ms"]),
+                )
+            )
+        logger.info(
+            "  Auth Duration — avg: %.6f, min: %.6f, max: %.6f" %
+            (stats["auth_duration"]["avg"], stats["auth_duration"]["min"], stats["auth_duration"]["max"])
+        )
+        logger.info(
+            "  FT State Propagation — avg: %.6f, min: %.6f, max: %.6f" %
+            (
+                stats["ft_state_propagation_duration"]["avg"],
+                stats["ft_state_propagation_duration"]["min"],
+                stats["ft_state_propagation_duration"]["max"],
+            )
+        )
+        logger.info(
+            "  Stage3 Native Quote Verification — avg: %.6f, min: %.6f, max: %.6f" %
+            (
+                stats["stage3_native_quote_verification_duration"]["avg"],
+                stats["stage3_native_quote_verification_duration"]["min"],
+                stats["stage3_native_quote_verification_duration"]["max"],
+            )
+        )
+        logger.info("  JSON: %s" % json_path)
+        logger.info("  TXT: %s" % txt_path)
+        logger.info("  CSV: %s" % csv_path)
+        if wrote_xlsx:
+            logger.info("  XLSX: %s" % xlsx_path)
+        else:
+            logger.info("  XLSX: skipped (install openpyxl for .xlsx; use CSV in Excel)")
+        logger.info("=" * 60)
+        return result
+
     def check_rpe_perf_data_ready(self, ce_ids):
         """
         Check whether RPE performance files contain authentication records for
@@ -614,6 +1111,7 @@ class Phase3PerformanceTest:
             
             # Write the header.
             writer.writerow([
+                "Repeat",
                 "Number of CEs",
                 "First Auth Start",
                 "Last Auth End",
@@ -653,6 +1151,7 @@ class Phase3PerformanceTest:
                 total_auth_duration = result.get("total_auth_duration", 0)
                 
                 writer.writerow([
+                    result.get("repeat", 1),
                     num_ces,
                     "%.3f" % first_start if first_start else "N/A",
                     "%.3f" % last_end if last_end else "N/A",
@@ -685,8 +1184,8 @@ class Phase3PerformanceTest:
             f.write("Phase 3 Performance Test Summary (RPE Authentication of CEs)\n")
             f.write("=" * 100 + "\n\n")
             
-            f.write("Number | First Auth  | Last Auth   | Total Time | Start Spread| Proc Range  | Total Auth | Avg Auth   | Min Auth   | Max Auth   | Native Avg | Policy Avg | FT Prop Avg| Count | Throughput\n")
-            f.write("of CEs | Start        | End          | (s)        | (s)         | (s)         | Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)|       | (CEs/min)\n")
+            f.write("Repeat | Number | First Auth  | Last Auth   | Total Time | Start Spread| Proc Range  | Total Auth | Avg Auth   | Min Auth   | Max Auth   | Native Avg | Policy Avg | FT Prop Avg| Count | Throughput\n")
+            f.write("       | of CEs | Start        | End          | (s)        | (s)         | (s)         | Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)|       | (CEs/min)\n")
             f.write("-" * 181 + "\n")
             
             for result in all_results:
@@ -702,7 +1201,8 @@ class Phase3PerformanceTest:
                 processing_range = result.get("processing_time_range")
                 total_auth_duration = result.get("total_auth_duration", 0)
                 
-                f.write("%6d | %12.3f | %12.3f | %10.3f | %11.3f | %11.3f | %11.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %5d | %10.2f\n" % (
+                f.write("%6d | %6d | %12.3f | %12.3f | %10.3f | %11.3f | %11.3f | %11.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %5d | %10.2f\n" % (
+                    result.get("repeat", 1),
                     num_ces,
                     first_start if first_start else 0,
                     last_end if last_end else 0,
@@ -777,6 +1277,8 @@ class Phase3PerformanceTest:
         logger.info("=" * 60)
 
 
+
+
 if __name__ == "__main__":
     import argparse
     
@@ -785,20 +1287,33 @@ if __name__ == "__main__":
     parser.add_argument("--end", type=int, default=10, help="Ending number of CEs")
     parser.add_argument("--single", type=int, default=None, help="Test with a single number of CEs")
     parser.add_argument("--perf-dir", type=str, default="./performance_data", help="Performance data directory")
-    parser.add_argument("--rpe-dir", type=str, default=None, help="RPE directory")
+    parser.add_argument("--rpe-dir", type=str, default=None, help="Issuing RPE for current FT rpe_phase3_perf_*.json (default: discover RPE_party1 or first RPE)")
     parser.add_argument("--ce-base-dir", type=str, default=None, help="CE base directory")
     parser.add_argument("--ce-first", action="store_true", help="CE-first mode: start CEs first, script signals when to start RPE, then wait for auth complete")
     parser.add_argument("--total-time", action="store_true", help="N CE auth total-time mode: start CEs with CE_WAIT_FOR_START_RPE=1, signal when CE init done, after you start RPE and Enter script creates START_RPE_NOW.flag, CE-side timing = first auth_start to last auth_end")
     parser.add_argument("--generate-report", action="store_true", help="Generate summary report from existing JSON files")
-    
+    parser.add_argument(
+        "--repeat",
+        type=int,
+        default=None,
+        help="Collect N total CE authentications from issuing RPE perf; writes state_update_report to --perf-dir",
+    )
+
     args = parser.parse_args()
-    
+
+    if args.repeat is not None:
+        if args.repeat < 1:
+            parser.error("--repeat must be >= 1")
+        test = Phase3PerformanceTest(perf_dir=args.perf_dir, rpe_dir=args.rpe_dir)
+        result = test.collect_state_update_report(args.repeat)
+        sys.exit(0 if result else 1)
+
     test = Phase3PerformanceTest(
         perf_dir=args.perf_dir,
         rpe_dir=args.rpe_dir,
         ce_base_dir=args.ce_base_dir
     )
-    
+
     if args.generate_report:
         # Generate a report from existing JSON files.
         test.generate_report_from_json_files(args.perf_dir)

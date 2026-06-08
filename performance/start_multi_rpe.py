@@ -82,6 +82,26 @@ class RPEStarter:
         logger.info("All RPEs started!")
         logger.info("Total processes: %d" % len(self.processes))
         logger.info("=" * 60)
+
+    def cleanup_ft_cache_files(self):
+        """Remove per-party FT and Expt cache files after RPE shutdown."""
+        cache_files = (
+            ("collaterals", "expt_cache.json"),
+            ("collaterals", "ft_counter_cache.json"),
+            ("performance_data", "expt_cache.json"),
+            ("performance_data", "ft_counter_cache.json"),
+        )
+        for i in range(1, self.num_parties + 1):
+            rpe_dir = os.path.join(self.base_dir, f"RPE_party{i}")
+            for subdir, filename in cache_files:
+                cache_path = os.path.join(rpe_dir, subdir, filename)
+                if not os.path.exists(cache_path):
+                    continue
+                try:
+                    os.remove(cache_path)
+                    logger.info("Removed cache file: %s" % cache_path)
+                except Exception as e:
+                    logger.warning("Failed to remove cache file %s: %s" % (cache_path, e))
     
     def stop_all(self):
         """Stop all processes, including children, release ports, and remove RPE ready flags."""
@@ -119,6 +139,7 @@ class RPEStarter:
             except Exception as e:
                 logger.error("Error stopping %s: %s" % (name, str(e)))
         self.processes.clear()
+        self.cleanup_ft_cache_files()
 
     def stop_by_port(self):
         """Find and terminate processes by each party's RPE port, then remove ready flags."""
@@ -177,6 +198,7 @@ class RPEStarter:
                         pass
             else:
                 logger.info("No process found on port %d for rpe_party%d" % (port, i))
+        self.cleanup_ft_cache_files()
   
 
 def main():
