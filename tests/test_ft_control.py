@@ -384,7 +384,7 @@ class FTControlServiceTest(unittest.TestCase):
                 echo["signature"] = sign_json(private_key, echo)
                 return echo
 
-            def fake_post_json(address, _method, payload, _timeout):
+            def fake_post_json(address, _method, payload, _timeout, cancel_event=None):
                 if address == "slow-peer":
                     time.sleep(0.2)
                     return {
@@ -835,6 +835,84 @@ class FTRecoveryTest(unittest.TestCase):
             self.assertFalse(ok)
             self.assertIsNone(selected)
             self.assertEqual(responses, [])
+
+
+    def test_grpc_channel_pool_reuses_channel_for_same_address(self):
+        from unittest.mock import MagicMock, patch
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            private_key, public_key = self._key_pair()
+            config = FTConfig(
+                enabled=False,
+                local_rpe_id="rpe-1",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "counter.json"),
+                ft_quorum=1,
+            )
+            manager = FTControlManager(
+                config,
+                private_key,
+                self._pem(public_key),
+                {"rpe-1": self._pem(public_key)},
+            )
+            mock_channel = MagicMock()
+            mock_rpc = MagicMock(return_value=b"{\"status\": 0}")
+            mock_channel.unary_unary.return_value = mock_rpc
+            with patch(
+                "RPE.relying_party_enclave.ft_control.grpc.insecure_channel",
+                return_value=mock_channel,
+            ) as insecure_channel:
+                address = "127.0.0.1:56001"
+                manager.grpc_post_json(address, "StateUpdate", {"status": 0}, 1.0)
+                manager.grpc_post_json(address, "RecoveryQuery", {"status": 0}, 1.0)
+                insecure_channel.assert_called_once()
+
+    def test_public_key_cache_avoids_repeated_pem_parsing(self):
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            private_key, public_key = self._key_pair()
+            pem = self._pem(public_key)
+            config = FTConfig(
+                enabled=False,
+                local_rpe_id="rpe-1",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "counter.json"),
+                ft_quorum=1,
+            )
+            manager = FTControlManager(
+                config,
+                private_key,
+                pem,
+                {"rpe-2": pem},
+            )
+            call_count = {"n": 0}
+            real_load = __import__(
+                "RPE.relying_party_enclave.ft_control", fromlist=["load_public_key_pem"]
+            ).load_public_key_pem
+
+            def counting_load(pem_data):
+                call_count["n"] += 1
+                return real_load(pem_data)
+
+            with patch(
+                "RPE.relying_party_enclave.ft_control.load_public_key_pem",
+                side_effect=counting_load,
+            ):
+                key_a = manager._peer_public_key("rpe-2")
+                key_b = manager._peer_public_key("rpe-2")
+            self.assertIs(key_a, key_b)
+            self.assertEqual(call_count["n"], 1)
 
 
 if __name__ == "__main__":

@@ -61,6 +61,89 @@ def load_public_key_pem(public_key_pem):
     return serialization.load_pem_public_key(public_key_pem, backend=openssl_backend)
 
 
+class FTGrpcCancelledError(Exception):
+    """Raised when an FT gRPC call is cancelled before completion."""
+
+
+class GrpcPeerChannelPool:
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._channels = {}
+        self._stubs = {}
+
+    def _channel_locked(self, address):
+        channel = self._channels.get(address)
+        if channel is None:
+            channel = grpc.insecure_channel(address)
+            self._channels[address] = channel
+        return channel
+
+    def _stub_locked(self, address, method):
+        key = (address, method)
+        rpc = self._stubs.get(key)
+        if rpc is None:
+            channel = self._channel_locked(address)
+            rpc = channel.unary_unary(
+                "/%s/%s" % (FT_GRPC_SERVICE, method),
+                request_serializer=lambda value: value,
+                response_deserializer=lambda value: value,
+            )
+            self._stubs[key] = rpc
+        return rpc
+
+    def post_json(self, address, method, payload, timeout, cancel_event=None):
+        if cancel_event is not None and cancel_event.is_set():
+            raise FTGrpcCancelledError("FT gRPC call cancelled before send")
+        with self._lock:
+            rpc = self._stub_locked(address, method)
+        response_bytes = rpc(canonical_json_bytes(payload), timeout=timeout)
+        if cancel_event is not None and cancel_event.is_set():
+            raise FTGrpcCancelledError("FT gRPC call cancelled after response")
+        return json.loads(response_bytes.decode("utf-8"))
+
+    def close(self):
+        with self._lock:
+            channels = list(self._channels.values())
+            self._channels.clear()
+            self._stubs.clear()
+        for channel in channels:
+            channel.close()
+
+
+class PublicKeyCache:
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._by_pem = {}
+
+    def _pem_bytes(self, public_key_pem):
+        if isinstance(public_key_pem, str):
+            return public_key_pem.encode("utf-8")
+        return public_key_pem
+
+    def get_or_load(self, public_key_pem):
+        pem_bytes = self._pem_bytes(public_key_pem)
+        with self._lock:
+            cached = self._by_pem.get(pem_bytes)
+            if cached is not None:
+                return cached
+        parsed = load_public_key_pem(pem_bytes)
+        with self._lock:
+            cached = self._by_pem.get(pem_bytes)
+            if cached is not None:
+                return cached
+            self._by_pem[pem_bytes] = parsed
+            return parsed
+
+    def invalidate_pem(self, public_key_pem):
+        pem_bytes = self._pem_bytes(public_key_pem)
+        with self._lock:
+            self._by_pem.pop(pem_bytes, None)
+
+
+def _quorum_already_met(stop_event, valid_echoes, quorum_target):
+    return stop_event.is_set() or len(valid_echoes) >= quorum_target
+
+
 def derive_ft_quorum(num_rpes, quorum_override=0):
     if num_rpes <= 0:
         raise ValueError("num_rpes must be positive")
@@ -286,6 +369,8 @@ class FTControlManager:
         self.nonce_factory = nonce_factory or random_nonce
         self.state_store = FTStateStore(config.counter_cache_path)
         self.last_propagation_timings = {}
+        self._public_key_cache = PublicKeyCache()
+        self._grpc_pool = GrpcPeerChannelPool()
         self._server = None
         self._bound_address = None
 
@@ -328,6 +413,7 @@ class FTControlManager:
         self._server.start()
 
     def stop(self):
+        self._grpc_pool.close()
         server = self._server
         if server is not None:
             server.stop(0)
@@ -339,21 +425,26 @@ class FTControlManager:
             raise RuntimeError("FT control server is not started")
         return self._bound_address
 
-    def grpc_post_json(self, address, method, payload, timeout):
-        channel = grpc.insecure_channel(address)
-        rpc = channel.unary_unary(
-            "/%s/%s" % (FT_GRPC_SERVICE, method),
-            request_serializer=lambda value: value,
-            response_deserializer=lambda value: value,
+    def grpc_post_json(self, address, method, payload, timeout, cancel_event=None):
+        return self._grpc_pool.post_json(
+            address, method, payload, timeout, cancel_event=cancel_event
         )
-        response_bytes = rpc(canonical_json_bytes(payload), timeout=timeout)
-        return json.loads(response_bytes.decode("utf-8"))
+
+    def _public_key_from_pem(self, public_key_pem):
+        return self._public_key_cache.get_or_load(public_key_pem)
+
+    def _set_peer_public_key(self, rpe_id, public_key_pem):
+        old_pem = self.peer_public_keys.get(rpe_id)
+        if old_pem != public_key_pem:
+            if old_pem:
+                self._public_key_cache.invalidate_pem(old_pem)
+            self.peer_public_keys[rpe_id] = public_key_pem
 
     def _peer_public_key(self, rpe_id):
         pem = self.peer_public_keys.get(rpe_id)
         if not pem:
             raise ValueError("unknown peer public key for %s" % rpe_id)
-        return load_public_key_pem(pem)
+        return self._public_key_from_pem(pem)
 
     def handle_recovery_query(self, payload):
         recovering_rpe_id = payload.get("recovering_rpe_id")
@@ -416,7 +507,7 @@ class FTControlManager:
             recovering_rpe_id,
         ):
             return {"status": 1, "error": "evidence quote verification failed"}
-        self.peer_public_keys[recovering_rpe_id] = public_key_pem
+        self._set_peer_public_key(recovering_rpe_id, public_key_pem)
         if self.on_peer_key_update is not None:
             self.on_peer_key_update(recovering_rpe_id, public_key_pem, encryption_key_pem)
         return {"status": 0, "content": ""}
@@ -641,6 +732,12 @@ class FTControlManager:
         def send_one(peer_id, address):
             if peer_id == self.config.local_rpe_id:
                 return
+            with lock:
+                if _quorum_already_met(stop_event, valid_echoes, quorum_target):
+                    return
+            remaining_timeout = deadline - time.time()
+            if remaining_timeout <= 0:
+                return
             peer_timing = {
                 "address": address,
                 "rpc_total_ms": None,
@@ -650,9 +747,16 @@ class FTControlManager:
                 "error": None,
             }
             try:
+                with lock:
+                    if _quorum_already_met(stop_event, valid_echoes, quorum_target):
+                        return
                 rpc_started = time.perf_counter()
                 response = self.grpc_post_json(
-                    address, "StateUpdate", update, self.config.echo_timeout_sec
+                    address,
+                    "StateUpdate",
+                    update,
+                    remaining_timeout,
+                    cancel_event=stop_event,
                 )
                 peer_timing["rpc_total_ms"] = elapsed_ms(rpc_started)
                 peer_timing["remote_timings"] = response.get("timings")
@@ -671,8 +775,7 @@ class FTControlManager:
                     return
                 with lock:
                     stale_response = (
-                        stop_event.is_set()
-                        or len(valid_echoes) >= quorum_target
+                        _quorum_already_met(stop_event, valid_echoes, quorum_target)
                         or time.time() >= deadline
                     )
                 if stale_response:
@@ -730,6 +833,7 @@ class FTControlManager:
         while time.time() < deadline:
             with lock:
                 if len(valid_echoes) >= quorum_target:
+                    stop_event.set()
                     break
             any_alive = False
             for thread in threads:
@@ -738,6 +842,7 @@ class FTControlManager:
                     any_alive = True
             with lock:
                 if len(valid_echoes) >= quorum_target:
+                    stop_event.set()
                     break
             if not any_alive:
                 break
@@ -831,7 +936,7 @@ class FTControlManager:
             return None
         if recorded_state.get("target_rpe_id") != self.config.local_rpe_id:
             return None
-        if not verify_json_signature(load_public_key_pem(signing_key_pem), recovery_state, signature):
+        if not verify_json_signature(self._public_key_from_pem(signing_key_pem), recovery_state, signature):
             return None
         return {
             "responder_rpe_id": responder_rpe_id,
@@ -883,7 +988,7 @@ class FTControlManager:
 
         for response in responses:
             responder_rpe_id = response["responder_rpe_id"]
-            self.peer_public_keys[responder_rpe_id] = response["rpe_public_signing_key"]
+            self._set_peer_public_key(responder_rpe_id, response["rpe_public_signing_key"])
             if self.on_peer_key_update is not None:
                 self.on_peer_key_update(
                     responder_rpe_id,
