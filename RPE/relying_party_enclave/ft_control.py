@@ -51,6 +51,10 @@ def verify_json_signature(public_key, payload, signature_b64):
         return False
 
 
+def elapsed_ms(start):
+    return (time.perf_counter() - start) * 1000.0
+
+
 def load_public_key_pem(public_key_pem):
     if isinstance(public_key_pem, str):
         public_key_pem = public_key_pem.encode("utf-8")
@@ -281,6 +285,7 @@ class FTControlManager:
         self.on_peer_key_update = on_peer_key_update
         self.nonce_factory = nonce_factory or random_nonce
         self.state_store = FTStateStore(config.counter_cache_path)
+        self.last_propagation_timings = {}
         self._server = None
         self._bound_address = None
 
@@ -435,6 +440,7 @@ class FTControlManager:
             return verifier(evidence_quote, signing_key_pem, encryption_key_pem, expt_hash, nonce)
 
     def handle_state_update(self, payload):
+        total_started = time.perf_counter()
         sender_rpe_id = payload.get("sender_rpe_id")
         state = payload.get("state")
         signature = payload.get("signature")
@@ -459,14 +465,19 @@ class FTControlManager:
             logger.warning("FT StateUpdate from %s rejected: invalid attestation state", sender_rpe_id)
             return {"status": 1, "error": "invalid attestation state"}
 
-        if not verify_json_signature(self._peer_public_key(sender_rpe_id), state, signature):
+        verify_started = time.perf_counter()
+        signature_valid = verify_json_signature(self._peer_public_key(sender_rpe_id), state, signature)
+        verify_state_signature_ms = elapsed_ms(verify_started)
+        if not signature_valid:
             logger.warning("FT StateUpdate from %s rejected: invalid state signature", sender_rpe_id)
             return {"status": 1, "error": "invalid state signature"}
         if not self.state_store.mark_nonce_seen(nonce):
             logger.warning("FT StateUpdate from %s rejected: replayed nonce", sender_rpe_id)
             return {"status": 1, "error": "replayed nonce"}
 
+        record_started = time.perf_counter()
         self.state_store.record_remote_state(state, payload)
+        record_state_ms = elapsed_ms(record_started)
         echo = {
             "responder_rpe_id": self.config.local_rpe_id,
             "target_rpe_id": target_rpe_id,
@@ -474,15 +485,28 @@ class FTControlManager:
             "attestation_counter": attestation_counter,
             "nonce": nonce,
         }
+        sign_started = time.perf_counter()
         echo["signature"] = sign_json(self.signing_private_key, echo)
+        sign_echo_ms = elapsed_ms(sign_started)
+        timings = {
+            "total_ms": elapsed_ms(total_started),
+            "verify_state_signature_ms": verify_state_signature_ms,
+            "record_state_ms": record_state_ms,
+            "sign_echo_ms": sign_echo_ms,
+        }
         logger.info(
-            "FT StateUpdate accepted from %s for TEE %s counter %d; echo sent by %s",
+            "FT StateUpdate accepted from %s for TEE %s counter %d; echo sent by %s "
+            "(total=%.3fms verify_state_sig=%.3fms record=%.3fms sign_echo=%.3fms)",
             sender_rpe_id,
             tee_id,
             attestation_counter,
             self.config.local_rpe_id,
+            timings["total_ms"],
+            timings["verify_state_signature_ms"],
+            timings["record_state_ms"],
+            timings["sign_echo_ms"],
         )
-        return {"status": 0, "echo": echo}
+        return {"status": 0, "echo": echo, "timings": timings}
 
     def _validate_echo_with_reason(self, echo, expected_state):
         if not isinstance(echo, dict):
@@ -547,6 +571,7 @@ class FTControlManager:
         return echo
 
     def propagate_attestation_state(self, tee_id):
+        propagation_perf_started = time.perf_counter()
         counter = self.state_store.next_local_counter(tee_id)
         state = {
             "target_rpe_id": self.config.local_rpe_id,
@@ -554,14 +579,25 @@ class FTControlManager:
             "attestation_counter": counter,
             "nonce": random_nonce(),
         }
+        request_id = "%s:%s:%s" % (
+            self.config.local_rpe_id,
+            state["tee_id"],
+            state["attestation_counter"],
+        )
+        sign_state_started = time.perf_counter()
+        state_signature = sign_json(self.signing_private_key, state)
+        local_sign_state_ms = elapsed_ms(sign_state_started)
         update = {
             "sender_rpe_id": self.config.local_rpe_id,
             "state": state,
-            "signature": sign_json(self.signing_private_key, state),
+            "signature": state_signature,
         }
+        sign_echo_started = time.perf_counter()
         local_echo = self._build_local_echo(state)
+        local_sign_echo_ms = elapsed_ms(sign_echo_started)
         valid_echoes = [local_echo]
         quorum_target = self.config.ft_quorum
+        peer_timings = {}
         peer_targets = [
             (peer_id, address)
             for peer_id, address in self.config.peer_addresses.items()
@@ -573,10 +609,22 @@ class FTControlManager:
                 state["tee_id"],
                 state["attestation_counter"],
             )
+            self.last_propagation_timings = {
+                "tee_id": state["tee_id"],
+                "attestation_counter": state["attestation_counter"],
+                "request_id": request_id,
+                "quorum_target": quorum_target,
+                "total_ms": elapsed_ms(propagation_perf_started),
+                "local_sign_state_ms": local_sign_state_ms,
+                "local_sign_echo_ms": local_sign_echo_ms,
+                "peers": peer_timings,
+            }
             return len(valid_echoes) >= quorum_target, list(valid_echoes)
 
         logger.info(
-            "SRAS-FT propagating state for TEE %s counter %d with local echo; need %d/%d echoes from peers %s",
+            "SRAS-FT propagating state request_id=%s for TEE %s counter %d with local echo; "
+            "need %d/%d echoes from peers %s",
+            request_id,
             state["tee_id"],
             state["attestation_counter"],
             max(0, quorum_target - len(valid_echoes)),
@@ -587,15 +635,29 @@ class FTControlManager:
 
         threads = []
         lock = threading.Lock()
+        stop_event = threading.Event()
+        deadline = time.time() + self.config.echo_timeout_sec
 
         def send_one(peer_id, address):
             if peer_id == self.config.local_rpe_id:
                 return
+            peer_timing = {
+                "address": address,
+                "rpc_total_ms": None,
+                "local_verify_echo_ms": None,
+                "remote_timings": None,
+                "accepted": False,
+                "error": None,
+            }
             try:
+                rpc_started = time.perf_counter()
                 response = self.grpc_post_json(
                     address, "StateUpdate", update, self.config.echo_timeout_sec
                 )
+                peer_timing["rpc_total_ms"] = elapsed_ms(rpc_started)
+                peer_timing["remote_timings"] = response.get("timings")
                 if response.get("status") != 0:
+                    peer_timing["error"] = response.get("error", "unknown error")
                     logger.warning(
                         "FT state update to %s rejected: %s",
                         peer_id,
@@ -604,10 +666,30 @@ class FTControlManager:
                     return
                 echo = response.get("echo")
                 if echo is None:
+                    peer_timing["error"] = "missing echo"
                     logger.warning("FT state update to %s returned no echo", peer_id)
                     return
+                with lock:
+                    stale_response = (
+                        stop_event.is_set()
+                        or len(valid_echoes) >= quorum_target
+                        or time.time() >= deadline
+                    )
+                if stale_response:
+                    peer_timing["error"] = "stale response after quorum or timeout"
+                    logger.info(
+                        "FT state update to %s ignored stale echo for request_id=%s TEE %s counter %d",
+                        peer_id,
+                        request_id,
+                        state["tee_id"],
+                        state["attestation_counter"],
+                    )
+                    return
+                verify_echo_started = time.perf_counter()
                 echo_valid, echo_reason = self._validate_echo_with_reason(echo, state)
+                peer_timing["local_verify_echo_ms"] = elapsed_ms(verify_echo_started)
                 if not echo_valid:
+                    peer_timing["error"] = echo_reason
                     logger.warning(
                         "FT state update to %s returned invalid echo: %s",
                         peer_id,
@@ -617,22 +699,34 @@ class FTControlManager:
                 with lock:
                     if len(valid_echoes) < quorum_target:
                         valid_echoes.append(echo)
+                    peer_timing["accepted"] = True
+                    peer_timings[peer_id] = dict(peer_timing)
+                    if len(valid_echoes) >= quorum_target:
+                        stop_event.set()
                 logger.info(
-                    "FT state update to %s succeeded; echo from %s accepted for TEE %s counter %d",
+                    "FT state update to %s succeeded for request_id=%s; echo from %s accepted for TEE %s counter %d "
+                    "(rpc=%.3fms verify_echo=%.3fms remote=%s)",
                     peer_id,
+                    request_id,
                     echo.get("responder_rpe_id"),
                     state["tee_id"],
                     state["attestation_counter"],
+                    peer_timing["rpc_total_ms"] or 0.0,
+                    peer_timing["local_verify_echo_ms"] or 0.0,
+                    peer_timing["remote_timings"],
                 )
             except Exception as exc:
+                peer_timing["error"] = str(exc)
                 logger.warning("FT state update to %s failed: %s", peer_id, exc)
+            finally:
+                with lock:
+                    peer_timings[peer_id] = dict(peer_timing)
 
         for peer_id, address in peer_targets:
             thread = threading.Thread(target=send_one, args=(peer_id, address), daemon=True)
             thread.start()
             threads.append(thread)
 
-        deadline = time.time() + self.config.echo_timeout_sec
         while time.time() < deadline:
             with lock:
                 if len(valid_echoes) >= quorum_target:
@@ -648,23 +742,42 @@ class FTControlManager:
             if not any_alive:
                 break
 
+        stop_event.set()
         with lock:
             echoes = list(valid_echoes)
+            timings_snapshot = dict(peer_timings)
         met = len(echoes) >= quorum_target
         propagation_duration = time.time() - propagation_started_at
+        propagation_duration_ms = elapsed_ms(propagation_perf_started)
         responders = [echo.get("responder_rpe_id") for echo in echoes]
+        self.last_propagation_timings = {
+            "tee_id": state["tee_id"],
+            "attestation_counter": state["attestation_counter"],
+            "request_id": request_id,
+            "quorum_target": quorum_target,
+            "total_ms": propagation_duration_ms,
+            "local_sign_state_ms": local_sign_state_ms,
+            "local_sign_echo_ms": local_sign_echo_ms,
+            "peers": timings_snapshot,
+        }
         if met:
             logger.info(
-                "SRAS-FT state propagation quorum reached for TEE %s: %d/%d echoes from %s in %.3f seconds",
+                "SRAS-FT state propagation quorum reached for request_id=%s TEE %s: %d/%d echoes from %s "
+                "in %.3f seconds (%.3fms, local_sign_state=%.3fms local_sign_echo=%.3fms)",
+                request_id,
                 state["tee_id"],
                 len(echoes),
                 quorum_target,
                 responders,
                 propagation_duration,
+                propagation_duration_ms,
+                local_sign_state_ms,
+                local_sign_echo_ms,
             )
         else:
             logger.error(
-                "SRAS-FT state propagation quorum not met for TEE %s: %d/%d echoes (responders=%s) after %.3f seconds",
+                "SRAS-FT state propagation quorum not met for request_id=%s TEE %s: %d/%d echoes (responders=%s) after %.3f seconds",
+                request_id,
                 state["tee_id"],
                 len(echoes),
                 quorum_target,

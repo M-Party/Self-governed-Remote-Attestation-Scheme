@@ -1,6 +1,7 @@
 import os
 import configparser
 import tempfile
+import time
 import unittest
 
 from cryptography.hazmat.backends.openssl import backend as openssl_backend
@@ -248,6 +249,11 @@ class FTControlServiceTest(unittest.TestCase):
                 )
                 self.assertEqual(response["status"], 0)
                 self.assertEqual(response["echo"]["responder_rpe_id"], "rpe-2")
+                self.assertIn("timings", response)
+                self.assertGreaterEqual(response["timings"]["total_ms"], 0)
+                self.assertGreaterEqual(response["timings"]["verify_state_signature_ms"], 0)
+                self.assertGreaterEqual(response["timings"]["record_state_ms"], 0)
+                self.assertGreaterEqual(response["timings"]["sign_echo_ms"], 0)
             finally:
                 receiver.stop()
 
@@ -327,8 +333,87 @@ class FTControlServiceTest(unittest.TestCase):
                 self.assertTrue(ok)
                 responders = {echo["responder_rpe_id"] for echo in echoes}
                 self.assertEqual(responders, {"rpe-1", "rpe-2"})
+                timings = sender.last_propagation_timings
+                self.assertEqual(timings["tee_id"], "ce-1")
+                self.assertGreaterEqual(timings["total_ms"], 0)
+                self.assertGreaterEqual(timings["local_sign_state_ms"], 0)
+                self.assertGreaterEqual(timings["local_sign_echo_ms"], 0)
+                self.assertIn("rpe-2", timings["peers"])
+                self.assertGreaterEqual(timings["peers"]["rpe-2"]["rpc_total_ms"], 0)
+                self.assertGreaterEqual(timings["peers"]["rpe-2"]["local_verify_echo_ms"], 0)
+                self.assertIn("remote_timings", timings["peers"]["rpe-2"])
             finally:
                 receiver.stop()
+
+    def test_late_peer_response_after_quorum_does_not_verify_echo(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sender_private, sender_public = self._key_pair()
+            fast_private, fast_public = self._key_pair()
+            slow_private, slow_public = self._key_pair()
+            config = FTConfig(
+                enabled=True,
+                local_rpe_id="rpe-1",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={"rpe-2": "fast-peer", "rpe-3": "slow-peer"},
+                echo_timeout_sec=1,
+                recovery_timeout_sec=1,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "counter.json"),
+                ft_quorum=2,
+            )
+            sender = FTControlManager(
+                config,
+                sender_private,
+                self._pem(sender_public),
+                {
+                    "rpe-1": self._pem(sender_public),
+                    "rpe-2": self._pem(fast_public),
+                    "rpe-3": self._pem(slow_public),
+                },
+            )
+
+            def make_echo(responder_rpe_id, private_key, state):
+                echo = {
+                    "responder_rpe_id": responder_rpe_id,
+                    "target_rpe_id": state["target_rpe_id"],
+                    "tee_id": state["tee_id"],
+                    "attestation_counter": state["attestation_counter"],
+                    "nonce": state["nonce"],
+                }
+                echo["signature"] = sign_json(private_key, echo)
+                return echo
+
+            def fake_post_json(address, _method, payload, _timeout):
+                if address == "slow-peer":
+                    time.sleep(0.2)
+                    return {
+                        "status": 0,
+                        "echo": make_echo("rpe-3", slow_private, payload["state"]),
+                        "timings": {},
+                    }
+                return {
+                    "status": 0,
+                    "echo": make_echo("rpe-2", fast_private, payload["state"]),
+                    "timings": {},
+                }
+
+            verified_responders = []
+            original_validate = sender._validate_echo_with_reason
+
+            def recording_validate(echo, expected_state):
+                verified_responders.append(echo.get("responder_rpe_id"))
+                return original_validate(echo, expected_state)
+
+            sender.grpc_post_json = fake_post_json
+            sender._validate_echo_with_reason = recording_validate
+
+            ok, echoes = sender.propagate_attestation_state("ce-1")
+            time.sleep(0.3)
+
+            self.assertTrue(ok)
+            self.assertEqual({echo["responder_rpe_id"] for echo in echoes}, {"rpe-1", "rpe-2"})
+            self.assertEqual(verified_responders, ["rpe-2"])
 
     def test_invalid_state_update_does_not_consume_nonce(self):
         with tempfile.TemporaryDirectory() as temp_dir:

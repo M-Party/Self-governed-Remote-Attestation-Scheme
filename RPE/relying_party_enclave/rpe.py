@@ -492,6 +492,7 @@ class RPE:
             stage3_expectation_policy_enforcement_duration = None
             stage3_verification_duration = None
             ft_state_propagation_duration = None
+            ft_state_propagation_timings = {}
             ft_echo_count = 0
 
             if self.ratls.perform_handshake() != 0:
@@ -545,6 +546,9 @@ class RPE:
                     ft_ok, ft_echoes = self.ft_manager.propagate_attestation_state(ce_id)
                     ft_state_propagation_duration = time.time() - ft_state_propagation_start
                     ft_echo_count = len(ft_echoes)
+                    ft_state_propagation_timings = getattr(
+                        self.ft_manager, "last_propagation_timings", {}
+                    )
                     if not ft_ok:
                         logger.error(
                             "SRAS-FT quorum not reached for CE %s; aborting certificate issuance",
@@ -581,6 +585,11 @@ class RPE:
                 if ft_state_propagation_duration is not None:
                     logger.info("CE %s SRAS-FT state propagation duration: %.3f seconds" % (
                         ce_id, ft_state_propagation_duration))
+                    logger.info(
+                        "CE %s SRAS-FT state propagation timings: %s",
+                        ce_id,
+                        ft_state_propagation_timings,
+                    )
                 
                 # Save performance data.
                 # Check whether the file exists before writing after each authentication.
@@ -625,6 +634,7 @@ class RPE:
                     "stage3_expectation_policy_enforcement_duration": stage3_expectation_policy_enforcement_duration,
                     "stage3_verification_duration": stage3_verification_duration,
                     "ft_state_propagation_duration": ft_state_propagation_duration,
+                    "ft_state_propagation_timings": ft_state_propagation_timings,
                     "ft_echo_count": ft_echo_count
                 })
                 
