@@ -252,23 +252,67 @@ python3 performance/start_multi_p2p.py --num-parties 5 --stop
 
 **Q2: How efficiently can SRAS-FT recover a failed RPE?**
 
-测 RPE crash/restart 后，recovering RPE 执行 Recovery query → Evidence Quote 验证 → Signed state 验证 → 选最大 ACj → 重新广播 Quote 的总耗时。
+测 RPE crash/restart 后，recovering RPE 在 **RecoveryQuery quorum 达成且 counter 选中** 的耗时（`recovery_success_ms` / `total_recovery_ms`）。
 
-堆叠柱图字段（毫秒）：
+**Q2 主指标（毫秒）**：`recovery_success_ms`（不含 warmup、quorum 后慢 peer 等待、new quote、EvidenceUpdate dispatch）
 
-`recovery_query` | `evidence_quote_verification` | `signed_state_verification` | `counter_selection` | `new_quote_generation` + `new_quote_broadcast`
+**辅助 / 诊断**：
+
+| 字段 | 含义 |
+|------|------|
+| `warmup_elapsed_ms` | Recovery 前 FT Ping 预热 |
+| `full_query_collection_ms` | RecoveryQuery 全线程结束（可能晚于 quorum） |
+| `evidence_quote_verification_ms` | quorum 内各 response 的 Phase2 quote 验签 **求和** |
+| `signed_state_verification_ms` | quorum 内 signed_state 验签 **求和** |
+| `counter_selection_ms` | 选 max counter |
+| `new_quote_generation_ms` | **recovery 之后**，不计入 Q2 |
+| `new_quote_broadcast_ms` | **recovery 之后** 非阻塞 dispatch，不计入 Q2 |
 
 ## 前置条件
 
-1. 多 party FT 环境已跑通，且 **已做过若干次 CE 认证**（peer 通过 `StateUpdate` 记录了 failed RPE 的 state）。
-2. 待恢复 RPE 上存在 **`expt_cache.json`**（首次正常 startup 后写入）。
-3. **不要用** `start_multi_rpe.py --stop` 模拟 crash——它会删除 `expt_cache.json`。
-
-## 采集（`--repeat` 模式）
-
-先启动采集脚本，再对每个 repeat 执行一次 kill + restart：
+1. 已完成 **build + setup**（5 方 FT + P2P 示例见上文「一、环境搭建」）。
+2. P2P / RPO / **全部 RPE** 已启动，且 5 个 RPE 均完成 Phase 2（见上文「二、启动顺序」就绪检查）。
+3. **已做过若干次 CE 认证**（peer 通过 `StateUpdate` 记录了 failed RPE 的 state）：
 
 ```bash
+python3 performance/setup_multi_ce.py --num-ces 3 --rpe-address 127.0.0.1 --rpe-port 4455
+python3 performance/start_multi_ce.py --num-ces 3
+```
+
+4. 待恢复 RPE（默认 `RPE_party1` / `rpe-1`）上存在 **`expt_cache.json`**：
+
+```bash
+ls RPE_party1/performance_data/expt_cache.json
+# 或 RPE_party1/collaterals/expt_cache.json
+```
+
+5. **不要用** `start_multi_rpe.py --stop` 模拟 crash——它会删除 `expt_cache.json`。
+
+默认端口（`setup_multi_party.py` 默认 `--base-rpe-port 4455`）：
+
+| Party | 目录 | RPE ID | RA-TLS 端口（CE 连接） |
+|-------|------|--------|------------------------|
+| 1 | `RPE_party1` | rpe-1 | **4455** |
+| 2 | `RPE_party2` | rpe-2 | 4456 |
+| 3 | `RPE_party3` | rpe-3 | 4457 |
+| 4 | `RPE_party4` | rpe-4 | 4458 |
+| 5 | `RPE_party5` | rpe-5 | 4459 |
+
+FT control 端口（`--ft-base-port 56001`）：party *i* → `56000 + i`。
+
+---
+
+## 完整测试流程（5 方 FT 示例）
+
+在仓库根目录执行（下文以 `SRAS` 为根目录）。
+
+**终端 1–3**：环境与 Q1 相同，保持 P2P / RPO / `start_multi_rpe.py --num-parties 5` 运行（**不要** `--stop`）。
+
+**终端 4**：先启动 Q2 采集（会阻塞等待 N 次 recovery）：
+
+```bash
+cd SRAS
+
 python3 performance/q2_ft_recovery_test.py \
   --repeat 3 \
   --rpe-dir RPE_party1 \
@@ -276,53 +320,87 @@ python3 performance/q2_ft_recovery_test.py \
   --label n5
 ```
 
-对每个 repeat：
+**对每个 repeat**（共 3 次），在 **终端 5** 模拟 crash 并单独重启 recovering RPE：
 
 ```bash
-# 模拟 crash（示例：按 RPE_party1 端口 kill，勿用 start_multi_rpe --stop）
+cd SRAS
+
+# 1) 确认 rpe-1 正在监听 4455（可选）
+lsof -i :4455
+
+# 2) 模拟 crash：只杀 rpe-1 的 RA-TLS 进程，勿用 start_multi_rpe --stop
+#    若 lsof 无输出，说明 rpe-1 已不在运行，可直接执行下面的 restart
 kill $(lsof -ti :4455)
 
-# 重启 recovering RPE（自动执行 recovery 并写 perf JSON）
-cd RPE_party1 && ./startup.sh start
+# 若普通 kill 无效，再试：
+# kill -9 $(lsof -ti :4455)
+
+# 3) 单独重启 recovering RPE（启动后会自动跑 FT recovery 并写 perf JSON）
+cd RPE_party1
+./startup.sh start
 ```
 
-脚本会：
+等价写法（显式 `gramine-sgx`）：
 
-- 监视 `RPE_party1/performance_data/rpe_ft_recovery_perf_*.json` 的内容变化
-- 每次新 recovery 快照到 `performance_data/q2_n5/recovery_runs/run_XXXX.json`
-- 凑满 N 次后生成报告
+```bash
+cd SRAS/RPE_party1
+gramine-sgx python relying_party_enclave/rpe.py
+```
 
-## 输出
+说明：
+
+- 其余 party（`RPE_party2`…`5`）继续由 **终端 3** 的 `start_multi_rpe.py` 保持在线，**不要** 整体停掉。
+- 每次 restart 成功后，日志中应出现 `====== SRAS-FT recovery QUORUM OK` 与 `====== SRAS-FT RECOVERY TIMING SUMMARY`。
+- **终端 4** 采集脚本检测到新的 `rpe_ft_recovery_perf_rpe-1.json` 后会打印 `Captured recovery run …`。
+- 凑满 `--repeat 3` 后，终端 4 自动生成报告并退出。
+
+---
+
+## 仅重新生成报告（已测完、不重跑 recovery）
+
+```bash
+cd SRAS
+
+python3 performance/q2_ft_recovery_test.py \
+  --report-only \
+  --perf-dir performance_data/q2_n5 \
+  --label n5
+
+cat performance_data/q2_n5/q2_ft_recovery_report.txt
+```
+
+对比不同 N（例如 n3 vs n5）：
+
+```bash
+python3 performance/q2_ft_recovery_test.py \
+  --input n3=performance_data/q2_n3 \
+  --input n5=performance_data/q2_n5 \
+  --output-dir performance_data/q2_compare
+```
+
+---
+
+## 输出文件
 
 | 文件 | 说明 |
 |------|------|
 | `recovery_runs/run_*.json` | 每次 recovery 快照 |
 | `q2_recovery_session.json` | 本次采集元数据 + 原始结果 |
-| `q2_ft_recovery_report.{txt,csv,json}` | 汇总（avg over N runs） |
+| `q2_ft_recovery_runs.csv` | **每次 run 全字段 + 最后一行 AVG** |
+| `q2_ft_recovery_report.txt` | 可读报告（含 All runs 表 + 按 label 汇总） |
+| `q2_ft_recovery_report.csv` | 按 label 的平均汇总 |
+| `q2_ft_recovery_report.json` | `summary` + `runs` + `detail_with_avg` |
 
-## 仅生成报告
+报告 **All runs** 表：每一行是一次 recovery；**最后一行 `AVG`** 为各列平均值。Q2 主指标看 **`Recovery Success`** 列（= `recovery_success_ms`）。
 
-对比不同 N（2/4/8）时，从已有目录汇总：
-
-```bash
-python3 performance/q2_ft_recovery_test.py \
-  --input n3=RPE_party1/performance_data \
-  --input n5=RPE_party5/performance_data \
-  --output-dir performance_data/q2
-```
-
-或从已采集的 `--perf-dir`：
-
-```bash
-python3 performance/q2_ft_recovery_test.py \
-  --report-only \
-  --perf-dir performance_data/q2_n5 \
-  --label n5
-```
+---
 
 ## 指标说明
 
-- `new_quote_broadcast_ms`：仅计 **非阻塞** 发起 `EvidenceUpdate` 广播，不等 peer 确认。
-- `evidence_quote_verification_ms` / `signed_state_verification_ms`：对 quorum 内各有效 response **求和**，非单 peer max。
+- **Q2 答案**：`Recovery Success` / `recovery_success_ms` / perf JSON 里的 `total_recovery_ms`（三者相同）。
+- **不含**：`warmup_elapsed_ms`、`full_query_collection_ms`（quorum 后慢 peer）、`new_quote_generation_ms`、`new_quote_broadcast_ms`。
+- `full_query_collection_ms` 可能远大于 `recovery_success_ms`（quorum 后仍在等慢 peer 验 DCAP）。
+- `new_quote_broadcast_ms`：仅非阻塞 dispatch；peer DCAP 验新 quote 推迟到 CE 连接时。
+- `evidence_quote_verification_ms` / `signed_state_verification_ms`：quorum 内各 response 耗时 **求和**，不是墙钟堆叠。
 
-原始 perf 写入：`RPE_partyX/performance_data/rpe_ft_recovery_perf_{rpe_id}.json`（每次 recovery **覆盖**；采集脚本负责快照留存）。
+原始 perf 写入：`RPE_partyX/performance_data/rpe_ft_recovery_perf_{rpe_id}.json`（每次 recovery **覆盖**；采集脚本负责快照到 `recovery_runs/`）。

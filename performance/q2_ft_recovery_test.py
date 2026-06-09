@@ -21,16 +21,58 @@ import time
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-STACK_FIELDS = [
-    "recovery_query_ms",
+Q2_PRIMARY_FIELDS = [
+    "recovery_success_ms",
+    "warmup_elapsed_ms",
+    "full_query_collection_ms",
+]
+
+QUORUM_BREAKDOWN_FIELDS = [
+    "evidence_quote_verification_ms",
+    "signed_state_verification_ms",
+    "counter_selection_ms",
+]
+
+POST_RECOVERY_FIELDS = [
+    "new_quote_generation_ms",
+    "new_quote_broadcast_ms",
+]
+
+OPTIONAL_COUNT_FIELDS = [
+    "warmup_warmed_peers",
+    "warmup_total_peers",
+    "evidence_update_peer_count",
+    "evidence_update_accepted_count",
+]
+
+RECOVERY_RUNS_SUBDIR = "recovery_runs"
+
+DETAIL_METRIC_FIELDS = [
+    "recovery_success_ms",
+    "warmup_elapsed_ms",
+    "full_query_collection_ms",
     "evidence_quote_verification_ms",
     "signed_state_verification_ms",
     "counter_selection_ms",
     "new_quote_generation_ms",
     "new_quote_broadcast_ms",
+    "warmup_warmed_peers",
+    "warmup_total_peers",
+    "evidence_update_peer_count",
+    "evidence_update_accepted_count",
+    "valid_response_count",
+    "quorum",
 ]
 
-RECOVERY_RUNS_SUBDIR = "recovery_runs"
+
+def recovery_success_ms(result):
+    value = result.get("recovery_success_ms")
+    if value is not None:
+        return float(value)
+    value = result.get("total_recovery_ms")
+    if value is not None:
+        return float(value)
+    return 0.0
 
 
 def json_signature(path):
@@ -41,7 +83,7 @@ def json_signature(path):
             payload = json.load(f)
     except (OSError, json.JSONDecodeError):
         return None
-    if payload.get("total_recovery_ms") is None:
+    if payload.get("total_recovery_ms") is None and payload.get("recovery_success_ms") is None:
         return None
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
@@ -103,9 +145,15 @@ def summarize_results(label, results, num_rpes=None, directory=None):
         "num_rpes": num_rpes,
         "runs": len(results),
     }
-    for field in STACK_FIELDS:
+    row["recovery_success_ms"] = mean([recovery_success_ms(result) for result in results])
+    row["total_recovery_ms"] = row["recovery_success_ms"]
+    row["recovery_query_ms"] = row["recovery_success_ms"]
+    for field in Q2_PRIMARY_FIELDS:
+        if field == "recovery_success_ms":
+            continue
         row[field] = mean([result.get(field, 0.0) for result in results])
-    row["total_recovery_ms"] = mean([result.get("total_recovery_ms", 0.0) for result in results])
+    for field in QUORUM_BREAKDOWN_FIELDS + POST_RECOVERY_FIELDS + OPTIONAL_COUNT_FIELDS:
+        row[field] = mean([result.get(field, 0.0) for result in results])
     row["valid_response_count"] = mean([result.get("valid_response_count", 0) for result in results])
     row["quorum"] = mean([result.get("quorum", 0) for result in results])
     return row
@@ -115,80 +163,232 @@ def summarize(label, directory, num_rpes=None):
     return summarize_results(label, load_recovery_results(directory), num_rpes=num_rpes, directory=directory)
 
 
+def run_label_from_result(result, index):
+    source = result.get("_source") or ""
+    if source:
+        name = os.path.basename(source)
+        if name.endswith(".json"):
+            name = name[:-5]
+        return name
+    return "run_%04d" % (index + 1)
+
+
+def build_run_detail_row(result, run_name, label=None, num_rpes=None):
+    row = {
+        "run": run_name,
+        "label": label,
+        "num_rpes": num_rpes,
+        "recovery_success_ms": recovery_success_ms(result),
+    }
+    for field in DETAIL_METRIC_FIELDS:
+        if field == "recovery_success_ms":
+            continue
+        row[field] = result.get(field, 0.0)
+    return row
+
+
+def build_detail_rows(label, results, num_rpes=None, directory=None):
+    if not results:
+        return []
+    if num_rpes is None:
+        num_rpes = infer_num_rpes(label, directory)
+    detail_rows = []
+    for index, result in enumerate(results):
+        detail_rows.append(
+            build_run_detail_row(
+                result,
+                run_label_from_result(result, index),
+                label=label,
+                num_rpes=num_rpes,
+            )
+        )
+    avg = summarize_results(label, results, num_rpes=num_rpes, directory=directory)
+    avg["run"] = "AVG"
+    detail_rows.append(avg)
+    return detail_rows
+
+
+def detail_csv_fieldnames():
+    return ["run", "label", "num_rpes"] + DETAIL_METRIC_FIELDS
+
+
 def fmt(value):
     if value is None:
         return "N/A"
     return "%.3f" % value
 
 
-def write_csv(rows, output_path):
-    fieldnames = [
+def csv_fieldnames():
+    return [
         "label",
         "num_rpes",
         "runs",
+        "recovery_success_ms",
         "total_recovery_ms",
-        "recovery_query_ms",
+        "warmup_elapsed_ms",
+        "full_query_collection_ms",
         "evidence_quote_verification_ms",
         "signed_state_verification_ms",
         "counter_selection_ms",
         "new_quote_generation_ms",
         "new_quote_broadcast_ms",
+        "warmup_warmed_peers",
+        "warmup_total_peers",
+        "evidence_update_peer_count",
+        "evidence_update_accepted_count",
         "valid_response_count",
         "quorum",
     ]
+
+
+def write_detail_csv(detail_rows, output_path):
     with open(output_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer = csv.DictWriter(f, fieldnames=detail_csv_fieldnames())
+        writer.writeheader()
+        for row in detail_rows:
+            writer.writerow({key: row.get(key) for key in detail_csv_fieldnames()})
+
+
+def write_csv(rows, output_path):
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=csv_fieldnames())
         writer.writeheader()
         for row in rows:
-            writer.writerow(row)
+            writer.writerow({key: row.get(key) for key in csv_fieldnames()})
 
 
-def write_txt(rows, output_path):
+def _write_detail_table_txt(f, detail_rows, title):
+    f.write(title + "\n")
+    header = (
+        "Run | Label | N | Recovery Success | Warmup | Full Collection | "
+        "Evidence (sum) | Signed State (sum) | Counter Select | Quote Gen | "
+        "Broadcast | Warmed | Warm Total | Update Peers | Valid | Quorum\n"
+    )
+    f.write(header)
+    f.write("-" * 180 + "\n")
+    for row in detail_rows:
+        f.write(
+            "%s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s\n"
+            % (
+                row.get("run", ""),
+                row.get("label", ""),
+                row.get("num_rpes") if row.get("num_rpes") is not None else "N/A",
+                fmt(row.get("recovery_success_ms")),
+                fmt(row.get("warmup_elapsed_ms")),
+                fmt(row.get("full_query_collection_ms")),
+                fmt(row.get("evidence_quote_verification_ms")),
+                fmt(row.get("signed_state_verification_ms")),
+                fmt(row.get("counter_selection_ms")),
+                fmt(row.get("new_quote_generation_ms")),
+                fmt(row.get("new_quote_broadcast_ms")),
+                fmt(row.get("warmup_warmed_peers")),
+                fmt(row.get("warmup_total_peers")),
+                fmt(row.get("evidence_update_peer_count")),
+                fmt(row.get("valid_response_count")),
+                fmt(row.get("quorum")),
+            )
+        )
+    f.write("\n")
+
+
+def write_txt(rows, output_path, detail_rows=None):
     with open(output_path, "w", encoding="utf-8") as f:
         f.write("=" * 100 + "\n")
         f.write("Q2: SRAS-FT Failed RPE Recovery Latency\n")
         f.write("=" * 100 + "\n\n")
         f.write(
-            "Stack components (ms): Recovery Query | Evidence Quote Verify | "
-            "Signed State Verify | Counter Selection | New Quote Gen | New Quote Broadcast\n"
+            "Q2 metric (recovery_success_ms): RecoveryQuery quorum reached and attestation counter "
+            "selected. Excludes warmup, waiting for slow peers after quorum, new quote generation, "
+            "and EvidenceUpdate dispatch.\n\n"
         )
+
+        if detail_rows:
+            _write_detail_table_txt(
+                f,
+                detail_rows,
+                "All runs (ms; last row AVG)",
+            )
+
+        f.write("Summary by label (ms)\n")
+        f.write("Primary timing (ms)\n")
         f.write(
-            "Label | N | Runs | Total | Recovery Query | Evidence Quote Verify | "
-            "Signed State Verify | Counter Selection | New Quote Gen | New Quote Broadcast\n"
+            "Label | N | Runs | Recovery Success | Warmup | Full Query Collection\n"
         )
-        f.write("-" * 150 + "\n")
+        f.write("-" * 90 + "\n")
         for row in rows:
             f.write(
-                "%s | %s | %d | %s | %s | %s | %s | %s | %s | %s\n"
+                "%s | %s | %d | %s | %s | %s\n"
                 % (
                     row["label"],
                     row["num_rpes"] if row["num_rpes"] is not None else "N/A",
                     row["runs"],
-                    fmt(row["total_recovery_ms"]),
-                    fmt(row["recovery_query_ms"]),
+                    fmt(row["recovery_success_ms"]),
+                    fmt(row["warmup_elapsed_ms"]),
+                    fmt(row["full_query_collection_ms"]),
+                )
+            )
+
+        f.write(
+            "\nQuorum validation breakdown (ms; sum of per-responder costs inside quorum, "
+            "not additive wall-clock stack)\n"
+        )
+        f.write(
+            "Label | Evidence Quote Verify (sum) | Signed State Verify (sum) | Counter Select\n"
+        )
+        f.write("-" * 90 + "\n")
+        for row in rows:
+            f.write(
+                "%s | %s | %s | %s\n"
+                % (
+                    row["label"],
                     fmt(row["evidence_quote_verification_ms"]),
                     fmt(row["signed_state_verification_ms"]),
                     fmt(row["counter_selection_ms"]),
-                    fmt(row["new_quote_generation_ms"]),
-                    fmt(row["new_quote_broadcast_ms"]),
                 )
             )
+
+        f.write("\nPost-recovery (excluded from Q2 recovery_success_ms)\n")
+        f.write("Label | New Quote Gen | Broadcast Dispatch | Update Peers Dispatched\n")
+        f.write("-" * 90 + "\n")
+        for row in rows:
+            f.write(
+                "%s | %s | %s | %s\n"
+                % (
+                    row["label"],
+                    fmt(row["new_quote_generation_ms"]),
+                    fmt(row["new_quote_broadcast_ms"]),
+                    fmt(row["evidence_update_peer_count"]),
+                )
+            )
+
         f.write(
-            "\nAll values are milliseconds. Evidence/signed-state verify columns sum per-response "
-            "costs across quorum responses. New Quote Broadcast is non-blocking dispatch only.\n"
+            "\nNotes:\n"
+            "- total_recovery_ms in perf JSON equals recovery_success_ms (Q2 answer).\n"
+            "- recovery_query_ms is a legacy alias of recovery_success_ms.\n"
+            "- full_query_collection_ms may exceed recovery_success_ms when slow peers finish after quorum.\n"
+            "- new_quote_broadcast_ms is non-blocking dispatch only; peer DCAP verify is deferred to CE connect.\n"
+            "- evidence_update_accepted_count counts dispatched peers when broadcast does not wait.\n"
         )
 
 
-def write_reports(rows, output_dir):
+def write_reports(rows, output_dir, detail_rows=None):
     os.makedirs(output_dir, exist_ok=True)
     csv_path = os.path.join(output_dir, "q2_ft_recovery_report.csv")
+    detail_csv_path = os.path.join(output_dir, "q2_ft_recovery_runs.csv")
     txt_path = os.path.join(output_dir, "q2_ft_recovery_report.txt")
     json_path = os.path.join(output_dir, "q2_ft_recovery_report.json")
     write_csv(rows, csv_path)
-    write_txt(rows, txt_path)
+    if detail_rows:
+        write_detail_csv(detail_rows, detail_csv_path)
+    write_txt(rows, txt_path, detail_rows=detail_rows)
+    json_payload = {
+        "summary": rows,
+        "detail_with_avg": detail_rows or [],
+        "runs": [row for row in (detail_rows or []) if row.get("run") != "AVG"],
+    }
     with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(rows, f, indent=2)
-    return csv_path, txt_path, json_path
+        json.dump(json_payload, f, indent=2)
+    return csv_path, txt_path, json_path, detail_csv_path
 
 
 def parse_input(value):
@@ -293,10 +493,10 @@ class Q2FTRecoveryTest:
                 last_signatures[path] = signature
                 collected_paths.append(dest)
                 logger.info(
-                    "Captured recovery run %d/%d: total=%.3fms -> %s",
+                    "Captured recovery run %d/%d: recovery_success=%.3fms -> %s",
                     len(collected_paths),
                     repeat,
-                    float(payload.get("total_recovery_ms", 0.0)),
+                    recovery_success_ms(payload),
                     dest,
                 )
                 if len(collected_paths) >= repeat:
@@ -319,18 +519,20 @@ class Q2FTRecoveryTest:
         with open(session_path, "w", encoding="utf-8") as f:
             json.dump(session, f, indent=2)
 
-        csv_path, txt_path, json_path = write_reports([row], self.perf_dir)
+        detail_rows = build_detail_rows(self.label, results, num_rpes=self.num_rpes, directory=self.perf_dir)
+        csv_path, txt_path, json_path, detail_csv_path = write_reports([row], self.perf_dir, detail_rows=detail_rows)
         logger.info("=" * 60)
         logger.info("Q2 recovery report: %d run(s) collected", len(collected_paths))
         if row:
             logger.info(
-                "  total=%.3fms query=%.3fms evidence_verify=%.3fms signed_state_verify=%.3fms "
-                "counter_select=%.3fms quote_gen=%.3fms quote_broadcast=%.3fms",
-                row["total_recovery_ms"],
-                row["recovery_query_ms"],
+                "  recovery_success=%.3fms warmup=%.3fms full_collection=%.3fms "
+                "evidence_verify(sum)=%.3fms signed_state_verify(sum)=%.3fms "
+                "quote_gen=%.3fms quote_broadcast=%.3fms",
+                row["recovery_success_ms"],
+                row["warmup_elapsed_ms"],
+                row["full_query_collection_ms"],
                 row["evidence_quote_verification_ms"],
                 row["signed_state_verification_ms"],
-                row["counter_selection_ms"],
                 row["new_quote_generation_ms"],
                 row["new_quote_broadcast_ms"],
             )
@@ -344,14 +546,17 @@ class Q2FTRecoveryTest:
 
 def generate_report(inputs, output_dir):
     rows = []
+    detail_rows = []
     for raw_input in inputs:
         label, directory = parse_input(raw_input)
-        row = summarize(label, directory)
-        if row is None:
+        results = load_recovery_results(directory)
+        if not results:
             raise SystemExit("No recovery perf JSON files found in %s" % directory)
+        row = summarize_results(label, results, directory=directory)
         rows.append(row)
+        detail_rows.extend(build_detail_rows(label, results, directory=directory))
     rows.sort(key=lambda row: (row["num_rpes"] is None, row["num_rpes"] or 0, row["label"]))
-    return write_reports(rows, output_dir)
+    return write_reports(rows, output_dir, detail_rows=detail_rows)
 
 
 def main():
@@ -428,9 +633,10 @@ def main():
 
     if args.input:
         output_dir = args.output_dir or args.perf_dir
-        csv_path, txt_path, json_path = generate_report(args.input, output_dir)
+        csv_path, txt_path, json_path, detail_csv_path = generate_report(args.input, output_dir)
         print("Generated:")
         print("  %s" % csv_path)
+        print("  %s" % detail_csv_path)
         print("  %s" % txt_path)
         print("  %s" % json_path)
         sys.exit(0)
@@ -438,14 +644,17 @@ def main():
     if args.report_only:
         output_dir = args.output_dir or args.perf_dir
         label = args.label or os.path.basename(os.path.abspath(output_dir).rstrip(os.sep))
-        row = summarize(label, output_dir, num_rpes=args.num_rpes)
-        if row is None:
+        results = load_recovery_results(output_dir)
+        if not results:
             raise SystemExit("No recovery perf JSON files found in %s" % output_dir)
-        csv_path, txt_path, json_path = write_reports([row], output_dir)
+        row = summarize_results(label, results, num_rpes=args.num_rpes, directory=output_dir)
+        detail_rows = build_detail_rows(label, results, num_rpes=args.num_rpes, directory=output_dir)
+        csv_path, txt_path, json_path, detail_csv_path = write_reports([row], output_dir, detail_rows=detail_rows)
         print("Generated:")
         print("  %s" % csv_path)
         print("  %s" % txt_path)
         print("  %s" % json_path)
+        print("  %s" % detail_csv_path)
         sys.exit(0)
 
     parser.error("Specify --repeat, --input, or --report-only")
