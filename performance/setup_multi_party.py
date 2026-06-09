@@ -218,7 +218,7 @@ class MultiPartySetup:
                 config["ft"]["listen_port"] = '"%d"' % (self.ft_base_port + party_id - 1)
                 config["ft"]["peer_addresses"] = '"%s"' % self._get_ft_peer_addresses()
                 config["ft"]["echo_timeout_sec"] = "3"
-                config["ft"]["recovery_timeout_sec"] = "5"
+                config["ft"]["recovery_timeout_sec"] = "8"
                 config["ft"]["expt_cache_path"] = '"performance_data/expt_cache.json"'
                 config["ft"]["counter_cache_path"] = '"performance_data/ft_counter_cache.json"'
                 with open(config_file, 'w') as f:

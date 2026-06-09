@@ -4,6 +4,7 @@ import ctypes
 import os
 import sys
 import time
+import threading
 import hashlib
 import grpc_client
 import ft_control
@@ -33,6 +34,8 @@ lib.generate_ecdsa_keypair.restype = None
 
 logger = logging.getLogger(__name__)
 
+# Intel DCAP QVL quote verification is not safe for concurrent calls in one process.
+_dcap_quote_verify_lock = threading.Lock()
 
 # CMD definitions 
 REQ_CERT = "REQ_CERT"
@@ -66,6 +69,7 @@ class RPE:
         self.ft_manager = None
         self.policies_json_text = None
         self.ft_recovery_cache_available = False
+        self.ft_phase2_evidence_quote = None
     
     def start(self):
         # =============== Performance test: record initialization start time ===============
@@ -297,6 +301,7 @@ class RPE:
         
             # Build Evidence Quote: combine quote with public keys
             if quote is not None:
+                self.ft_phase2_evidence_quote = quote
                 # Create Evidence Quote JSON
                 evidence_quote = {
                     "quote": quote,
@@ -373,7 +378,8 @@ class RPE:
                 # Verify quote using DCAP
                 quote_bytes = crypto_utility.base64_to_byte_array(base64_encoded_quote)
                 collateral = rpe_info["collateral"]
-                ret = verify_dcap_quote.teeVerifyQuote(base64_encoded_quote, len(quote_bytes), collateral)
+                with _dcap_quote_verify_lock:
+                    ret = verify_dcap_quote.teeVerifyQuote(base64_encoded_quote, len(quote_bytes), collateral)
                 phase2_native_quote_verification_duration += time.time() - native_verify_start
                 logger.info("quote verification for rpe %s result: %x" % (rpe_id, ret))
                 if ret != 0 and ret != 0xa002 and ret != 0xa008:
@@ -396,7 +402,8 @@ class RPE:
                     "qeid": rpe_info["qeid"][0]
                 }
                 rpe_policies_to_verify_json = json.dumps(rpe_policies_to_verify)
-                ret = verify_dcap_quote.sgxVerifyQuoteBody(base64_encoded_quote, rpe_policies_to_verify_json)
+                with _dcap_quote_verify_lock:
+                    ret = verify_dcap_quote.sgxVerifyQuoteBody(base64_encoded_quote, rpe_policies_to_verify_json)
                 phase2_policy_enforcement_duration += time.time() - policy_verify_start
                 logger.info("quote body verification for rpe %s result: %x" % (rpe_id, ret))
                 if ret != 0:
@@ -485,6 +492,14 @@ class RPE:
                 logger.error("CE connection failed")
                 continue
             logger.info("CE connected")
+
+            if self.ft_manager is not None and self.ft_manager.config.enabled:
+                pending_result = self.ft_manager.process_pending_evidence_updates()
+                if pending_result.get("processed", 0) > 0:
+                    logger.info(
+                        "SRAS-FT processed pending EvidenceUpdate before CE authentication: %s",
+                        pending_result,
+                    )
 
             # Performance test: record CE authentication start time.
             ce_auth_start = time.time()
@@ -840,6 +855,14 @@ class RPE:
         if not self.validate_ft_expt_cache():
             logger.error("SRAS-FT recovery aborted: cached Expt hash does not match current Expt")
             return False
+        logger.info("SRAS-FT recovery stage: warmup FT peer channels begin")
+        warmup_result = self.ft_manager.warmup_peer_channels(timeout=1.0)
+        logger.info(
+            "SRAS-FT recovery stage: warmup FT peer channels end warmed=%d/%d elapsed=%.3fms",
+            warmup_result.get("warmed", 0),
+            warmup_result.get("total", 0),
+            warmup_result.get("elapsed_ms", 0.0),
+        )
         logger.info(
             "SRAS-FT recovery stage: RecoveryQuery begin (quorum=%d timeout=%.1fs)",
             self.ft_manager.config.ft_quorum,
@@ -847,11 +870,12 @@ class RPE:
         )
         recover_started = time.perf_counter()
         ok, selected_state, responses = self.ft_manager.recover_latest_attestation_state()
-        logger.info(
-            "SRAS-FT recovery stage: RecoveryQuery end ok=%s responses=%d elapsed=%.3fms",
+        recover_elapsed_ms = ft_control.elapsed_ms(recover_started)
+        logger.error(
+            "====== SRAS-FT RecoveryQuery END ====== ok=%s responses=%d elapsed=%.3fs",
             ok,
             len(responses),
-            ft_control.elapsed_ms(recover_started),
+            recover_elapsed_ms / 1000.0,
         )
         if not ok:
             logger.error(
@@ -874,31 +898,46 @@ class RPE:
             "SRAS-FT recovery stage: generate new evidence quote end elapsed=%.3fms",
             new_quote_generation_ms,
         )
-        logger.info("SRAS-FT recovery stage: EvidenceUpdate broadcast begin")
+        logger.info("SRAS-FT recovery stage: EvidenceUpdate broadcast begin (dispatch only)")
         update_ok, peers = self.ft_manager.broadcast_evidence_update(evidence)
         logger.info(
-            "SRAS-FT recovery stage: EvidenceUpdate broadcast end ok=%s",
+            "SRAS-FT recovery stage: EvidenceUpdate broadcast dispatched ok=%s peers=%d",
             update_ok,
+            len(peers),
         )
-        if not update_ok:
-            logger.error(
-                "SRAS-FT evidence update broadcast failed to start: accepted=%d quorum=%d",
-                len(peers),
-                self.ft_manager.config.ft_quorum,
-            )
-            return False
         self.cache_ft_expt_if_enabled()
         timings = dict(getattr(self.ft_manager, "last_recovery_timings", {}) or {})
         timings["new_quote_generation_ms"] = new_quote_generation_ms
-        timings["total_recovery_ms"] = ft_control.elapsed_ms(recovery_started)
+        timings["total_recovery_ms"] = (
+            timings.get("recovery_success_ms")
+            or timings.get("total_recover_latest_ms")
+            or ft_control.elapsed_ms(recovery_started)
+        )
         timings["rpe_id"] = self.local_rpe["rpe_id"]
         timings["valid_response_count"] = len(responses)
         timings["quorum"] = self.ft_manager.config.ft_quorum
         timings["selected_tee_id"] = selected_state["state"]["tee_id"]
         timings["selected_attestation_counter"] = int(selected_state["state"]["attestation_counter"])
+        timings["warmup_elapsed_ms"] = warmup_result.get("elapsed_ms", 0.0)
+        timings["warmup_warmed_peers"] = warmup_result.get("warmed", 0)
+        timings["warmup_total_peers"] = warmup_result.get("total", 0)
         self.write_ft_recovery_perf(timings)
-        logger.info("SRAS-FT evidence update broadcast started")
-        logger.info("SRAS-FT recovery timings: %s", timings)
+        total_ms = timings.get("total_recovery_ms") or 0.0
+        logger.error(
+            "====== SRAS-FT RECOVERY TIMING SUMMARY ====== "
+            "total_recovery_ms=%.3fs | recovery_success=%.3fs | "
+            "full_query_collection=%.3fs | new_quote=%.3fs | broadcast=%.3fs | "
+            "tee=%s counter=%s valid=%d/%d",
+            total_ms / 1000.0,
+            (timings.get("recovery_success_ms") or 0.0) / 1000.0,
+            (timings.get("full_query_collection_ms") or 0.0) / 1000.0,
+            (timings.get("new_quote_generation_ms") or 0.0) / 1000.0,
+            (timings.get("new_quote_broadcast_ms") or 0.0) / 1000.0,
+            timings.get("selected_tee_id"),
+            timings.get("selected_attestation_counter"),
+            timings.get("valid_response_count"),
+            timings.get("quorum"),
+        )
         return True
 
     def write_ft_recovery_perf(self, timings):
@@ -939,6 +978,84 @@ class RPE:
         }
         return json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
+    def get_cached_phase2_evidence_for_recovery(self):
+        if not self.ft_phase2_evidence_quote:
+            raise RuntimeError("Phase 2 evidence quote is not available for recovery")
+        return {
+            "evidence_quote": self.ft_phase2_evidence_quote,
+            "rpe_public_signing_key": self.get_public_signing_key_pem(),
+            "rpe_public_encryption_key": self.get_public_encryption_key_pem(),
+            "expt_hash": self.get_ft_expt_hash(),
+        }
+
+    def build_phase2_report_data(self, public_signing_key_pem, public_encryption_key_pem):
+        if self.policies_json_text is None:
+            raise ValueError("policies are not loaded")
+        policies_hash_bytes = self.compute_message_hash(
+            self.policies_json_text.encode("UTF-8"), SHA384
+        )
+        worker_data = public_signing_key_pem + public_encryption_key_pem
+        keys_bytes = self.compute_message_hash(worker_data.encode("UTF-8"), SHA384)
+        return bytes(keys_bytes) + bytes(policies_hash_bytes)
+
+    def verify_phase2_evidence_quote(
+        self,
+        evidence_quote,
+        public_signing_key_pem,
+        public_encryption_key_pem,
+        expt_hash,
+        rpe_id=None,
+    ):
+        try:
+            verify_total_started = time.perf_counter()
+            if expt_hash != self.get_ft_expt_hash():
+                logger.error("SRAS-FT Phase 2 evidence quote Expt hash mismatch for RPE %s", rpe_id)
+                return False
+            if rpe_id is None or self.rpes is None or rpe_id not in self.rpes:
+                logger.error("SRAS-FT Phase 2 evidence quote verifier cannot resolve RPE %s", rpe_id)
+                return False
+
+            rpe_info = self.rpes[rpe_id]
+            quote_bytes = crypto_utility.base64_to_byte_array(evidence_quote)
+            logger.info("SRAS-FT Phase 2 teeVerifyQuote for rpe %s begin", rpe_id)
+            with _dcap_quote_verify_lock:
+                ret = verify_dcap_quote.teeVerifyQuote(
+                    evidence_quote, len(quote_bytes), rpe_info["collateral"]
+                )
+            if ret != 0 and ret != 0xa002 and ret != 0xa008:
+                return False
+
+            report_data = self.build_phase2_report_data(
+                public_signing_key_pem, public_encryption_key_pem
+            )
+            rpe_policies_to_verify = {
+                "mr_enclave": self.rpe_mr,
+                "mr_signer": self.rpe_mrsigner,
+                "isv_prod_id": self.rpe_isvprodid,
+                "isv_svn": self.rpe_isvsvn,
+                "base64_encoded_report_data": crypto_utility.byte_array_to_base64(report_data),
+                "qeid": rpe_info["qeid"][0],
+            }
+            logger.info("SRAS-FT Phase 2 sgxVerifyQuoteBody for rpe %s begin", rpe_id)
+            with _dcap_quote_verify_lock:
+                ret = verify_dcap_quote.sgxVerifyQuoteBody(
+                    evidence_quote, json.dumps(rpe_policies_to_verify)
+                )
+            logger.info(
+                "SRAS-FT Phase 2 evidence quote verification for rpe %s total %.3fms result=%x",
+                rpe_id,
+                (time.perf_counter() - verify_total_started) * 1000.0,
+                ret,
+            )
+            return ret == 0
+        except Exception as e:
+            logger.error(
+                "SRAS-FT Phase 2 evidence quote verification failed for RPE %s: %s",
+                rpe_id,
+                str(e),
+            )
+            return False
+
     def generate_evidence_quote(self, nonce):
         expt_hash = self.get_ft_expt_hash()
         signing_key = self.get_public_signing_key_pem()
@@ -971,22 +1088,39 @@ class RPE:
         rpe_id=None,
     ):
         try:
+            verify_total_started = time.perf_counter()
+            hash_check_started = time.perf_counter()
+            logger.info("SRAS-FT evidence quote Expt hash check for rpe %s begin", rpe_id)
             if expt_hash != self.get_ft_expt_hash():
                 logger.error("SRAS-FT evidence quote Expt hash mismatch for RPE %s", rpe_id)
                 return False
+            logger.info(
+                "SRAS-FT evidence quote Expt hash check for rpe %s done in %.3fms",
+                rpe_id,
+                (time.perf_counter() - hash_check_started) * 1000.0,
+            )
             if rpe_id is None or self.rpes is None or rpe_id not in self.rpes:
                 logger.error("SRAS-FT evidence quote verifier cannot resolve RPE %s", rpe_id)
                 return False
 
             rpe_info = self.rpes[rpe_id]
             quote_bytes = crypto_utility.base64_to_byte_array(evidence_quote)
-            ret = verify_dcap_quote.teeVerifyQuote(
-                evidence_quote, len(quote_bytes), rpe_info["collateral"]
+            native_verify_started = time.perf_counter()
+            logger.info("SRAS-FT teeVerifyQuote for rpe %s begin", rpe_id)
+            with _dcap_quote_verify_lock:
+                ret = verify_dcap_quote.teeVerifyQuote(
+                    evidence_quote, len(quote_bytes), rpe_info["collateral"]
+                )
+            logger.info(
+                "SRAS-FT teeVerifyQuote for rpe %s done in %.3fms result=%x",
+                rpe_id,
+                (time.perf_counter() - native_verify_started) * 1000.0,
+                ret,
             )
-            logger.info("SRAS-FT evidence quote verification for rpe %s result: %x", rpe_id, ret)
             if ret != 0 and ret != 0xa002 and ret != 0xa008:
                 return False
 
+            body_prepare_started = time.perf_counter()
             quote_user_data = self.build_ft_quote_user_data(expt_hash, nonce)
             report_data = self.generate_report_data(
                 public_signing_key_pem, public_encryption_key_pem, quote_user_data
@@ -999,10 +1133,28 @@ class RPE:
                 "base64_encoded_report_data": crypto_utility.byte_array_to_base64(report_data),
                 "qeid": rpe_info["qeid"][0],
             }
-            ret = verify_dcap_quote.sgxVerifyQuoteBody(
-                evidence_quote, json.dumps(rpe_policies_to_verify)
+            logger.info(
+                "SRAS-FT evidence quote body policy preparation for rpe %s done in %.3fms",
+                rpe_id,
+                (time.perf_counter() - body_prepare_started) * 1000.0,
             )
-            logger.info("SRAS-FT evidence quote body verification for rpe %s result: %x", rpe_id, ret)
+            body_verify_started = time.perf_counter()
+            logger.info("SRAS-FT sgxVerifyQuoteBody for rpe %s begin", rpe_id)
+            with _dcap_quote_verify_lock:
+                ret = verify_dcap_quote.sgxVerifyQuoteBody(
+                    evidence_quote, json.dumps(rpe_policies_to_verify)
+                )
+            logger.info(
+                "SRAS-FT sgxVerifyQuoteBody for rpe %s done in %.3fms result=%x",
+                rpe_id,
+                (time.perf_counter() - body_verify_started) * 1000.0,
+                ret,
+            )
+            logger.info(
+                "SRAS-FT evidence quote verification for rpe %s total %.3fms",
+                rpe_id,
+                (time.perf_counter() - verify_total_started) * 1000.0,
+            )
             return ret == 0
         except Exception as e:
             logger.error("SRAS-FT evidence quote verification failed for RPE %s: %s", rpe_id, str(e))
@@ -1099,16 +1251,16 @@ class RPE:
     def generate_quote_with_keys(self, public_signing_key_pem, public_encryption_key_pem, user_data):
         try:
             logger.info("Generating Quote...")
-            fd = os.open("/dev/attestation/user_report_data", os.O_RDWR)
-            report_data = self.generate_report_data(
-                public_signing_key_pem,
-                public_encryption_key_pem,
-                user_data)
-            os.write(fd, report_data)
-            os.close(fd)
-            # logger.info("report data hex = {}".format(report_data.hex()))
-            with open('/dev/attestation/quote', 'rb') as fd:
-                data = fd.read()
+            with _dcap_quote_verify_lock:
+                fd = os.open("/dev/attestation/user_report_data", os.O_RDWR)
+                report_data = self.generate_report_data(
+                    public_signing_key_pem,
+                    public_encryption_key_pem,
+                    user_data)
+                os.write(fd, report_data)
+                os.close(fd)
+                with open('/dev/attestation/quote', 'rb') as fd:
+                    data = fd.read()
             logger.info("Quote generated")
             quote = crypto_utility.byte_array_to_base64(data)
             return quote

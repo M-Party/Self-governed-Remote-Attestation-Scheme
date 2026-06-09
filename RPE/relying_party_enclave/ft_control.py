@@ -242,7 +242,7 @@ class FTConfig:
             listen_port=_as_int(ft_conf.get("listen_port"), 56000),
             peer_addresses=parse_peer_addresses(ft_conf.get("peer_addresses", "")),
             echo_timeout_sec=float(_as_str(ft_conf.get("echo_timeout_sec"), "3")),
-            recovery_timeout_sec=float(_as_str(ft_conf.get("recovery_timeout_sec"), "5")),
+            recovery_timeout_sec=float(_as_str(ft_conf.get("recovery_timeout_sec"), "8")),
             expt_cache_path=_as_str(ft_conf.get("expt_cache_path"), "collaterals/expt_cache.json"),
             counter_cache_path=_as_str(
                 ft_conf.get("counter_cache_path"), "collaterals/ft_counter_cache.json"
@@ -344,6 +344,13 @@ class FTStateStore:
                 key=lambda entry: int(entry["state"]["attestation_counter"]),
             )
 
+    def zero_attestation_state(self, target_rpe_id):
+        return {
+            "target_rpe_id": str(target_rpe_id),
+            "tee_id": "",
+            "attestation_counter": 0,
+        }
+
 
 def random_nonce():
     return b64encode_bytes(secrets.token_bytes(32))
@@ -374,6 +381,8 @@ class FTControlManager:
         self._grpc_pool = GrpcPeerChannelPool()
         self._server = None
         self._bound_address = None
+        self._pending_evidence_updates = {}
+        self._pending_evidence_updates_lock = threading.Lock()
 
     def start(self):
         if not self.config.enabled:
@@ -402,6 +411,7 @@ class FTControlManager:
                 "StateUpdate": make_handler(manager.handle_state_update),
                 "RecoveryQuery": make_handler(manager.handle_recovery_query),
                 "EvidenceUpdate": make_handler(manager.handle_evidence_update),
+                "Ping": make_handler(manager.handle_ping),
             },
         )
         self._server = grpc.server(futures.ThreadPoolExecutor(max_workers=16))
@@ -426,10 +436,77 @@ class FTControlManager:
             raise RuntimeError("FT control server is not started")
         return self._bound_address
 
+    def handle_ping(self, payload):
+        return {
+            "status": 0,
+            "responder_rpe_id": self.config.local_rpe_id,
+            "nonce": payload.get("nonce", ""),
+        }
+
     def grpc_post_json(self, address, method, payload, timeout, cancel_event=None):
         return self._grpc_pool.post_json(
             address, method, payload, timeout, cancel_event=cancel_event
         )
+
+    def warmup_peer_channels(self, timeout=1.0):
+        started = time.perf_counter()
+        peer_targets = [
+            (peer_id, address)
+            for peer_id, address in self.config.peer_addresses.items()
+            if peer_id != self.config.local_rpe_id
+        ]
+        results = {}
+        threads = []
+        lock = threading.Lock()
+
+        def ping_one(peer_id, address):
+            peer_started = time.perf_counter()
+            try:
+                response = self.grpc_post_json(
+                    address,
+                    "Ping",
+                    {"sender_rpe_id": self.config.local_rpe_id, "nonce": self.nonce_factory()},
+                    timeout,
+                )
+                ok = response.get("status") == 0
+                with lock:
+                    results[peer_id] = {
+                        "ok": ok,
+                        "elapsed_ms": elapsed_ms(peer_started),
+                        "error": None if ok else response.get("error", "unknown error"),
+                    }
+            except Exception as exc:
+                with lock:
+                    results[peer_id] = {
+                        "ok": False,
+                        "elapsed_ms": elapsed_ms(peer_started),
+                        "error": str(exc),
+                    }
+
+        for peer_id, address in peer_targets:
+            thread = threading.Thread(target=ping_one, args=(peer_id, address), daemon=True)
+            thread.start()
+            threads.append(thread)
+        deadline = time.time() + timeout
+        for thread in threads:
+            thread.join(timeout=max(0.0, deadline - time.time()))
+        with lock:
+            warmed = sum(1 for item in results.values() if item.get("ok"))
+            snapshot = dict(results)
+        total_ms = elapsed_ms(started)
+        logger.info(
+            "FT peer channel warmup finished: warmed=%d/%d elapsed=%.3fms results=%s",
+            warmed,
+            len(peer_targets),
+            total_ms,
+            snapshot,
+        )
+        return {
+            "warmed": warmed,
+            "total": len(peer_targets),
+            "elapsed_ms": total_ms,
+            "peers": snapshot,
+        }
 
     def _public_key_from_pem(self, public_key_pem):
         return self._public_key_cache.get_or_load(public_key_pem)
@@ -454,31 +531,37 @@ class FTControlManager:
             return {"status": 1, "error": "missing recovering_rpe_id or recovery_nonce"}
         recorded = self.state_store.get_recorded_state(recovering_rpe_id)
         if recorded is None:
-            logger.warning(
-                "FT RecoveryQuery rejected: no recorded state for %s on %s",
+            recorded_state = self.state_store.zero_attestation_state(recovering_rpe_id)
+            logger.info(
+                "FT RecoveryQuery from %s: no recorded state on %s; responding with counter=0",
                 recovering_rpe_id,
                 self.config.local_rpe_id,
             )
-            return {"status": 1, "error": "no recorded state for recovering RPE"}
-        if self.quote_verifier is None or not hasattr(self.quote_verifier, "generate_evidence_quote"):
-            return {"status": 1, "error": "quote generator is not configured"}
+        else:
+            recorded_state = recorded["state"]
+        if self.quote_verifier is None or not hasattr(
+            self.quote_verifier, "get_cached_phase2_evidence_for_recovery"
+        ):
+            return {"status": 1, "error": "cached Phase 2 evidence quote is not configured"}
         logger.info(
-            "FT RecoveryQuery from %s: generating evidence quote (tee=%s counter=%s)",
+            "FT RecoveryQuery from %s: using cached Phase 2 evidence quote (tee=%s counter=%s)",
             recovering_rpe_id,
-            recorded["state"].get("tee_id"),
-            recorded["state"].get("attestation_counter"),
+            recorded_state.get("tee_id"),
+            recorded_state.get("attestation_counter"),
         )
-        evidence_started = time.perf_counter()
-        evidence = self.quote_verifier.generate_evidence_quote(recovery_nonce)
-        logger.info(
-            "FT RecoveryQuery from %s: evidence quote ready in %.3fms",
-            recovering_rpe_id,
-            elapsed_ms(evidence_started),
-        )
+        try:
+            evidence = self.quote_verifier.get_cached_phase2_evidence_for_recovery()
+        except Exception as e:
+            logger.error(
+                "FT RecoveryQuery from %s: cached Phase 2 evidence quote unavailable: %s",
+                recovering_rpe_id,
+                str(e),
+            )
+            return {"status": 1, "error": "cached Phase 2 evidence quote is not available"}
         recovery_state = {
             "responder_rpe_id": self.config.local_rpe_id,
             "recovering_rpe_id": recovering_rpe_id,
-            "recorded_attestation_state": recorded["state"],
+            "recorded_attestation_state": recorded_state,
             "recovery_nonce": recovery_nonce,
         }
         logger.info(
@@ -495,7 +578,7 @@ class FTControlManager:
             ),
             "rpe_public_encryption_key": evidence.get("rpe_public_encryption_key", ""),
             "expt_hash": evidence["expt_hash"],
-            "recorded_attestation_state": recorded["state"],
+            "recorded_attestation_state": recorded_state,
             "signed_state": {
                 "state": recovery_state,
                 "signature": sign_json(self.signing_private_key, recovery_state),
@@ -521,19 +604,96 @@ class FTControlManager:
             return {"status": 1, "error": "missing evidence update fields"}
         if self.quote_verifier is None:
             return {"status": 1, "error": "quote verifier is not configured"}
-        if not self._verify_evidence_quote(
-            evidence_quote,
-            public_key_pem,
-            encryption_key_pem,
-            expt_hash,
-            nonce,
+        pending_update = {
+            "recovering_rpe_id": recovering_rpe_id,
+            "evidence_quote": evidence_quote,
+            "public_key_pem": public_key_pem,
+            "encryption_key_pem": encryption_key_pem,
+            "expt_hash": expt_hash,
+            "nonce": nonce,
+            "received_at": time.time(),
+        }
+        with self._pending_evidence_updates_lock:
+            replaced = recovering_rpe_id in self._pending_evidence_updates
+            self._pending_evidence_updates[recovering_rpe_id] = pending_update
+            pending_count = len(self._pending_evidence_updates)
+        logger.info(
+            "FT EvidenceUpdate from %s stored as pending latest update (replaced=%s pending=%d)",
             recovering_rpe_id,
-        ):
-            return {"status": 1, "error": "evidence quote verification failed"}
-        self._set_peer_public_key(recovering_rpe_id, public_key_pem)
-        if self.on_peer_key_update is not None:
-            self.on_peer_key_update(recovering_rpe_id, public_key_pem, encryption_key_pem)
-        return {"status": 0, "content": ""}
+            replaced,
+            pending_count,
+        )
+        return {"status": 0, "content": "pending"}
+
+    def process_pending_evidence_updates(self):
+        with self._pending_evidence_updates_lock:
+            pending_updates = list(self._pending_evidence_updates.values())
+            self._pending_evidence_updates.clear()
+        accepted = []
+        rejected = []
+        for update in pending_updates:
+            rpe_id = update["recovering_rpe_id"]
+            ok = self._process_evidence_update(
+                rpe_id,
+                update["evidence_quote"],
+                update["public_key_pem"],
+                update["encryption_key_pem"],
+                update["expt_hash"],
+                update["nonce"],
+            )
+            if ok:
+                accepted.append(rpe_id)
+            else:
+                rejected.append(rpe_id)
+        return {
+            "processed": len(pending_updates),
+            "accepted": accepted,
+            "rejected": rejected,
+        }
+
+    def _process_evidence_update(
+        self,
+        recovering_rpe_id,
+        evidence_quote,
+        public_key_pem,
+        encryption_key_pem,
+        expt_hash,
+        nonce,
+    ):
+        started = time.perf_counter()
+        logger.info("FT EvidenceUpdate from %s pending verification begin", recovering_rpe_id)
+        try:
+            if not self._verify_evidence_quote(
+                evidence_quote,
+                public_key_pem,
+                encryption_key_pem,
+                expt_hash,
+                nonce,
+                recovering_rpe_id,
+            ):
+                logger.warning(
+                    "FT EvidenceUpdate from %s rejected after %.3fms: evidence quote verification failed",
+                    recovering_rpe_id,
+                    elapsed_ms(started),
+                )
+                return False
+            self._set_peer_public_key(recovering_rpe_id, public_key_pem)
+            if self.on_peer_key_update is not None:
+                self.on_peer_key_update(recovering_rpe_id, public_key_pem, encryption_key_pem)
+            logger.info(
+                "FT EvidenceUpdate from %s accepted in %.3fms; peer public key updated",
+                recovering_rpe_id,
+                elapsed_ms(started),
+            )
+            return True
+        except Exception as exc:
+            logger.warning(
+                "FT EvidenceUpdate from %s failed after %.3fms: %s",
+                recovering_rpe_id,
+                elapsed_ms(started),
+                exc,
+            )
+            return False
 
     def _verify_evidence_quote(
         self, evidence_quote, signing_key_pem, encryption_key_pem, expt_hash, nonce, rpe_id=None
@@ -553,12 +713,26 @@ class FTControlManager:
         except TypeError:
             return verifier(evidence_quote, signing_key_pem, encryption_key_pem, expt_hash, nonce)
 
+    def _verify_phase2_evidence_quote(
+        self, evidence_quote, signing_key_pem, encryption_key_pem, expt_hash, rpe_id=None
+    ):
+        verifier = self.quote_verifier
+        if hasattr(verifier, "verify_phase2_evidence_quote"):
+            try:
+                return verifier.verify_phase2_evidence_quote(
+                    evidence_quote, signing_key_pem, encryption_key_pem, expt_hash, rpe_id
+                )
+            except TypeError:
+                return verifier.verify_phase2_evidence_quote(
+                    evidence_quote, signing_key_pem, encryption_key_pem, expt_hash
+                )
+        return False
+
     def handle_state_update(self, payload):
         total_started = time.perf_counter()
         sender_rpe_id = payload.get("sender_rpe_id")
         state = payload.get("state")
-        signature = payload.get("signature")
-        if not sender_rpe_id or not isinstance(state, dict) or not signature:
+        if not sender_rpe_id or not isinstance(state, dict):
             logger.warning("FT StateUpdate rejected: missing state update fields")
             return {"status": 1, "error": "missing state update fields"}
 
@@ -579,12 +753,6 @@ class FTControlManager:
             logger.warning("FT StateUpdate from %s rejected: invalid attestation state", sender_rpe_id)
             return {"status": 1, "error": "invalid attestation state"}
 
-        verify_started = time.perf_counter()
-        signature_valid = verify_json_signature(self._peer_public_key(sender_rpe_id), state, signature)
-        verify_state_signature_ms = elapsed_ms(verify_started)
-        if not signature_valid:
-            logger.warning("FT StateUpdate from %s rejected: invalid state signature", sender_rpe_id)
-            return {"status": 1, "error": "invalid state signature"}
         if not self.state_store.mark_nonce_seen(nonce):
             logger.warning("FT StateUpdate from %s rejected: replayed nonce", sender_rpe_id)
             return {"status": 1, "error": "replayed nonce"}
@@ -604,19 +772,17 @@ class FTControlManager:
         sign_echo_ms = elapsed_ms(sign_started)
         timings = {
             "total_ms": elapsed_ms(total_started),
-            "verify_state_signature_ms": verify_state_signature_ms,
             "record_state_ms": record_state_ms,
             "sign_echo_ms": sign_echo_ms,
         }
         logger.info(
             "FT StateUpdate accepted from %s for TEE %s counter %d; echo sent by %s "
-            "(total=%.3fms verify_state_sig=%.3fms record=%.3fms sign_echo=%.3fms)",
+            "(total=%.3fms record=%.3fms sign_echo=%.3fms)",
             sender_rpe_id,
             tee_id,
             attestation_counter,
             self.config.local_rpe_id,
             timings["total_ms"],
-            timings["verify_state_signature_ms"],
             timings["record_state_ms"],
             timings["sign_echo_ms"],
         )
@@ -698,13 +864,9 @@ class FTControlManager:
             state["tee_id"],
             state["attestation_counter"],
         )
-        sign_state_started = time.perf_counter()
-        state_signature = sign_json(self.signing_private_key, state)
-        local_sign_state_ms = elapsed_ms(sign_state_started)
         update = {
             "sender_rpe_id": self.config.local_rpe_id,
             "state": state,
-            "signature": state_signature,
         }
         sign_echo_started = time.perf_counter()
         local_echo = self._build_local_echo(state)
@@ -729,7 +891,6 @@ class FTControlManager:
                 "request_id": request_id,
                 "quorum_target": quorum_target,
                 "total_ms": elapsed_ms(propagation_perf_started),
-                "local_sign_state_ms": local_sign_state_ms,
                 "local_sign_echo_ms": local_sign_echo_ms,
                 "peers": peer_timings,
             }
@@ -884,14 +1045,13 @@ class FTControlManager:
             "request_id": request_id,
             "quorum_target": quorum_target,
             "total_ms": propagation_duration_ms,
-            "local_sign_state_ms": local_sign_state_ms,
             "local_sign_echo_ms": local_sign_echo_ms,
             "peers": timings_snapshot,
         }
         if met:
             logger.info(
                 "SRAS-FT state propagation quorum reached for request_id=%s TEE %s: %d/%d echoes from %s "
-                "in %.3f seconds (%.3fms, local_sign_state=%.3fms local_sign_echo=%.3fms)",
+                "in %.3f seconds (%.3fms, local_sign_echo=%.3fms)",
                 request_id,
                 state["tee_id"],
                 len(echoes),
@@ -899,7 +1059,6 @@ class FTControlManager:
                 responders,
                 propagation_duration,
                 propagation_duration_ms,
-                local_sign_state_ms,
                 local_sign_echo_ms,
             )
         else:
@@ -954,12 +1113,11 @@ class FTControlManager:
             return None
         logger.info("FT recovery validating evidence quote from %s begin", responder_rpe_id)
         evidence_verify_started = time.perf_counter()
-        evidence_ok = self._verify_evidence_quote(
+        evidence_ok = self._verify_phase2_evidence_quote(
             evidence_quote,
             signing_key_pem,
             encryption_key_pem,
             expt_hash,
-            expected_nonce,
             responder_rpe_id,
         )
         timings["evidence_quote_verification_ms"] = elapsed_ms(evidence_verify_started)
@@ -1022,10 +1180,13 @@ class FTControlManager:
     def recover_latest_attestation_state(self):
         recovery_started = time.perf_counter()
         recovery_nonce = self.nonce_factory()
+        raw_responses = []
+        failed_peers = []
         valid_responses = []
+        validated_peer_ids = set()
         threads = []
         lock = threading.Lock()
-        query_started = time.perf_counter()
+        response_available = threading.Condition(lock)
         peer_targets = [
             (peer_id, address)
             for peer_id, address in self.config.peer_addresses.items()
@@ -1056,21 +1217,9 @@ class FTControlManager:
                     elapsed_ms(peer_started),
                     response.get("status"),
                 )
-                valid_response = self._validate_recovery_response(response, recovery_nonce)
-                if valid_response is not None:
-                    with lock:
-                        valid_responses.append(valid_response)
-                    logger.info(
-                        "FT recovery query to %s accepted in %.3fms",
-                        peer_id,
-                        elapsed_ms(peer_started),
-                    )
-                else:
-                    logger.warning(
-                        "FT recovery query to %s response invalid after %.3fms",
-                        peer_id,
-                        elapsed_ms(peer_started),
-                    )
+                with response_available:
+                    raw_responses.append((peer_id, response, elapsed_ms(peer_started)))
+                    response_available.notify()
             except Exception as exc:
                 logger.warning(
                     "FT recovery query to %s failed after %.3fms: %s",
@@ -1078,39 +1227,145 @@ class FTControlManager:
                     elapsed_ms(peer_started),
                     exc,
                 )
+                with response_available:
+                    failed_peers.append(peer_id)
+                    response_available.notify()
 
         for peer_id, address in peer_targets:
             thread = threading.Thread(target=query_one, args=(peer_id, address), daemon=True)
             thread.start()
             threads.append((peer_id, thread))
 
+        selected = None
+        recovery_success_ms = None
+        counter_selection_ms = 0.0
+        quorum_evidence_ms = 0.0
+        quorum_signed_ms = 0.0
+
+        def finalize_quorum_if_ready():
+            nonlocal selected, recovery_success_ms, counter_selection_ms
+            nonlocal quorum_evidence_ms, quorum_signed_ms
+            if recovery_success_ms is not None:
+                return
+            if len(valid_responses) < self.config.ft_quorum:
+                return
+            quorum_snapshot = list(valid_responses)
+            quorum_ms = elapsed_ms(recovery_started)
+            logger.error(
+                "====== SRAS-FT recovery QUORUM OK ====== responders=%s elapsed=%.3fs (%.1fms)",
+                [response["responder_rpe_id"] for response in quorum_snapshot],
+                quorum_ms / 1000.0,
+                quorum_ms,
+            )
+            counter_selection_started = time.perf_counter()
+            selected = max(
+                quorum_snapshot, key=lambda item: int(item["state"]["attestation_counter"])
+            )
+            self.state_store.restore_local_counter_floor(
+                selected["state"]["tee_id"], int(selected["state"]["attestation_counter"])
+            )
+            counter_selection_ms = elapsed_ms(counter_selection_started)
+            recovery_success_ms = elapsed_ms(recovery_started)
+            quorum_evidence_ms = sum(
+                response.get("timings", {}).get("evidence_quote_verification_ms", 0.0)
+                for response in quorum_snapshot
+            )
+            quorum_signed_ms = sum(
+                response.get("timings", {}).get("signed_state_verification_ms", 0.0)
+                for response in quorum_snapshot
+            )
+            logger.error(
+                "====== SRAS-FT recovery SUCCESS ====== tee=%s counter=%s "
+                "recovery_success_ms=%.3fs (%.1fms) counter_select=%.1fms",
+                selected["state"]["tee_id"],
+                selected["state"]["attestation_counter"],
+                recovery_success_ms / 1000.0,
+                recovery_success_ms,
+                counter_selection_ms,
+            )
+
+        def validate_pending():
+            with response_available:
+                pending = [
+                    (peer_id, response, query_elapsed_ms)
+                    for peer_id, response, query_elapsed_ms in raw_responses
+                    if peer_id not in validated_peer_ids
+                ]
+                for peer_id, _, _ in pending:
+                    validated_peer_ids.add(peer_id)
+            for peer_id, response, query_elapsed_ms in pending:
+                validate_started = time.perf_counter()
+                valid_response = self._validate_recovery_response(response, recovery_nonce)
+                validate_ms = elapsed_ms(validate_started)
+                if valid_response is not None:
+                    with response_available:
+                        valid_responses.append(valid_response)
+                    logger.info(
+                        "FT recovery query to %s accepted (query=%.3fms validate=%.3fms)",
+                        peer_id,
+                        query_elapsed_ms,
+                        validate_ms,
+                    )
+                    finalize_quorum_if_ready()
+                else:
+                    logger.warning(
+                        "FT recovery query to %s response invalid (query=%.3fms validate=%.3fms)",
+                        peer_id,
+                        query_elapsed_ms,
+                        validate_ms,
+                    )
+
         deadline = time.time() + self.config.recovery_timeout_sec
+        while True:
+            validate_pending()
+            with response_available:
+                all_done = all(not thread.is_alive() for _, thread in threads)
+                if all_done:
+                    break
+                remaining = max(0.01, deadline - time.time())
+                if remaining <= 0.0:
+                    break
+                response_available.wait(timeout=remaining)
+
         alive_after_join = []
         for peer_id, thread in threads:
-            remaining = max(0.0, deadline - time.time())
-            thread.join(timeout=remaining)
             if thread.is_alive():
-                alive_after_join.append(peer_id)
+                remaining = max(0.0, deadline - time.time())
+                thread.join(timeout=remaining)
+                if thread.is_alive():
+                    alive_after_join.append(peer_id)
 
-        with lock:
-            responses = list(valid_responses)
-        recovery_query_ms = elapsed_ms(query_started)
+        validate_pending()
+        full_query_collection_ms = elapsed_ms(recovery_started)
+
         if alive_after_join:
             logger.warning(
-                "FT recover_latest_attestation_state: %d query thread(s) still running after %.3fms join: %s",
+                "FT recover_latest_attestation_state: %d query thread(s) timed out after %.3fms (recovery already %s): %s",
                 len(alive_after_join),
-                recovery_query_ms,
+                full_query_collection_ms,
+                "succeeded" if recovery_success_ms is not None else "failed",
                 alive_after_join,
             )
-        logger.info(
-            "FT recover_latest_attestation_state: join done valid=%d quorum=%d elapsed=%.3fms",
+        for peer_id in failed_peers:
+            logger.warning(
+                "FT recover_latest_attestation_state: query to %s failed (recovery already %s)",
+                peer_id,
+                "succeeded" if recovery_success_ms is not None else "failed",
+            )
+
+        responses = list(valid_responses)
+        logger.error(
+            "====== SRAS-FT RecoveryQuery DONE ====== ok=%s valid=%d/%d "
+            "recovery_success=%.3fs full_collection=%.3fs",
+            recovery_success_ms is not None,
             len(responses),
             self.config.ft_quorum,
-            recovery_query_ms,
+            (recovery_success_ms or 0.0) / 1000.0,
+            full_query_collection_ms / 1000.0,
         )
-        if len(responses) < self.config.ft_quorum:
+        if recovery_success_ms is None:
             self.last_recovery_timings = {
-                "recovery_query_ms": recovery_query_ms,
+                "recovery_query_ms": full_query_collection_ms,
                 "evidence_quote_verification_ms": sum(
                     response.get("timings", {}).get("evidence_quote_verification_ms", 0.0)
                     for response in responses
@@ -1122,7 +1377,8 @@ class FTControlManager:
                 "counter_selection_ms": 0.0,
                 "valid_response_count": len(responses),
                 "quorum": self.config.ft_quorum,
-                "total_recover_latest_ms": elapsed_ms(recovery_started),
+                "full_query_collection_ms": full_query_collection_ms,
+                "total_recover_latest_ms": full_query_collection_ms,
             }
             return False, None, responses
 
@@ -1136,42 +1392,50 @@ class FTControlManager:
                     response["rpe_public_encryption_key"],
                 )
 
-        logger.info(
-            "FT recover_latest_attestation_state: quorum met with responders %s",
-            [response["responder_rpe_id"] for response in responses],
-        )
-        counter_selection_started = time.perf_counter()
-        selected = max(responses, key=lambda item: int(item["state"]["attestation_counter"]))
-        self.state_store.restore_local_counter_floor(
-            selected["state"]["tee_id"], int(selected["state"]["attestation_counter"])
-        )
-        counter_selection_ms = elapsed_ms(counter_selection_started)
-        logger.info(
-            "FT recover_latest_attestation_state: selected tee=%s counter=%s in %.3fms",
-            selected["state"]["tee_id"],
-            selected["state"]["attestation_counter"],
-            counter_selection_ms,
-        )
         self.last_recovery_timings = {
-            "recovery_query_ms": recovery_query_ms,
-            "evidence_quote_verification_ms": sum(
-                response.get("timings", {}).get("evidence_quote_verification_ms", 0.0)
-                for response in responses
-            ),
-            "signed_state_verification_ms": sum(
-                response.get("timings", {}).get("signed_state_verification_ms", 0.0)
-                for response in responses
-            ),
+            "recovery_query_ms": recovery_success_ms,
+            "recovery_success_ms": recovery_success_ms,
+            "evidence_quote_verification_ms": quorum_evidence_ms,
+            "signed_state_verification_ms": quorum_signed_ms,
             "counter_selection_ms": counter_selection_ms,
             "valid_response_count": len(responses),
             "quorum": self.config.ft_quorum,
             "selected_tee_id": selected["state"]["tee_id"],
             "selected_attestation_counter": int(selected["state"]["attestation_counter"]),
-            "total_recover_latest_ms": elapsed_ms(recovery_started),
+            "full_query_collection_ms": full_query_collection_ms,
+            "total_recover_latest_ms": recovery_success_ms,
         }
         return True, selected, responses
 
-    def broadcast_evidence_update(self, evidence):
+    def _send_evidence_update_one(self, peer_id, address, payload, timeout):
+        peer_started = time.perf_counter()
+        try:
+            logger.info("FT evidence update to %s begin", peer_id)
+            response = self.grpc_post_json(address, "EvidenceUpdate", payload, timeout)
+            peer_ms = elapsed_ms(peer_started)
+            if response.get("status") == 0:
+                logger.info(
+                    "FT evidence update to %s accepted in %.3fms",
+                    peer_id,
+                    peer_ms,
+                )
+                return peer_id
+            logger.warning(
+                "FT evidence update to %s rejected in %.3fms: %s",
+                peer_id,
+                peer_ms,
+                response.get("error", "unknown error"),
+            )
+        except Exception as exc:
+            logger.warning(
+                "FT evidence update to %s failed after %.3fms: %s",
+                peer_id,
+                elapsed_ms(peer_started),
+                exc,
+            )
+        return None
+
+    def broadcast_evidence_update(self, evidence, stagger_sec=0.3, wait_for_response=False):
         broadcast_started = time.perf_counter()
         nonce = evidence.get("nonce") or self.nonce_factory()
         payload = {
@@ -1183,30 +1447,62 @@ class FTControlManager:
             "nonce": nonce,
         }
 
-        def send_one(peer_id, address):
-            if peer_id == self.config.local_rpe_id:
-                return
-            try:
-                response = self.grpc_post_json(
-                    address, "EvidenceUpdate", payload, self.config.recovery_timeout_sec
-                )
-                if response.get("status") == 0:
-                    logger.info("FT evidence update to %s accepted", peer_id)
-                else:
-                    logger.warning(
-                        "FT evidence update to %s rejected: %s",
-                        peer_id,
-                        response.get("error", "unknown error"),
-                    )
-            except Exception as exc:
-                logger.warning("FT evidence update to %s failed: %s", peer_id, exc)
-
-        peer_count = 0
+        accepted_peers = []
+        dispatched_peers = []
+        send_index = 0
+        async_threads = []
         for peer_id, address in self.config.peer_addresses.items():
-            thread = threading.Thread(target=send_one, args=(peer_id, address), daemon=True)
-            thread.start()
-            peer_count += 1
-        logger.info("FT evidence update broadcast started for %d peer(s)", peer_count)
-        self.last_recovery_timings["new_quote_broadcast_ms"] = elapsed_ms(broadcast_started)
-        self.last_recovery_timings["evidence_update_peer_count"] = peer_count
-        return True, []
+            if peer_id == self.config.local_rpe_id:
+                continue
+            if send_index > 0 and stagger_sec > 0:
+                time.sleep(stagger_sec)
+            send_index += 1
+            dispatched_peers.append(peer_id)
+            if wait_for_response:
+                accepted = self._send_evidence_update_one(
+                    peer_id, address, payload, self.config.recovery_timeout_sec
+                )
+                if accepted is not None:
+                    accepted_peers.append(accepted)
+            else:
+
+                def _worker(target_peer_id=peer_id, target_address=address):
+                    accepted = self._send_evidence_update_one(
+                        target_peer_id, target_address, payload, self.config.recovery_timeout_sec
+                    )
+                    if accepted is not None:
+                        logger.info("FT evidence update async result: %s accepted", target_peer_id)
+                    else:
+                        logger.warning("FT evidence update async result: %s not accepted", target_peer_id)
+
+                thread = threading.Thread(
+                    target=_worker,
+                    name="ft-evidence-update-%s" % peer_id,
+                    daemon=True,
+                )
+                thread.start()
+                async_threads.append(thread)
+
+        broadcast_ms = elapsed_ms(broadcast_started)
+        if wait_for_response:
+            logger.error(
+                "====== SRAS-FT EvidenceUpdate BROADCAST DONE ====== accepted=%d/%d elapsed=%.3fs (waited)",
+                len(accepted_peers),
+                send_index,
+                broadcast_ms / 1000.0,
+            )
+            ok = len(accepted_peers) > 0
+        else:
+            logger.error(
+                "====== SRAS-FT EvidenceUpdate BROADCAST DISPATCHED ====== peers=%d elapsed=%.3fs (not waiting)",
+                send_index,
+                broadcast_ms / 1000.0,
+            )
+            ok = send_index > 0
+            accepted_peers = list(dispatched_peers)
+
+        self.last_recovery_timings["new_quote_broadcast_ms"] = broadcast_ms
+        self.last_recovery_timings["evidence_update_peer_count"] = send_index
+        self.last_recovery_timings["evidence_update_accepted_count"] = len(accepted_peers)
+        self.last_recovery_timings["evidence_update_waited_for_response"] = wait_for_response
+        return ok, accepted_peers

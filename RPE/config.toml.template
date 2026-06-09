@@ -14,6 +14,6 @@ listen_host = "127.0.0.1"
 listen_port = "56001"
 peer_addresses = ""
 echo_timeout_sec = 3
-recovery_timeout_sec = 5
+recovery_timeout_sec = 8
 expt_cache_path = "collaterals/expt_cache.json"
 counter_cache_path = "collaterals/ft_counter_cache.json"
