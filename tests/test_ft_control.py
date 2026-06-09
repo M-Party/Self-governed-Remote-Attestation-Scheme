@@ -737,7 +737,7 @@ class FTRecoveryTest(unittest.TestCase):
             finally:
                 peer.stop()
 
-    def test_broadcast_evidence_update_uses_grpc_and_waits_for_quorum(self):
+    def test_broadcast_evidence_update_uses_grpc_without_waiting_for_quorum(self):
         _old_private, old_public = self._key_pair()
         _new_private, new_public = self._key_pair()
         recovering_private, recovering_public = self._key_pair()
@@ -797,18 +797,53 @@ class FTRecoveryTest(unittest.TestCase):
                     {"rpe-1": self._pem(recovering_public), "rpe-2": self._pem(peer_public)},
                     nonce_factory=lambda: "fresh-nonce",
                 )
+                started_at = time.time()
                 ok, peers = recovering.broadcast_evidence_update({
                     "evidence_quote": "fresh-quote",
                     "rpe_public_signing_key": self._pem(new_public),
                     "rpe_public_encryption_key": "new-encryption-key",
                     "expt_hash": "hash-a",
                 })
+                elapsed = time.time() - started_at
                 self.assertTrue(ok)
-                self.assertEqual(peers, ["rpe-2"])
-                self.assertEqual(peer.peer_public_keys["rpe-1"], self._pem(new_public))
-                self.assertEqual(updated_keys, [("rpe-1", self._pem(new_public), "new-encryption-key")])
+                self.assertEqual(peers, [])
+                self.assertLess(elapsed, 0.5)
             finally:
                 peer.stop()
+
+    def test_broadcast_evidence_update_returns_even_when_peer_is_unavailable(self):
+        recovering_private, recovering_public = self._key_pair()
+        with tempfile.TemporaryDirectory() as temp_dir:
+            recovering_config = FTConfig(
+                enabled=True,
+                local_rpe_id="rpe-1",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={"rpe-2": "127.0.0.1:1"},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "recovering_expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "recovering_counter.json"),
+                ft_quorum=1,
+            )
+            recovering = FTControlManager(
+                recovering_config,
+                recovering_private,
+                self._pem(recovering_public),
+                {"rpe-1": self._pem(recovering_public)},
+                nonce_factory=lambda: "fresh-nonce",
+            )
+            started_at = time.time()
+            ok, peers = recovering.broadcast_evidence_update({
+                "evidence_quote": "fresh-quote",
+                "rpe_public_signing_key": self._pem(recovering_public),
+                "rpe_public_encryption_key": "new-encryption-key",
+                "expt_hash": "hash-a",
+            })
+            elapsed = time.time() - started_at
+            self.assertTrue(ok)
+            self.assertEqual(peers, [])
+            self.assertLess(elapsed, 0.5)
 
     def test_recovery_requires_online_peer_even_for_single_rpe_config(self):
         with tempfile.TemporaryDirectory() as temp_dir:

@@ -139,6 +139,51 @@ Metrics:
 - `phase2_wall_clock_s` is the system-level Phase 2 wall-clock time: `max(phase2_end) - min(phase2_start)`.
 - `phase2_avg_s` / `phase2_min_s` / `phase2_max_s` are Phase 2 latency statistics recorded locally by each RPE.
 
+
+### Q1: SRAS-FT attestation overhead (state propagation + echo verification)
+
+**Question:** What is the attestation overhead introduced by SRAS-FT before TEE certificate issuance?
+
+Compare **baseline SRAS** (`ft.enabled = false`) vs **SRAS-FT** (`ft.enabled = true`) under the same multi-party deployment. Measure how much total authentication latency increases after adding state propagation and echo verification.
+
+Quick start (5-party P2P, FT enabled):
+
+```bash
+# 1. Setup (add --ft-enabled for SRAS-FT; omit for baseline)
+python3 performance/setup_multi_party.py --num-parties 5 --transport p2p --p2p-port 51051 --ft-enabled
+python3 performance/setup_multi_ce.py --num-ces 3 --rpe-address 127.0.0.1 --rpe-port 4455
+
+# 2. Start (wait until all RPEs finish Phase 2)
+python3 performance/start_multi_p2p.py --num-parties 5 --base-port 51051
+python3 performance/start_multi_rpo.py --num-parties 5
+python3 performance/start_multi_rpe.py --num-parties 5
+
+# 3. Collect N new CE authentications from issuing RPE (start before CE)
+python3 performance/phase3_performance_test.py --repeat 5 \
+  --perf-dir performance_data/q1_ft_n5 --rpe-dir RPE_party1
+
+# 4. Trigger CE attestation
+python3 performance/start_multi_ce.py --num-parties 3
+```
+
+Output: `performance_data/q1_ft_n5/state_update_report.{txt,csv,xlsx,json}`
+
+Key metrics: `auth_total`, `quote_verify`, `rpc(incl.remote.veri+record)`, `remote.veri+record`, `verify_echo`.
+
+See [performance/README.md](performance/README.md) for the full step-by-step guide (Chinese), timing semantics, baseline comparison, and troubleshooting.
+
+### Q2: SRAS-FT failed RPE recovery latency
+
+Measure recovery time after crash/restart (RecoveryQuery → verify quotes/states → max counter → broadcast new quote):
+
+```bash
+python3 performance/q2_ft_recovery_test.py --repeat 3 \
+  --rpe-dir RPE_party1 --perf-dir performance_data/q2_n5 --label n5
+# then per repeat: kill RPE, cd RPE_party1 && ./startup.sh start
+```
+
+See [performance/README.md](performance/README.md) for Q2 details. Do not use `start_multi_rpe.py --stop` for crash simulation (it deletes expt_cache).
+
 ### Build and config Relying Party Owner (RPO)
 RPO should be deployed in every relying party
 

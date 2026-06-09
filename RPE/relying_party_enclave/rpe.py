@@ -33,6 +33,7 @@ lib.generate_ecdsa_keypair.restype = None
 
 logger = logging.getLogger(__name__)
 
+
 # CMD definitions 
 REQ_CERT = "REQ_CERT"
 VERIFY_CERT = "VERIFY_CERT"
@@ -834,10 +835,24 @@ class RPE:
         if not self.ft_recovery_cache_available:
             logger.info("SRAS-FT recovery skipped: no startup Expt cache")
             return True
+        recovery_started = time.perf_counter()
+        logger.info("SRAS-FT recovery stage: validate Expt cache")
         if not self.validate_ft_expt_cache():
             logger.error("SRAS-FT recovery aborted: cached Expt hash does not match current Expt")
             return False
+        logger.info(
+            "SRAS-FT recovery stage: RecoveryQuery begin (quorum=%d timeout=%.1fs)",
+            self.ft_manager.config.ft_quorum,
+            self.ft_manager.config.recovery_timeout_sec,
+        )
+        recover_started = time.perf_counter()
         ok, selected_state, responses = self.ft_manager.recover_latest_attestation_state()
+        logger.info(
+            "SRAS-FT recovery stage: RecoveryQuery end ok=%s responses=%d elapsed=%.3fms",
+            ok,
+            len(responses),
+            ft_control.elapsed_ms(recover_started),
+        )
         if not ok:
             logger.error(
                 "SRAS-FT recovery failed: valid recovery responses=%d quorum=%d",
@@ -851,18 +866,53 @@ class RPE:
             selected_state["state"]["attestation_counter"],
         )
 
+        new_quote_started = time.perf_counter()
+        logger.info("SRAS-FT recovery stage: generate new evidence quote begin")
         evidence = self.generate_evidence_quote(ft_control.random_nonce())
+        new_quote_generation_ms = ft_control.elapsed_ms(new_quote_started)
+        logger.info(
+            "SRAS-FT recovery stage: generate new evidence quote end elapsed=%.3fms",
+            new_quote_generation_ms,
+        )
+        logger.info("SRAS-FT recovery stage: EvidenceUpdate broadcast begin")
         update_ok, peers = self.ft_manager.broadcast_evidence_update(evidence)
+        logger.info(
+            "SRAS-FT recovery stage: EvidenceUpdate broadcast end ok=%s",
+            update_ok,
+        )
         if not update_ok:
             logger.error(
-                "SRAS-FT evidence update broadcast failed: accepted=%d quorum=%d",
+                "SRAS-FT evidence update broadcast failed to start: accepted=%d quorum=%d",
                 len(peers),
                 self.ft_manager.config.ft_quorum,
             )
             return False
         self.cache_ft_expt_if_enabled()
-        logger.info("SRAS-FT evidence update accepted by %d peer(s)", len(peers))
+        timings = dict(getattr(self.ft_manager, "last_recovery_timings", {}) or {})
+        timings["new_quote_generation_ms"] = new_quote_generation_ms
+        timings["total_recovery_ms"] = ft_control.elapsed_ms(recovery_started)
+        timings["rpe_id"] = self.local_rpe["rpe_id"]
+        timings["valid_response_count"] = len(responses)
+        timings["quorum"] = self.ft_manager.config.ft_quorum
+        timings["selected_tee_id"] = selected_state["state"]["tee_id"]
+        timings["selected_attestation_counter"] = int(selected_state["state"]["attestation_counter"])
+        self.write_ft_recovery_perf(timings)
+        logger.info("SRAS-FT evidence update broadcast started")
+        logger.info("SRAS-FT recovery timings: %s", timings)
         return True
+
+    def write_ft_recovery_perf(self, timings):
+        perf_dir = "./performance_data"
+        try:
+            os.makedirs(perf_dir, exist_ok=True)
+            perf_file = os.path.join(
+                perf_dir, "rpe_ft_recovery_perf_%s.json" % self.local_rpe["rpe_id"]
+            )
+            with open(perf_file, "w", encoding="utf-8") as f:
+                json.dump(timings, f, indent=2)
+            logger.info("SRAS-FT recovery performance data saved to %s", perf_file)
+        except Exception as e:
+            logger.error("Failed to write SRAS-FT recovery performance data: %s", str(e))
 
     def get_public_signing_key_pem(self):
         return self.signing_keys["public"].public_bytes(
@@ -894,7 +944,13 @@ class RPE:
         signing_key = self.get_public_signing_key_pem()
         encryption_key = self.get_public_encryption_key_pem()
         quote_user_data = self.build_ft_quote_user_data(expt_hash, nonce)
+        logger.info("SRAS-FT generate_evidence_quote: calling generate_quote_with_keys")
+        quote_started = time.perf_counter()
         quote = self.generate_quote_with_keys(signing_key, encryption_key, quote_user_data)
+        logger.info(
+            "SRAS-FT generate_evidence_quote: generate_quote_with_keys done in %.3fms",
+            (time.perf_counter() - quote_started) * 1000.0,
+        )
         if quote is None:
             raise RuntimeError("failed to generate SRAS-FT evidence quote")
         return {
