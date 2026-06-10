@@ -23,9 +23,12 @@ from RPE.relying_party_enclave.ft_control import (
 class FTConfigTest(unittest.TestCase):
     def test_auto_quorum_for_even_and_odd_party_counts(self):
         self.assertEqual(derive_ft_quorum(2, 0), 1)
-        self.assertEqual(derive_ft_quorum(4, 0), 2)
+        self.assertEqual(derive_ft_quorum(3, 0), 2)
+        self.assertEqual(derive_ft_quorum(4, 0), 3)
         self.assertEqual(derive_ft_quorum(5, 0), 3)
-        self.assertEqual(derive_ft_quorum(8, 0), 4)
+        self.assertEqual(derive_ft_quorum(6, 0), 4)
+        self.assertEqual(derive_ft_quorum(7, 0), 4)
+        self.assertEqual(derive_ft_quorum(8, 0), 5)
 
     def test_quorum_override_is_validated(self):
         self.assertEqual(derive_ft_quorum(4, 3), 3)
@@ -58,7 +61,7 @@ class FTConfigTest(unittest.TestCase):
     def test_config_defaults_to_disabled(self):
         config = FTConfig.from_conf({}, num_rpes=4, local_rpe_id="rpe-1")
         self.assertFalse(config.enabled)
-        self.assertEqual(config.ft_quorum, 2)
+        self.assertEqual(config.ft_quorum, 3)
         self.assertEqual(config.peer_addresses, {})
 
     def test_config_accepts_explicit_enabled_tokens(self):

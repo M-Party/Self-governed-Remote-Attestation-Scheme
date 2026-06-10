@@ -176,8 +176,10 @@ def derive_ft_quorum(num_rpes, quorum_override=0):
         if quorum_override > num_rpes:
             raise ValueError("quorum_override must be <= num_rpes")
         return quorum_override
-    tolerated_faults = (num_rpes - 1) // 2
-    return tolerated_faults + 1
+    # Quorum: floor(N/2) + 1; N=2 keeps quorum=1 (only one remote peer).
+    if num_rpes == 2:
+        return 1
+    return num_rpes // 2 + 1
 
 
 def _as_bool(value, default=False):
