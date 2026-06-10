@@ -856,7 +856,7 @@ class RPE:
             logger.error("SRAS-FT recovery aborted: cached Expt hash does not match current Expt")
             return False
         logger.info("SRAS-FT recovery stage: warmup FT peer channels begin")
-        warmup_result = self.ft_manager.warmup_peer_channels(timeout=1.0)
+        warmup_result = self.ft_manager.warmup_peer_channels(timeout=2.0, retry_timeout=2.0)
         logger.info(
             "SRAS-FT recovery stage: warmup FT peer channels end warmed=%d/%d elapsed=%.3fms",
             warmup_result.get("warmed", 0),

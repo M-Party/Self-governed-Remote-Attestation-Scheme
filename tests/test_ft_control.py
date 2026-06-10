@@ -1209,6 +1209,48 @@ class FTRecoveryTest(unittest.TestCase):
                 manager.grpc_post_json(address, "RecoveryQuery", {"status": 0}, 1.0)
                 insecure_channel.assert_called_once()
 
+
+    def test_grpc_channel_pool_evicts_on_rpc_failure(self):
+        from unittest.mock import MagicMock, patch
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            private_key, public_key = self._key_pair()
+            config = FTConfig(
+                enabled=False,
+                local_rpe_id="rpe-1",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "counter.json"),
+                ft_quorum=1,
+            )
+            manager = FTControlManager(
+                config,
+                private_key,
+                self._pem(public_key),
+                {"rpe-1": self._pem(public_key)},
+            )
+            first_channel = MagicMock()
+            second_channel = MagicMock()
+            failing_rpc = MagicMock(side_effect=RuntimeError("rpc failed"))
+            succeeding_rpc = MagicMock(return_value=b"{\"status\": 0}")
+            first_channel.unary_unary.return_value = failing_rpc
+            second_channel.unary_unary.return_value = succeeding_rpc
+            with patch(
+                "RPE.relying_party_enclave.ft_control.grpc.insecure_channel",
+                side_effect=[first_channel, second_channel],
+            ) as insecure_channel:
+                address = "127.0.0.1:56001"
+                with self.assertRaises(RuntimeError):
+                    manager.grpc_post_json(address, "Ping", {"status": 0}, 1.0)
+                first_channel.close.assert_called_once()
+                response = manager.grpc_post_json(address, "Ping", {"status": 0}, 1.0)
+                self.assertEqual(response["status"], 0)
+                self.assertEqual(insecure_channel.call_count, 2)
+
     def test_public_key_cache_avoids_repeated_pem_parsing(self):
         from unittest.mock import patch
 

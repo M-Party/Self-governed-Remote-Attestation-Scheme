@@ -91,12 +91,32 @@ class GrpcPeerChannelPool:
             self._stubs[key] = rpc
         return rpc
 
+    def _evict_locked(self, address):
+        channel = self._channels.pop(address, None)
+        for key in [item for item in self._stubs if item[0] == address]:
+            self._stubs.pop(key, None)
+        return channel
+
+    def evict(self, address):
+        with self._lock:
+            channel = self._evict_locked(address)
+        if channel is not None:
+            channel.close()
+
     def post_json(self, address, method, payload, timeout, cancel_event=None):
         if cancel_event is not None and cancel_event.is_set():
             raise FTGrpcCancelledError("FT gRPC call cancelled before send")
         with self._lock:
             rpc = self._stub_locked(address, method)
-        response_bytes = rpc(canonical_json_bytes(payload), timeout=timeout)
+        try:
+            response_bytes = rpc(
+                canonical_json_bytes(payload),
+                timeout=timeout,
+                wait_for_ready=True,
+            )
+        except Exception:
+            self.evict(address)
+            raise
         if cancel_event is not None and cancel_event.is_set():
             raise FTGrpcCancelledError("FT gRPC call cancelled after response")
         return json.loads(response_bytes.decode("utf-8"))
@@ -448,7 +468,7 @@ class FTControlManager:
             address, method, payload, timeout, cancel_event=cancel_event
         )
 
-    def warmup_peer_channels(self, timeout=1.0):
+    def warmup_peer_channels(self, timeout=2.0, retry_timeout=2.0):
         started = time.perf_counter()
         peer_targets = [
             (peer_id, address)
@@ -456,40 +476,64 @@ class FTControlManager:
             if peer_id != self.config.local_rpe_id
         ]
         results = {}
-        threads = []
         lock = threading.Lock()
 
-        def ping_one(peer_id, address):
-            peer_started = time.perf_counter()
-            try:
-                response = self.grpc_post_json(
-                    address,
-                    "Ping",
-                    {"sender_rpe_id": self.config.local_rpe_id, "nonce": self.nonce_factory()},
-                    timeout,
-                )
-                ok = response.get("status") == 0
-                with lock:
-                    results[peer_id] = {
-                        "ok": ok,
-                        "elapsed_ms": elapsed_ms(peer_started),
-                        "error": None if ok else response.get("error", "unknown error"),
-                    }
-            except Exception as exc:
-                with lock:
-                    results[peer_id] = {
-                        "ok": False,
-                        "elapsed_ms": elapsed_ms(peer_started),
-                        "error": str(exc),
-                    }
+        def ping_round(targets, round_timeout, evict_before):
+            if not targets:
+                return
+            if evict_before:
+                for _, address in targets:
+                    self._grpc_pool.evict(address)
+            threads = []
 
-        for peer_id, address in peer_targets:
-            thread = threading.Thread(target=ping_one, args=(peer_id, address), daemon=True)
-            thread.start()
-            threads.append(thread)
-        deadline = time.time() + timeout
-        for thread in threads:
-            thread.join(timeout=max(0.0, deadline - time.time()))
+            def ping_one(peer_id, address):
+                peer_started = time.perf_counter()
+                try:
+                    response = self.grpc_post_json(
+                        address,
+                        "Ping",
+                        {"sender_rpe_id": self.config.local_rpe_id, "nonce": self.nonce_factory()},
+                        round_timeout,
+                    )
+                    ok = response.get("status") == 0
+                    with lock:
+                        results[peer_id] = {
+                            "ok": ok,
+                            "elapsed_ms": elapsed_ms(peer_started),
+                            "error": None if ok else response.get("error", "unknown error"),
+                            "retry": evict_before,
+                        }
+                except Exception as exc:
+                    with lock:
+                        results[peer_id] = {
+                            "ok": False,
+                            "elapsed_ms": elapsed_ms(peer_started),
+                            "error": str(exc),
+                            "retry": evict_before,
+                        }
+
+            for peer_id, address in targets:
+                thread = threading.Thread(target=ping_one, args=(peer_id, address), daemon=True)
+                thread.start()
+                threads.append(thread)
+            deadline = time.time() + round_timeout
+            for thread in threads:
+                thread.join(timeout=max(0.0, deadline - time.time()))
+
+        ping_round(peer_targets, timeout, evict_before=False)
+        failed_targets = [
+            (peer_id, address)
+            for peer_id, address in peer_targets
+            if not results.get(peer_id, {}).get("ok")
+        ]
+        if failed_targets:
+            logger.info(
+                "FT peer channel warmup retrying %d peer(s) after evict: %s",
+                len(failed_targets),
+                [peer_id for peer_id, _ in failed_targets],
+            )
+            ping_round(failed_targets, retry_timeout, evict_before=True)
+
         with lock:
             warmed = sum(1 for item in results.values() if item.get("ok"))
             snapshot = dict(results)
@@ -1186,7 +1230,7 @@ class FTControlManager:
         validated_peer_ids = set()
         threads = []
         lock = threading.Lock()
-        response_available = threading.Condition(lock)
+        stop_event = threading.Event()
         peer_targets = [
             (peer_id, address)
             for peer_id, address in self.config.peer_addresses.items()
@@ -1209,7 +1253,11 @@ class FTControlManager:
             try:
                 logger.info("FT recovery query to %s begin", peer_id)
                 response = self.grpc_post_json(
-                    address, "RecoveryQuery", payload, self.config.recovery_timeout_sec
+                    address,
+                    "RecoveryQuery",
+                    payload,
+                    self.config.recovery_timeout_sec,
+                    cancel_event=stop_event,
                 )
                 logger.info(
                     "FT recovery query to %s grpc returned in %.3fms status=%s",
@@ -1217,9 +1265,8 @@ class FTControlManager:
                     elapsed_ms(peer_started),
                     response.get("status"),
                 )
-                with response_available:
+                with lock:
                     raw_responses.append((peer_id, response, elapsed_ms(peer_started)))
-                    response_available.notify()
             except Exception as exc:
                 logger.warning(
                     "FT recovery query to %s failed after %.3fms: %s",
@@ -1227,9 +1274,8 @@ class FTControlManager:
                     elapsed_ms(peer_started),
                     exc,
                 )
-                with response_available:
+                with lock:
                     failed_peers.append(peer_id)
-                    response_available.notify()
 
         for peer_id, address in peer_targets:
             thread = threading.Thread(target=query_one, args=(peer_id, address), daemon=True)
@@ -1283,9 +1329,10 @@ class FTControlManager:
                 recovery_success_ms,
                 counter_selection_ms,
             )
+            stop_event.set()
 
         def validate_pending():
-            with response_available:
+            with lock:
                 pending = [
                     (peer_id, response, query_elapsed_ms)
                     for peer_id, response, query_elapsed_ms in raw_responses
@@ -1298,7 +1345,7 @@ class FTControlManager:
                 valid_response = self._validate_recovery_response(response, recovery_nonce)
                 validate_ms = elapsed_ms(validate_started)
                 if valid_response is not None:
-                    with response_available:
+                    with lock:
                         valid_responses.append(valid_response)
                     logger.info(
                         "FT recovery query to %s accepted (query=%.3fms validate=%.3fms)",
@@ -1316,16 +1363,24 @@ class FTControlManager:
                     )
 
         deadline = time.time() + self.config.recovery_timeout_sec
-        while True:
+        while time.time() < deadline:
             validate_pending()
-            with response_available:
-                all_done = all(not thread.is_alive() for _, thread in threads)
-                if all_done:
-                    break
-                remaining = max(0.01, deadline - time.time())
-                if remaining <= 0.0:
-                    break
-                response_available.wait(timeout=remaining)
+            if recovery_success_ms is not None:
+                stop_event.set()
+                break
+            any_alive = False
+            for _, thread in threads:
+                thread.join(timeout=0.05)
+                if thread.is_alive():
+                    any_alive = True
+            if not any_alive:
+                break
+            if recovery_success_ms is not None:
+                stop_event.set()
+                break
+
+        stop_event.set()
+        validate_pending()
 
         alive_after_join = []
         for peer_id, thread in threads:

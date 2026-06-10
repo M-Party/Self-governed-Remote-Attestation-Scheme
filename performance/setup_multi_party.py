@@ -59,15 +59,27 @@ class MultiPartySetup:
             for party_index in range(1, self.num_parties + 1)
         )
     
+
+    def _recreate_party_dir(self, party_dir, source_dir, party_label, copy_kwargs=None):
+        if os.path.exists(party_dir):
+            logger.info("Removing existing %s at %s", party_label, party_dir)
+            shutil.rmtree(party_dir)
+        logger.info("Copying %s from %s", party_label, source_dir)
+        if copy_kwargs:
+            shutil.copytree(source_dir, party_dir, **copy_kwargs)
+        else:
+            shutil.copytree(source_dir, party_dir)
+
     def copy_and_config_fabric_client(self, party_id, grpc_port):
         """Copy and configure a Fabric Client instance."""
         party_fc_dir = os.path.join(self.base_dir, f"fabric_client_party{party_id}")
         
-        if os.path.exists(party_fc_dir):
-            logger.warning("Fabric Client Party %d already exists, reconfiguring..." % party_id)
-        else:
-            logger.info("Copying Fabric Client for Party %d..." % party_id)
-            shutil.copytree(self.fabric_client_base, party_fc_dir, ignore=shutil.ignore_patterns('*.pyc', '__pycache__', '*.log'))
+        self._recreate_party_dir(
+            party_fc_dir,
+            self.fabric_client_base,
+            "Fabric Client Party %d" % party_id,
+            copy_kwargs={"ignore": shutil.ignore_patterns('*.pyc', '__pycache__', '*.log')},
+        )
         
         # Update the gRPC port when needed.
         config_file = os.path.join(party_fc_dir, "config", "config.toml")
@@ -86,11 +98,11 @@ class MultiPartySetup:
         """Copy and configure an RPO instance."""
         party_rpo_dir = os.path.join(self.base_dir, f"RPO_party{party_id}")
         
-        if os.path.exists(party_rpo_dir):
-            logger.warning("RPO Party %d already exists, reconfiguring..." % party_id)
-        else:
-            logger.info("Copying RPO for Party %d (RPE: %s)..." % (party_id, rpe_id))
-            shutil.copytree(self.rpo_base, party_rpo_dir)
+        self._recreate_party_dir(
+            party_rpo_dir,
+            self.rpo_base,
+            "RPO Party %d (RPE: %s)" % (party_id, rpe_id),
+        )
         
         # Update config.toml.
         config_file = os.path.join(party_rpo_dir, "config.toml")
@@ -188,11 +200,11 @@ class MultiPartySetup:
         """Copy and configure an RPE instance."""
         party_rpe_dir = os.path.join(self.base_dir, f"RPE_party{party_id}")
         
-        if os.path.exists(party_rpe_dir):
-            logger.warning("RPE Party %d already exists, reconfiguring..." % party_id)
-        else:
-            logger.info("Copying RPE for Party %d (RPE: %s, Port: %s)..." % (party_id, rpe_id, rpe_port))
-            shutil.copytree(self.rpe_base, party_rpe_dir)
+        self._recreate_party_dir(
+            party_rpe_dir,
+            self.rpe_base,
+            "RPE Party %d (RPE: %s, Port: %s)" % (party_id, rpe_id, rpe_port),
+        )
         
         # Update config.toml.
         config_file = os.path.join(party_rpe_dir, "config.toml")
