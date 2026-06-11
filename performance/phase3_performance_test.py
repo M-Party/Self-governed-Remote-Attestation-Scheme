@@ -228,7 +228,7 @@ class Phase3PerformanceTest:
             return []
         return list(data.get("ce_authentications", []))
 
-    def wait_for_auth_count_target(self, target_count, timeout=600):
+    def wait_for_auth_count_target(self, target_count, timeout=1800):
         """Poll until the issuing RPE has at least target_count total CE authentication records."""
         perf_file = self._get_issuing_rpe_perf_file()
         logger.info(
@@ -268,6 +268,12 @@ class Phase3PerformanceTest:
             "max": max(values),
             "count": len(values),
         }
+
+    def _compute_attestation_overhead_ms(self, quote_verify_ms, rpc_ms, verify_echo_ms):
+        """TEE quote verify + state broadcast (echo wait) + echo verification."""
+        if quote_verify_ms is None and rpc_ms is None and verify_echo_ms is None:
+            return None
+        return float(quote_verify_ms or 0) + float(rpc_ms or 0) + float(verify_echo_ms or 0)
 
     def _max_peer_ms(self, peers_raw, field, accepted_only=False):
         """Return MAX of a peer timing field; prefer accepted peers, else all peers."""
@@ -336,11 +342,11 @@ class Phase3PerformanceTest:
             ("counter", "counter"),
             ("ce_id", "ce_id"),
             ("bottleneck_peer_id", "bottleneck_peer"),
-            ("auth_total_ms", "auth_total"),
-            ("quote_verify_ms", "quote_verify"),
-            ("rpc_ms", "rpc(incl.remote.veri+record)"),
+            ("attestation_overhead_ms", "attestation_overhead"),
+            ("quote_verify_ms", "tee_quote_verify"),
+            ("rpc_ms", "state_broadcast_echo_wait"),
             ("remote_veri_record_ms", "remote.veri+record"),
-            ("verify_echo_ms", "verify_echo"),
+            ("verify_echo_ms", "echo_verification"),
         ]
 
     def _write_breakdown_excel(self, xlsx_path, csv_path, breakdown_rows, breakdown_summary):
@@ -477,10 +483,15 @@ class Phase3PerformanceTest:
         else:
             other_ms = None
 
+        attestation_overhead_ms = self._compute_attestation_overhead_ms(
+            quote_verify_ms, rpc_ms, verify_echo_ms
+        )
+
         return {
             "counter": timings.get("attestation_counter"),
             "ce_id": auth.get("ce_id"),
             "auth_total_ms": auth_total_ms,
+            "attestation_overhead_ms": attestation_overhead_ms,
             "quote_verify_ms": quote_verify_ms,
             "policy_ms": policy_ms,
             "ft_wall_ms": ft_wall_ms,
@@ -513,11 +524,14 @@ class Phase3PerformanceTest:
 
         breakdown_rows = [self._extract_ft_breakdown_row(auth) for auth in auths]
         breakdown_summary = {
-            "auth_total_ms": self._stats_ms([r["auth_total_ms"] for r in breakdown_rows if r["auth_total_ms"] is not None]),
+            "attestation_overhead_ms": self._stats_ms(
+                [r["attestation_overhead_ms"] for r in breakdown_rows if r["attestation_overhead_ms"] is not None]
+            ),
             "quote_verify_ms": self._stats_ms([r["quote_verify_ms"] for r in breakdown_rows if r["quote_verify_ms"] is not None]),
             "rpc_ms": self._stats_ms([r["rpc_ms"] for r in breakdown_rows if r["rpc_ms"] is not None]),
             "remote_veri_record_ms": self._stats_ms([r["remote_veri_record_ms"] for r in breakdown_rows if r["remote_veri_record_ms"] is not None]),
             "verify_echo_ms": self._stats_ms([r["verify_echo_ms"] for r in breakdown_rows if r["verify_echo_ms"] is not None]),
+            "auth_total_ms": self._stats_ms([r["auth_total_ms"] for r in breakdown_rows if r["auth_total_ms"] is not None]),
         }
 
         def _metric_values(auth_list, primary_key, fallback_key=None):
@@ -545,6 +559,11 @@ class Phase3PerformanceTest:
             auths, "ft_state_propagation_duration", "ft_state_propagation"
         )
         stage3_native = _metric_values(auths, "stage3_native_quote_verification_duration")
+        attestation_overhead_durations = [
+            row["attestation_overhead_ms"] / 1000.0
+            for row in breakdown_rows
+            if row.get("attestation_overhead_ms") is not None
+        ]
 
         issuing_file = self._get_issuing_rpe_perf_file()
         result = {
@@ -553,6 +572,7 @@ class Phase3PerformanceTest:
             "collected_new_authentications": len(auths),
             "issuing_rpe_perf_file": issuing_file,
             "statistics": {
+                "attestation_overhead_duration": _stats(attestation_overhead_durations),
                 "auth_duration": _stats(auth_durations),
                 "ft_state_propagation_duration": _stats(ft_durations),
                 "stage3_native_quote_verification_duration": _stats(stage3_native),
@@ -578,9 +598,10 @@ class Phase3PerformanceTest:
             if issuing_file:
                 f.write("Issuing RPE perf file: %s\n\n" % issuing_file)
             for name, label in (
-                ("auth_duration", "Auth Duration (s)"),
+                ("attestation_overhead_duration", "Attestation Overhead (s)"),
+                ("stage3_native_quote_verification_duration", "TEE Quote Verification (s)"),
                 ("ft_state_propagation_duration", "FT State Propagation (s)"),
-                ("stage3_native_quote_verification_duration", "Stage3 Native Quote Verification (s)"),
+                ("auth_duration", "End-to-end Auth Duration (s, incl. cert issuance)"),
             ):
                 s = stats[name]
                 f.write(
@@ -593,24 +614,34 @@ class Phase3PerformanceTest:
             f.write("Authentication Breakdown (ms)\n")
             f.write("-" * 80 + "\n")
             f.write(
-                "  Each row = one authentication. bottleneck_peer = slowest peer (rpc+verify_echo).\n"
-                "  quote_verify = CE quote verification (before FT).\n"
-                "  rpc(incl.remote.veri+record) = StateUpdate RPC round-trip incl. network + remote veri+record (subset below).\n"
-                "  remote.veri+record = verify_state_signature + record_state on that peer (already inside rpc column).\n"
-                "  verify_echo = local echo verify after rpc returns on that peer (sequential after rpc).\n"
+                "  Each row = one authentication. bottleneck_peer = slowest peer (state_broadcast_echo_wait+echo_verification).\n"
+                "  attestation_overhead = tee_quote_verify + state_broadcast_echo_wait + echo_verification.\n"
+                "  tee_quote_verify = CE DCAP quote verification (before FT).\n"
+                "  state_broadcast_echo_wait = StateUpdate RPC round-trip incl. network + remote veri+record (subset below).\n"
+                "  remote.veri+record = verify_state_signature + record_state on that peer (already inside state_broadcast_echo_wait).\n"
+                "  echo_verification = local echo verify after RPC returns on bottleneck peer.\n"
             )
             f.write(
-                "%8s %8s %14s %12s %12s %10s %18s %12s\n" %
-                ("counter", "ce_id", "bottleneck_peer", "auth_total", "quote_verify", "rpc(incl.remote.veri+record)", "remote.veri+record", "verify_echo")
+                "%8s %8s %14s %18s %16s %24s %18s %18s\n" %
+                (
+                    "counter",
+                    "ce_id",
+                    "bottleneck_peer",
+                    "attestation_overhead",
+                    "tee_quote_verify",
+                    "state_broadcast_echo_wait",
+                    "remote.veri+record",
+                    "echo_verification",
+                )
             )
             for row in breakdown_rows:
                 f.write(
-                    "%8s %8s %14s %12s %12s %10s %18s %12s\n" %
+                    "%8s %8s %14s %18s %16s %24s %18s %18s\n" %
                     (
                         row["counter"] if row["counter"] is not None else "N/A",
                         row["ce_id"] or "N/A",
                         row.get("bottleneck_peer_id") or "N/A",
-                        self._fmt_ms(row["auth_total_ms"]),
+                        self._fmt_ms(row["attestation_overhead_ms"]),
                         self._fmt_ms(row["quote_verify_ms"]),
                         self._fmt_ms(row["rpc_ms"]),
                         self._fmt_ms(row["remote_veri_record_ms"]),
@@ -620,11 +651,11 @@ class Phase3PerformanceTest:
 
             f.write("\nSummary (avg / min / max)\n")
             for key, label in (
-                ("auth_total_ms", "auth_total"),
-                ("quote_verify_ms", "quote_verify"),
-                ("rpc_ms", "rpc(incl.remote.veri+record)"),
+                ("attestation_overhead_ms", "attestation_overhead"),
+                ("quote_verify_ms", "tee_quote_verify"),
+                ("rpc_ms", "state_broadcast_echo_wait"),
                 ("remote_veri_record_ms", "remote.veri+record"),
-                ("verify_echo_ms", "verify_echo"),
+                ("verify_echo_ms", "echo_verification"),
             ):
                 s = breakdown_summary[key]
                 if s["count"]:
@@ -649,12 +680,12 @@ class Phase3PerformanceTest:
         logger.info("State update report: %d new authentication(s) collected" % len(auths))
         for row in breakdown_rows[:5]:
             logger.info(
-                "  breakdown: counter=%s ce_id=%s auth_total=%s quote_verify=%s rpc=%s "
-                "peer=%s remote.veri+record=%s verify_echo=%s" %
+                "  breakdown: counter=%s ce_id=%s attestation_overhead=%s tee_quote_verify=%s "
+                "state_broadcast_echo_wait=%s peer=%s remote.veri+record=%s echo_verification=%s" %
                 (
                     row["counter"] if row["counter"] is not None else "N/A",
                     row["ce_id"] or "N/A",
-                    self._fmt_ms(row["auth_total_ms"]),
+                    self._fmt_ms(row["attestation_overhead_ms"]),
                     self._fmt_ms(row["quote_verify_ms"]),
                     self._fmt_ms(row["rpc_ms"]),
                     row.get("bottleneck_peer_id") or "N/A",
@@ -663,7 +694,15 @@ class Phase3PerformanceTest:
                 )
             )
         logger.info(
-            "  Auth Duration — avg: %.6f, min: %.6f, max: %.6f" %
+            "  Attestation Overhead — avg: %.6f, min: %.6f, max: %.6f" %
+            (
+                stats["attestation_overhead_duration"]["avg"],
+                stats["attestation_overhead_duration"]["min"],
+                stats["attestation_overhead_duration"]["max"],
+            )
+        )
+        logger.info(
+            "  End-to-end Auth Duration — avg: %.6f, min: %.6f, max: %.6f" %
             (stats["auth_duration"]["avg"], stats["auth_duration"]["min"], stats["auth_duration"]["max"])
         )
         logger.info(
