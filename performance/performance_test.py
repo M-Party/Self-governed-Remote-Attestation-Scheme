@@ -89,7 +89,7 @@ class RPEPerformanceTest:
         logger.info("All %d RPE(s) pre-init ready. You can start RPO now." % len(rpe_ids))
         return True
 
-    def wait_for_all_rpes_complete(self, rpe_ids, timeout=300, check_cleared=False):
+    def wait_for_all_rpes_complete(self, rpe_ids, timeout=600, check_cleared=False):
         """
         Wait until all RPEs complete initialization, meaning Phase 2 is complete.
         If performance files are deleted, search all RPE directories again.
@@ -291,9 +291,13 @@ class RPEPerformanceTest:
         phase2_times = []
         phase2_quote_generation_times = []
         phase2_exchange_times = []
+        phase2_send_local_quote_times = []
+        phase2_wait_remote_quotes_times = []
         phase2_verification_times = []
         phase2_native_quote_verification_times = []
         phase2_policy_enforcement_times = []
+        t_exchange_times = []
+        t_join_times = []
         total_times = []
         for rpe_id, perf_data in all_perf_data.items():
             durations = perf_data.get("durations", {})
@@ -305,12 +309,20 @@ class RPEPerformanceTest:
                 phase2_quote_generation_times.append(durations["phase2_quote_generation"])
             if durations.get("phase2_exchange") is not None:
                 phase2_exchange_times.append(durations["phase2_exchange"])
+            if durations.get("phase2_send_local_quote") is not None:
+                phase2_send_local_quote_times.append(durations["phase2_send_local_quote"])
+            if durations.get("phase2_wait_remote_quotes") is not None:
+                phase2_wait_remote_quotes_times.append(durations["phase2_wait_remote_quotes"])
             if durations.get("phase2_verification") is not None:
                 phase2_verification_times.append(durations["phase2_verification"])
             if durations.get("phase2_native_quote_verification") is not None:
                 phase2_native_quote_verification_times.append(durations["phase2_native_quote_verification"])
             if durations.get("phase2_policy_enforcement") is not None:
                 phase2_policy_enforcement_times.append(durations["phase2_policy_enforcement"])
+            if durations.get("t_exchange") is not None:
+                t_exchange_times.append(durations["t_exchange"])
+            if durations.get("t_join") is not None:
+                t_join_times.append(durations["t_join"])
             if durations.get("total"):
                 total_times.append(durations["total"])
         result = {
@@ -325,9 +337,13 @@ class RPEPerformanceTest:
                 "phase2": _build_stats(phase2_times),
                 "phase2_quote_generation": _build_stats(phase2_quote_generation_times),
                 "phase2_exchange": _build_stats(phase2_exchange_times),
+                "phase2_send_local_quote": _build_stats(phase2_send_local_quote_times),
+                "phase2_wait_remote_quotes": _build_stats(phase2_wait_remote_quotes_times),
                 "phase2_verification": _build_stats(phase2_verification_times),
                 "phase2_native_quote_verification": _build_stats(phase2_native_quote_verification_times),
                 "phase2_policy_enforcement": _build_stats(phase2_policy_enforcement_times),
+                "t_exchange": _build_stats(t_exchange_times),
+                "t_join": _build_stats(t_join_times),
                 "total": _build_stats(total_times),
             }
         }
@@ -358,6 +374,16 @@ class RPEPerformanceTest:
             result["statistics"]["phase2_exchange"]["min"],
             result["statistics"]["phase2_exchange"]["max"]
         ))
+        logger.info("  Phase 2.2.1 send local quote - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_send_local_quote"]["avg"],
+            result["statistics"]["phase2_send_local_quote"]["min"],
+            result["statistics"]["phase2_send_local_quote"]["max"]
+        ))
+        logger.info("  Phase 2.2.2 wait remote quotes - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_wait_remote_quotes"]["avg"],
+            result["statistics"]["phase2_wait_remote_quotes"]["min"],
+            result["statistics"]["phase2_wait_remote_quotes"]["max"]
+        ))
         logger.info("  Phase 2.3 quote verification - Avg: %.3f, Min: %.3f, Max: %.3f" % (
             result["statistics"]["phase2_verification"]["avg"],
             result["statistics"]["phase2_verification"]["min"],
@@ -372,6 +398,16 @@ class RPEPerformanceTest:
             result["statistics"]["phase2_policy_enforcement"]["avg"],
             result["statistics"]["phase2_policy_enforcement"]["min"],
             result["statistics"]["phase2_policy_enforcement"]["max"]
+        ))
+        logger.info("  Phase 2.4 policy exchange (t_exchange) - Avg: %.6f, Min: %.6f, Max: %.6f" % (
+            result["statistics"]["t_exchange"]["avg"],
+            result["statistics"]["t_exchange"]["min"],
+            result["statistics"]["t_exchange"]["max"]
+        ))
+        logger.info("  Phase 2.5 consensus join (t_join) - Avg: %.6f, Min: %.6f, Max: %.6f" % (
+            result["statistics"]["t_join"]["avg"],
+            result["statistics"]["t_join"]["min"],
+            result["statistics"]["t_join"]["max"]
         ))
         logger.info("  Total (Individual) - Avg: %.3f, Min: %.3f, Max: %.3f" % (
             result["statistics"]["total"]["avg"],
@@ -479,9 +515,13 @@ class RPEPerformanceTest:
         phase2_times = []
         phase2_quote_generation_times = []
         phase2_exchange_times = []
+        phase2_send_local_quote_times = []
+        phase2_wait_remote_quotes_times = []
         phase2_verification_times = []
         phase2_native_quote_verification_times = []
         phase2_policy_enforcement_times = []
+        t_exchange_times = []
+        t_join_times = []
         total_times = []
         for rpe_id, perf_data in all_perf_data.items():
             durations = perf_data.get("durations", {})
@@ -493,12 +533,20 @@ class RPEPerformanceTest:
                 phase2_quote_generation_times.append(durations["phase2_quote_generation"])
             if durations.get("phase2_exchange") is not None:
                 phase2_exchange_times.append(durations["phase2_exchange"])
+            if durations.get("phase2_send_local_quote") is not None:
+                phase2_send_local_quote_times.append(durations["phase2_send_local_quote"])
+            if durations.get("phase2_wait_remote_quotes") is not None:
+                phase2_wait_remote_quotes_times.append(durations["phase2_wait_remote_quotes"])
             if durations.get("phase2_verification") is not None:
                 phase2_verification_times.append(durations["phase2_verification"])
             if durations.get("phase2_native_quote_verification") is not None:
                 phase2_native_quote_verification_times.append(durations["phase2_native_quote_verification"])
             if durations.get("phase2_policy_enforcement") is not None:
                 phase2_policy_enforcement_times.append(durations["phase2_policy_enforcement"])
+            if durations.get("t_exchange") is not None:
+                t_exchange_times.append(durations["t_exchange"])
+            if durations.get("t_join") is not None:
+                t_join_times.append(durations["t_join"])
             if durations.get("total"):
                 total_times.append(durations["total"])
         result = {
@@ -513,9 +561,13 @@ class RPEPerformanceTest:
                 "phase2": _build_stats(phase2_times),
                 "phase2_quote_generation": _build_stats(phase2_quote_generation_times),
                 "phase2_exchange": _build_stats(phase2_exchange_times),
+                "phase2_send_local_quote": _build_stats(phase2_send_local_quote_times),
+                "phase2_wait_remote_quotes": _build_stats(phase2_wait_remote_quotes_times),
                 "phase2_verification": _build_stats(phase2_verification_times),
                 "phase2_native_quote_verification": _build_stats(phase2_native_quote_verification_times),
                 "phase2_policy_enforcement": _build_stats(phase2_policy_enforcement_times),
+                "t_exchange": _build_stats(t_exchange_times),
+                "t_join": _build_stats(t_join_times),
                 "total": _build_stats(total_times),
             }
         }
@@ -541,6 +593,14 @@ class RPEPerformanceTest:
             result["statistics"]["phase2_exchange"]["avg"],
             result["statistics"]["phase2_exchange"]["min"],
             result["statistics"]["phase2_exchange"]["max"]))
+        logger.info("  Phase 2.2.1 send local quote - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_send_local_quote"]["avg"],
+            result["statistics"]["phase2_send_local_quote"]["min"],
+            result["statistics"]["phase2_send_local_quote"]["max"]))
+        logger.info("  Phase 2.2.2 wait remote quotes - Avg: %.3f, Min: %.3f, Max: %.3f" % (
+            result["statistics"]["phase2_wait_remote_quotes"]["avg"],
+            result["statistics"]["phase2_wait_remote_quotes"]["min"],
+            result["statistics"]["phase2_wait_remote_quotes"]["max"]))
         logger.info("  Phase 2.3 quote verification - Avg: %.3f, Min: %.3f, Max: %.3f" % (
             result["statistics"]["phase2_verification"]["avg"],
             result["statistics"]["phase2_verification"]["min"],
@@ -553,6 +613,16 @@ class RPEPerformanceTest:
             result["statistics"]["phase2_policy_enforcement"]["avg"],
             result["statistics"]["phase2_policy_enforcement"]["min"],
             result["statistics"]["phase2_policy_enforcement"]["max"]))
+        logger.info("  Phase 2.4 policy exchange (t_exchange) - Avg: %.6f, Min: %.6f, Max: %.6f" % (
+            result["statistics"]["t_exchange"]["avg"],
+            result["statistics"]["t_exchange"]["min"],
+            result["statistics"]["t_exchange"]["max"]
+        ))
+        logger.info("  Phase 2.5 consensus join (t_join) - Avg: %.6f, Min: %.6f, Max: %.6f" % (
+            result["statistics"]["t_join"]["avg"],
+            result["statistics"]["t_join"]["min"],
+            result["statistics"]["t_join"]["max"]
+        ))
         logger.info("  Total (Individual) - Avg: %.3f, Min: %.3f, Max: %.3f" % (
             result["statistics"]["total"]["avg"],
             result["statistics"]["total"]["min"],
@@ -622,6 +692,12 @@ class RPEPerformanceTest:
                 "Phase2.2 Quote Exchange Avg (s)",
                 "Phase2.2 Quote Exchange Min (s)",
                 "Phase2.2 Quote Exchange Max (s)",
+                "Phase2.2.1 Send Local Quote Avg (s)",
+                "Phase2.2.1 Send Local Quote Min (s)",
+                "Phase2.2.1 Send Local Quote Max (s)",
+                "Phase2.2.2 Wait Remote Quotes Avg (s)",
+                "Phase2.2.2 Wait Remote Quotes Min (s)",
+                "Phase2.2.2 Wait Remote Quotes Max (s)",
                 "Phase2.3 Quote Verification Avg (s)",
                 "Phase2.3 Quote Verification Min (s)",
                 "Phase2.3 Quote Verification Max (s)",
@@ -631,6 +707,12 @@ class RPEPerformanceTest:
                 "Phase2.3.2 Policy Enforcement Avg (s)",
                 "Phase2.3.2 Policy Enforcement Min (s)",
                 "Phase2.3.2 Policy Enforcement Max (s)",
+                "t_exchange Avg (s)",
+                "t_exchange Min (s)",
+                "t_exchange Max (s)",
+                "t_join Avg (s)",
+                "t_join Min (s)",
+                "t_join Max (s)",
                 "Total Avg (s)",
                 "Total Min (s)",
                 "Total Max (s)"
@@ -643,9 +725,13 @@ class RPEPerformanceTest:
                 phase2_stats = result["statistics"]["phase2"]
                 phase2_quote_generation_stats = result["statistics"]["phase2_quote_generation"]
                 phase2_exchange_stats = result["statistics"]["phase2_exchange"]
+                phase2_send_local_quote_stats = result["statistics"].get("phase2_send_local_quote") or {"avg": 0, "min": 0, "max": 0}
+                phase2_wait_remote_quotes_stats = result["statistics"].get("phase2_wait_remote_quotes") or {"avg": 0, "min": 0, "max": 0}
                 phase2_verification_stats = result["statistics"]["phase2_verification"]
                 phase2_native_quote_verification_stats = result["statistics"]["phase2_native_quote_verification"]
                 phase2_policy_enforcement_stats = result["statistics"]["phase2_policy_enforcement"]
+                t_exchange_stats = result["statistics"].get("t_exchange") or {"avg": 0, "min": 0, "max": 0}
+                t_join_stats = result["statistics"].get("t_join") or {"avg": 0, "min": 0, "max": 0}
                 total_stats = result["statistics"]["total"]
                 
                 writer.writerow([
@@ -662,6 +748,12 @@ class RPEPerformanceTest:
                     "%.3f" % phase2_exchange_stats["avg"],
                     "%.3f" % phase2_exchange_stats["min"],
                     "%.3f" % phase2_exchange_stats["max"],
+                    "%.3f" % phase2_send_local_quote_stats["avg"],
+                    "%.3f" % phase2_send_local_quote_stats["min"],
+                    "%.3f" % phase2_send_local_quote_stats["max"],
+                    "%.3f" % phase2_wait_remote_quotes_stats["avg"],
+                    "%.3f" % phase2_wait_remote_quotes_stats["min"],
+                    "%.3f" % phase2_wait_remote_quotes_stats["max"],
                     "%.3f" % phase2_verification_stats["avg"],
                     "%.3f" % phase2_verification_stats["min"],
                     "%.3f" % phase2_verification_stats["max"],
@@ -671,6 +763,12 @@ class RPEPerformanceTest:
                     "%.3f" % phase2_policy_enforcement_stats["avg"],
                     "%.3f" % phase2_policy_enforcement_stats["min"],
                     "%.3f" % phase2_policy_enforcement_stats["max"],
+                    "%.6f" % t_exchange_stats["avg"],
+                    "%.6f" % t_exchange_stats["min"],
+                    "%.6f" % t_exchange_stats["max"],
+                    "%.6f" % t_join_stats["avg"],
+                    "%.6f" % t_join_stats["min"],
+                    "%.6f" % t_join_stats["max"],
                     "%.3f" % total_stats["avg"],
                     "%.3f" % total_stats["min"],
                     "%.3f" % total_stats["max"]
@@ -688,11 +786,13 @@ class RPEPerformanceTest:
                    "Phase2 Avg | Phase2 Min | Phase2 Max | "
                    "P2.1 Avg | P2.1 Min | P2.1 Max | "
                    "P2.2 Avg | P2.2 Min | P2.2 Max | "
+                   "P2.2.1 Avg | P2.2.1 Min | P2.2.1 Max | "
+                   "P2.2.2 Avg | P2.2.2 Min | P2.2.2 Max | "
                    "P2.3 Avg | P2.3 Min | P2.3 Max | "
                    "P2.3.1 Avg | P2.3.1 Min | P2.3.1 Max | "
                    "P2.3.2 Avg | P2.3.2 Min | P2.3.2 Max | "
                    "Total Avg | Total Min | Total Max\n")
-            f.write("-" * 300 + "\n")
+            f.write("-" * 360 + "\n")
             
             for result in all_results:
                 num_rpes = result["num_rpes"]
@@ -700,6 +800,8 @@ class RPEPerformanceTest:
                 phase2_stats = result["statistics"]["phase2"]
                 phase2_quote_generation_stats = result["statistics"]["phase2_quote_generation"]
                 phase2_exchange_stats = result["statistics"]["phase2_exchange"]
+                phase2_send_local_quote_stats = result["statistics"].get("phase2_send_local_quote") or {"avg": 0, "min": 0, "max": 0}
+                phase2_wait_remote_quotes_stats = result["statistics"].get("phase2_wait_remote_quotes") or {"avg": 0, "min": 0, "max": 0}
                 phase2_verification_stats = result["statistics"]["phase2_verification"]
                 phase2_native_quote_verification_stats = result["statistics"]["phase2_native_quote_verification"]
                 phase2_policy_enforcement_stats = result["statistics"]["phase2_policy_enforcement"]
@@ -709,6 +811,8 @@ class RPEPerformanceTest:
                        "%10.3f | %10.3f | %10.3f | "
                        "%8.3f | %8.3f | %8.3f | "
                        "%8.3f | %8.3f | %8.3f | "
+                       "%9.3f | %9.3f | %9.3f | "
+                       "%9.3f | %9.3f | %9.3f | "
                        "%8.3f | %8.3f | %8.3f | "
                        "%10.3f | %10.3f | %10.3f | "
                        "%10.3f | %10.3f | %10.3f | "
@@ -718,6 +822,8 @@ class RPEPerformanceTest:
                     phase2_stats["avg"], phase2_stats["min"], phase2_stats["max"],
                     phase2_quote_generation_stats["avg"], phase2_quote_generation_stats["min"], phase2_quote_generation_stats["max"],
                     phase2_exchange_stats["avg"], phase2_exchange_stats["min"], phase2_exchange_stats["max"],
+                    phase2_send_local_quote_stats["avg"], phase2_send_local_quote_stats["min"], phase2_send_local_quote_stats["max"],
+                    phase2_wait_remote_quotes_stats["avg"], phase2_wait_remote_quotes_stats["min"], phase2_wait_remote_quotes_stats["max"],
                     phase2_verification_stats["avg"], phase2_verification_stats["min"], phase2_verification_stats["max"],
                     phase2_native_quote_verification_stats["avg"], phase2_native_quote_verification_stats["min"], phase2_native_quote_verification_stats["max"],
                     phase2_policy_enforcement_stats["avg"], phase2_policy_enforcement_stats["min"], phase2_policy_enforcement_stats["max"],

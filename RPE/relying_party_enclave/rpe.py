@@ -357,6 +357,7 @@ class RPE:
                     sorted(evidence_quotes_dict.keys()),
                 )
                 if not evidence_quotes_dict:
+                    time.sleep(0.05)
                     continue
                 
                 for rpe_id, evidence_quote_base64 in evidence_quotes_dict.items():
@@ -365,6 +366,8 @@ class RPE:
                     
                 if len(rpe_id_dict_to_be_fetched) == 0:
                     break
+                # P2P QueryQuoteByIds is non-blocking; poll until all peers arrive.
+                time.sleep(0.05)
     
             perf_timestamps["phase2_wait_remote_quotes_end"] = time.time()
             perf_timestamps["phase2_exchange_end"] = time.time()
