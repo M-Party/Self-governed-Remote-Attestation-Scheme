@@ -139,3 +139,39 @@ def queryCEsInfo(address, jobIds):
         logger.error("Fail to query CEs' info: %s", response.content)
         return False, None
     return True, response.content
+
+
+_POLICY_RPE_ID_PREFIX = "policy:"
+
+
+def _policy_storage_id(rpe_id):
+    if rpe_id.startswith(_POLICY_RPE_ID_PREFIX):
+        return rpe_id
+    return _POLICY_RPE_ID_PREFIX + rpe_id
+
+
+def sendPolicy(address, rpeId, base64EncodedPolicy):
+    """Exchange full expectation policy via the existing Quote channel.
+
+    Storage key is prefixed so policy blobs never collide with Evidence Quotes.
+    """
+    return sendQuote(address, _policy_storage_id(rpeId), base64EncodedPolicy)
+
+
+def queryPolicyByIds(address, rpeIds):
+    """Query policies for CSV rpe ids; returns (ok, json_dict_str keyed by bare rpe id)."""
+    if isinstance(rpeIds, str):
+        bare_ids = [item.strip() for item in rpeIds.split(",") if item.strip()]
+    else:
+        bare_ids = list(rpeIds)
+    storage_ids = ",".join(_policy_storage_id(rpe_id) for rpe_id in bare_ids)
+    ok, content = queryQuoteByIds(address, storage_ids)
+    if not ok or content is None:
+        return False, None
+    import json
+    stored = json.loads(content)
+    out = {}
+    for key, value in stored.items():
+        bare = key[len(_POLICY_RPE_ID_PREFIX):] if key.startswith(_POLICY_RPE_ID_PREFIX) else key
+        out[bare] = value
+    return True, json.dumps(out)

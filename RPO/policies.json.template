@@ -1,53 +1,74 @@
 {
     "session_id": "uuid",
     "description": "This is an example for policies description.",
-    "rpe_info":{
-        "mrenclave": "6798cb151cb0f5040e5dee3b174bf4a963f95da105496a0bdb019c8b1955116f",
+    "rpe_info": {
+        "mrenclave": "7a9c16d07af2f93bb27e654f3d0388c113076dae06d2b47e43496138670a0ba1",
         "mrsigner": "8f755b4333f50b53b8a5e33c1cd91733945746933915cf626bad92ed8bb095ee",
         "isv_prod_id": "0",
         "isv_svn": "0"
     },
-
     "tcb": [
         {
             "id": "tcb-1",
             "fmspc": "fmspc value 1",
+            "min_status": "UpToDate",
             "data": "XwVIAghXERz9PXdMadDOV1++m+9/CYNq5kYIQi4ryeLYI6UYSTk5U10jFX2ixdAb"
         },
         {
             "id": "tcb-2",
             "fmspc": "fmspc value 2",
+            "min_status": "UpToDate",
             "data": "XwVIAghXERz9PXdMadDOV1++m+9/CYNq5kYIQi4ryeLYI6UYSTk5U10jFX2ixdAb"
         }
     ],
     "rpe": [
         {
             "id": "rpe-1",
-            "qeid_allowed": ["feea1a922f97aee4d98e431a1068761a"],
-            "tcb_allowed": ["tcb-1", "tcb-2"] ,     
+            "qeid_allowed": [
+                "feea1a922f97aee4d98e431a1068761a"
+            ],
+            "tcb_allowed": [
+                "tcb-1"
+            ],
             "ca_signing_key_cert": "-----BEGIN PUBLIC KEY-----\nMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE4k0UPMHPQ7GfD81M2Xu4TEQHQYKiJtE5\nSqhjpflPdn6kph9ZsbuUt6hEnMo/jJve7bPjsshp6G03Cu+ejGplRkcNrQEPJi2r\n7mzpBedryCClM5ALI0GAVvbwVI1p8BVA\n-----END PUBLIC KEY-----"
         },
         {
             "id": "rpe-2",
-            "qeid_allowed": ["feea1a922f97aee4d98e431a1068761a"],
-            "tcb_allowed": ["tcb-2"],
+            "qeid_allowed": [
+                "feea1a922f97aee4d98e431a1068761a"
+            ],
+            "tcb_allowed": [
+                "tcb-2"
+            ],
             "ca_signing_key_cert": "-----BEGIN PUBLIC KEY-----\nMHYwEAYHKoZIzj0CAQYFK4EEACIDYgAE4k0UPMHPQ7GfD81M2Xu4TEQHQYKiJtE5\nSqhjpflPdn6kph9ZsbuUt6hEnMo/jJve7bPjsshp6G03Cu+ejGplRkcNrQEPJi2r\n7mzpBedryCClM5ALI0GAVvbwVI1p8BVA\n-----END PUBLIC KEY-----"
         }
-    ], 
+    ],
     "ce": [
         {
             "id": "ce-1",
-            "mrenclave": "1f2db77bdc1ccb59a67f5daffba0d18d7965030a4a77e3aeef789f4cadeeab9e",
+            "mrenclave": "7a9c16d07af2f93bb27e654f3d0388c113076dae06d2b47e43496138670a0ba1",
             "mrsigner": "8f755b4333f50b53b8a5e33c1cd91733945746933915cf626bad92ed8bb095ee",
             "isvprodid_allow_any": true,
-            "isvsvn_allow_any": true
+            "isvsvn_allow_any": true,
+            "tcb_allowed": [
+                "tcb-1"
+            ],
+            "qeid_allowed": [
+                "feea1a922f97aee4d98e431a1068761a"
+            ]
         },
         {
             "id": "ce-2",
-            "mrenclave": "1f2db77bdc1ccb59a67f5daffba0d18d7965030a4a77e3aeef789f4cadeeab9e",
+            "mrenclave": "7a9c16d07af2f93bb27e654f3d0388c113076dae06d2b47e43496138670a0ba1",
             "mrsigner": "8f755b4333f50b53b8a5e33c1cd91733945746933915cf626bad92ed8bb095ee",
             "isv_prod_id": "0",
-            "isv_svn": "0"
+            "isv_svn": "0",
+            "tcb_allowed": [
+                "tcb-2"
+            ],
+            "qeid_allowed": [
+                "feea1a922f97aee4d98e431a1068761a"
+            ]
         }
     ],
     "job": [
@@ -55,25 +76,26 @@
             "id": "job-1",
             "rpe": "rpe-1",
             "ce": "ce-1",
-            "cust_qeid_allowed": ["feea1a922f97aee4d98e431a1068761a"],
-            "tcb_allowed": ["tcb-2"]
+            "cust_qeid_allowed": [
+                "feea1a922f97aee4d98e431a1068761a"
+            ]
         },
         {
             "id": "job-2",
             "rpe": "rpe-2",
             "ce": "ce-2",
-            "cust_qeid_allowed": ["feea1a922f97aee4d98e431a1068761a"],
-            "tcb_allowed": ["tcb-2"]
+            "cust_qeid_allowed": [
+                "feea1a922f97aee4d98e431a1068761a"
+            ]
         }
     ],
     "connection": [
         {
             "id": "connection-1",
-            "server": "job-1",
-            "clients": ["job-2"]
+            "server": "ce-1",
+            "clients": [
+                "ce-2"
+            ]
         }
     ]
 }
-
-
-

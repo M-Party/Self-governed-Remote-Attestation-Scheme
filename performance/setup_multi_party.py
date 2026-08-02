@@ -156,6 +156,27 @@ class MultiPartySetup:
         
         policies["rpe"] = rpe_list
 
+        # Consensus-policy semantics: job is pure β; CE owns tcb_allowed.
+        for job in policies.get("job") or []:
+            if "tcb_allowed" in job:
+                job.pop("tcb_allowed", None)
+        for tcb in policies.get("tcb") or []:
+            tcb.setdefault("min_status", "UpToDate")
+            tcb.setdefault("fmspc", tcb.get("fmspc") or tcb.get("id"))
+        for ce in policies.get("ce") or []:
+            if not ce.get("tcb_allowed"):
+                ce["tcb_allowed"] = ["tcb-1"]
+        for conn in policies.get("connection") or []:
+            # Prefer ce ids: if template still uses job-* refs, map via job table
+            jobs = {j["id"]: j for j in (policies.get("job") or [])}
+            server = conn.get("server")
+            if server in jobs:
+                conn["server"] = jobs[server]["ce"]
+            clients = []
+            for c in conn.get("clients") or []:
+                clients.append(jobs[c]["ce"] if c in jobs else c)
+            conn["clients"] = clients
+
         return policies
 
     def generate_policies_variants(self, all_rpe_ids, all_rpe_configs, policies_template_path=None):

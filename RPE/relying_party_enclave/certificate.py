@@ -10,18 +10,13 @@ import binascii
 
 logger = logging.getLogger(__name__)
 
-def generate_ce_certificate(private_key, public_key, rpe_id):
-    # Generate a private key using ECDSA with P-384 curve
-    # private_key = ec.generate_private_key(ec.SECP384R1(), default_backend())
+# Custom OID for consensus policy hash H(π*) carried in CE certificates.
+CONSENSUS_POLICY_HASH_OID = x509.ObjectIdentifier("1.2.3.4.5.6.7.8.888")
 
-    # Generate a public key
-    # public_key = private_key.public_key()
-    
+
+def generate_ce_certificate(private_key, public_key, rpe_id, consensus_policy_hash=None):
     # Define a custom NameOID
     CUSTOM_OID = x509.ObjectIdentifier("1.2.3.4.5.6.7.8.9")
-
-    # Define a Session ID
-    Session_OID = x509.ObjectIdentifier("1.2.3.4.5.6.7.8.777")
 
     # Create a self-signed certificate
     subject = issuer = x509.Name([
@@ -33,7 +28,7 @@ def generate_ce_certificate(private_key, public_key, rpe_id):
         x509.NameAttribute(CUSTOM_OID, rpe_id),
     ])
 
-    cert = x509.CertificateBuilder().subject_name(
+    builder = x509.CertificateBuilder().subject_name(
         subject
     ).issuer_name(
         issuer
@@ -49,7 +44,19 @@ def generate_ce_certificate(private_key, public_key, rpe_id):
         x509.BasicConstraints(ca=True, path_length=None), critical=True
     ).add_extension(
         x509.SubjectAlternativeName([x509.DNSName("example.com")]), critical=False
-    ).sign(private_key, hashes.SHA384(), openssl_backend)
+    )
+    if consensus_policy_hash:
+        # UnrecognizedExtension carries opaque bytes; store UTF-8 hex of H(π*).
+        builder = builder.add_extension(
+            x509.UnrecognizedExtension(
+                CONSENSUS_POLICY_HASH_OID,
+                consensus_policy_hash.encode("utf-8")
+                if isinstance(consensus_policy_hash, str)
+                else consensus_policy_hash,
+            ),
+            critical=False,
+        )
+    cert = builder.sign(private_key, hashes.SHA384(), openssl_backend)
 
     return cert.public_bytes(serialization.Encoding.PEM)
 
@@ -91,7 +98,20 @@ def get_ce_certificate_rpeid(certificate):
     custom_value = certificate.subject.get_attributes_for_oid(CUSTOM_OID)
     return custom_value[0].value
 
-def verify_ce_certificate(certificate, public_key):
+def get_consensus_policy_hash(certificate):
+    """Return H(π*) hex string from certificate extension, or None."""
+    try:
+        ext = certificate.extensions.get_extension_for_oid(CONSENSUS_POLICY_HASH_OID)
+        value = ext.value.value
+        if isinstance(value, bytes):
+            return value.decode("utf-8")
+        return value
+    except x509.ExtensionNotFound:
+        return None
+
+
+def verify_ce_certificate(certificate, public_key, expected_consensus_policy_hash=None):
+
     # Get the public key
     # public_key = certificate.public_key()    
 
@@ -107,5 +127,23 @@ def verify_ce_certificate(certificate, public_key):
     except Exception as e:
         logger.error(f"Certificate verification failed: {e}")
         return "CE certificate verification failed!"
+
+    if expected_consensus_policy_hash is not None:
+        actual = get_consensus_policy_hash(certificate)
+        if actual is None:
+            logger.error("hash_mismatch: certificate missing consensus_policy_hash extension")
+            return "CE certificate consensus policy hash missing!"
+        expected = (
+            expected_consensus_policy_hash
+            if isinstance(expected_consensus_policy_hash, str)
+            else expected_consensus_policy_hash.hex()
+        )
+        if actual != expected:
+            logger.error(
+                "hash_mismatch: certificate H(π*)=%s local H(π*)=%s",
+                actual,
+                expected,
+            )
+            return "CE certificate consensus policy hash mismatch!"
 
     return "Agree to build the secure channel!"

@@ -16,6 +16,7 @@ from quote_verification import verify_dcap_quote
 import ratls
 import certificate
 from policies import Policies
+import consensus_policy
 from utility import config as pconfig
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -68,6 +69,10 @@ class RPE:
         self.ratls = ratls.RATLS()
         self.ft_manager = None
         self.policies_json_text = None
+        self.local_policy = None
+        self.consensus_policy = None
+        self.consensus_policy_hash = None
+        self.peer_policy_hashes = {}
         self.ft_recovery_cache_available = False
         self.ft_phase2_evidence_quote = None
     
@@ -156,6 +161,7 @@ class RPE:
         # Parse policies
         policies_json = json.loads(policies)
         self.policies_obj = Policies(policies_json)
+        self.local_policy = policies_json
         self.session_id = self.policies_obj.getSesssionId()
         self.rpe_mr = self.policies_obj.getRPEMR()
         self.rpe_mrsigner = self.policies_obj.getRPEMRSigner()
@@ -285,39 +291,43 @@ class RPE:
             logger.error("Performance data saved to %s" % perf_file)
         else:
 	        
-            policies_hash = None
-            if policies is not None:
-                policies_hash_bytes = self.compute_message_hash(policies.encode('UTF-8'), SHA384)
-                policies_hash = bytes(policies_hash_bytes)
+            local_policy_hash = None
+            if self.local_policy is not None:
+                local_policy_hash = consensus_policy.hash_policy(self.local_policy)
+            elif policies is not None:
+                local_policy_hash = bytes(
+                    self.compute_message_hash(policies.encode('UTF-8'), SHA384)
+                )
 
-            # Generate quote
+            # Generate quote (report_data = SHA384(PK_s ‖ H(ρ)) ‖ pad16)
             perf_timestamps["phase2_quote_generation_start"] = time.time()
             quote = None
-            if policies is not None:
-                quote = self.generate_quote(policies)
+            if local_policy_hash is not None:
+                quote = self.generate_quote_with_policy_hash(
+                    public_signing_key_pem.decode(),
+                    local_policy_hash,
+                )
             else:
                 logger.error(" Get policies failed ! Can't generate quote !")
                 return
         
-            # Build Evidence Quote: combine quote with public keys
+            # Build Evidence Quote: quote + PK_s + policy_hash (no PK_e)
             if quote is not None:
                 self.ft_phase2_evidence_quote = quote
-                # Create Evidence Quote JSON
                 evidence_quote = {
                     "quote": quote,
                     "rpe_public_signing_key": public_signing_key_pem.decode(),
-                    "rpe_public_encryption_key": public_encryption_key_pem.decode()
+                    "policy_hash": local_policy_hash.hex(),
                 }
                 evidence_quote_json = json.dumps(evidence_quote)
-                # Base64 encode the Evidence Quote JSON for transmission
                 evidence_quote_base64 = crypto_utility.byte_array_to_base64(evidence_quote_json.encode('UTF-8'))
                 perf_timestamps["phase2_quote_generation_end"] = time.time()
     
-                logger.error("Sending Evidence Quote (quote + public keys) to blockchain...")
+                logger.error("Sending Evidence Quote (quote + PK_s + policy_hash) to blockchain...")
                 perf_timestamps["phase2_exchange_start"] = time.time()
                 perf_timestamps["phase2_send_local_quote_start"] = perf_timestamps["phase2_exchange_start"]
                 if not grpc_client.sendQuote(self.grpc_server_address, self.local_rpe["rpe_id"], evidence_quote_base64):
-                    logger.error(" Send Evidence Quote to fabric failed !")
+                    logger.error(" Send Evidence Quote to transport failed !")
                     return
                 perf_timestamps["phase2_send_local_quote_end"] = time.time()
                 perf_timestamps["phase2_wait_remote_quotes_start"] = perf_timestamps["phase2_send_local_quote_end"]
@@ -364,13 +374,19 @@ class RPE:
                 native_verify_start = time.time()
                 rpe_info = self.rpes[rpe_id]
     
-                # Parse Evidence Quote: decode and extract quote and public keys
+                # Parse Evidence Quote: quote + PK_s + policy_hash
                 try:
                     evidence_quote_json = crypto_utility.base64_to_byte_array(evidence_quote_base64).decode('UTF-8')
                     evidence_quote = json.loads(evidence_quote_json)
                     base64_encoded_quote = evidence_quote["quote"]
                     rpe_public_signing_key = evidence_quote["rpe_public_signing_key"]
-                    rpe_public_encryption_key = evidence_quote["rpe_public_encryption_key"]
+                    peer_policy_hash_hex = evidence_quote.get("policy_hash")
+                    if not peer_policy_hash_hex:
+                        logger.error("hash_mismatch: Evidence Quote for rpe %s missing policy_hash", rpe_id)
+                        return
+                    peer_policy_hash = bytes.fromhex(peer_policy_hash_hex)
+                    # Optional legacy field retained if present
+                    rpe_public_encryption_key = evidence_quote.get("rpe_public_encryption_key")
                 except Exception as e:
                     logger.error(" Failed to parse Evidence Quote for rpe %s: %s", (rpe_id, str(e)))
                     return
@@ -383,14 +399,14 @@ class RPE:
                 phase2_native_quote_verification_duration += time.time() - native_verify_start
                 logger.info("quote verification for rpe %s result: %x" % (rpe_id, ret))
                 if ret != 0 and ret != 0xa002 and ret != 0xa008:
-                    logger.error("Quote verification failed for rpe %s", rpe_id)
+                    logger.error("verification_failure: Quote verification failed for rpe %s", rpe_id)
                     return
     
-                # Generate report_data using public keys from Evidence Quote and local policies
+                # Rebuild report_data from peer envelope (never local policy hash)
                 policy_verify_start = time.time()
-                worker_data = rpe_public_signing_key + rpe_public_encryption_key
-                keys_bytes = self.compute_message_hash(worker_data.encode('UTF-8'), SHA384)
-                report_data = bytes(keys_bytes) + policies_hash
+                report_data = consensus_policy.build_evidence_report_data(
+                    rpe_public_signing_key, peer_policy_hash
+                )
                 base64_encoded_report_data = crypto_utility.byte_array_to_base64(report_data)
         
                 rpe_policies_to_verify = {
@@ -407,15 +423,26 @@ class RPE:
                 phase2_policy_enforcement_duration += time.time() - policy_verify_start
                 logger.info("quote body verification for rpe %s result: %x" % (rpe_id, ret))
                 if ret != 0:
-                    logger.error("Quote body verification failed for rpe %s", rpe_id)
+                    logger.error("verification_failure: Quote body verification failed for rpe %s", rpe_id)
                     return
     
-                # Verification successful, update public keys in self.rpes
                 logger.info("Verification successful for rpe %s, updating public keys", rpe_id)
                 rpe_info["details"]["rpe_public_signing_key"] = rpe_public_signing_key
-                rpe_info["details"]["rpe_public_encryption_key"] = rpe_public_encryption_key
+                if rpe_public_encryption_key is not None:
+                    rpe_info["details"]["rpe_public_encryption_key"] = rpe_public_encryption_key
+                self.peer_policy_hashes[rpe_id] = peer_policy_hash
     
             perf_timestamps["phase2_verification_end"] = time.time()
+
+            # Phase2b: exchange full policies and compute consensus π*
+            try:
+                self._exchange_policies_and_compute_consensus(perf_timestamps)
+            except consensus_policy.JoinError as join_err:
+                logger.error("negotiation_abort: %s", join_err)
+                return
+            except Exception as e:
+                logger.error("negotiation_abort: policy exchange/join failed: %s", e)
+                return
             
             logger.info("======================= Phase two finished =======================\n")
             perf_timestamps["phase2_end"] = time.time()
@@ -435,6 +462,12 @@ class RPE:
             logger.error("Phase 2.3 quote verification duration: %.3f seconds" % phase2_verification_duration)
             logger.error("Phase 2.3.1 native quote verification duration: %.3f seconds" % phase2_native_quote_verification_duration)
             logger.error("Phase 2.3.2 policy enforcement duration: %.3f seconds" % phase2_policy_enforcement_duration)
+            t_exchange = perf_timestamps.get("t_exchange")
+            t_join = perf_timestamps.get("t_join")
+            if t_exchange is not None:
+                logger.error("Phase 2.4 policy exchange duration (t_exchange): %.6f seconds" % t_exchange)
+            if t_join is not None:
+                logger.error("Phase 2.5 consensus join duration (t_join): %.6f seconds" % t_join)
             logger.error("Total initialization duration: %.3f seconds" % total_duration)
     
             # =============== Performance test: save timestamps to file ===============
@@ -451,6 +484,8 @@ class RPE:
                     "phase2_verification": phase2_verification_duration,
                     "phase2_native_quote_verification": phase2_native_quote_verification_duration,
                     "phase2_policy_enforcement": phase2_policy_enforcement_duration,
+                    "t_exchange": t_exchange,
+                    "t_join": t_join,
                     "total": total_duration
                 }
             }
@@ -580,7 +615,17 @@ class RPE:
                     )
                 
                 # Sign CE's public signing key and generate a cert.
-                ce_cert = certificate.generate_ce_certificate(self.signing_keys["private"], ce_public_signing_key_obj, self.local_rpe["rpe_id"])
+                consensus_hash_hex = (
+                    self.consensus_policy_hash.hex()
+                    if self.consensus_policy_hash is not None
+                    else None
+                )
+                ce_cert = certificate.generate_ce_certificate(
+                    self.signing_keys["private"],
+                    ce_public_signing_key_obj,
+                    self.local_rpe["rpe_id"],
+                    consensus_policy_hash=consensus_hash_hex,
+                )
                 ce_cert_base64 = crypto_utility.byte_array_to_base64(ce_cert)
                 
                 # Send CE's Certificate signed by RPE to CE
@@ -708,7 +753,14 @@ class RPE:
                     self.ratls.close_connection()
                     continue
                 
-                verification_result = certificate.verify_ce_certificate(cert,collaborativeRPEkey)
+                expected_hash = (
+                    self.consensus_policy_hash.hex()
+                    if self.consensus_policy_hash is not None
+                    else None
+                )
+                verification_result = certificate.verify_ce_certificate(
+                    cert, collaborativeRPEkey, expected_consensus_policy_hash=expected_hash
+                )
                 ret = self.ratls.send_verification_result(verification_result)
                 if ret != 0:
                     logger.error("Send verification result to CE failed")
@@ -1231,6 +1283,124 @@ class RPE:
         lib.free(public_pem)
         return private_pem_str, public_pem_str
         
+    def generate_quote_with_policy_hash(self, public_signing_key_pem, policy_hash):
+        """Phase2 Evidence Quote: bind SHA384(PK_s ‖ H(ρ)) ‖ pad16 into report_data."""
+        try:
+            logger.info("Generating Quote with policy hash binding...")
+            with _dcap_quote_verify_lock:
+                fd = os.open("/dev/attestation/user_report_data", os.O_RDWR)
+                report_data = consensus_policy.build_evidence_report_data(
+                    public_signing_key_pem, bytes(policy_hash)
+                )
+                os.write(fd, report_data)
+                os.close(fd)
+                with open('/dev/attestation/quote', 'rb') as fd:
+                    data = fd.read()
+            logger.info("Quote generated")
+            return crypto_utility.byte_array_to_base64(data)
+        except Exception as e:
+            logger.error("Generate quote with policy hash failed! Error message %s", str(e))
+            return None
+
+    def _exchange_policies_and_compute_consensus(self, perf_timestamps):
+        """After mutual attestation: exchange ρ over quote channel and join to π*."""
+        if self.local_policy is None:
+            raise RuntimeError("local_policy is not loaded")
+
+        local_rpe_id = self.local_rpe["rpe_id"]
+        policy_json = json.dumps(self.local_policy, separators=(",", ":"), ensure_ascii=False)
+        policy_b64 = crypto_utility.byte_array_to_base64(policy_json.encode("UTF-8"))
+
+        perf_timestamps["phase2_policy_exchange_start"] = time.time()
+        if not grpc_client.sendPolicy(self.grpc_server_address, local_rpe_id, policy_b64):
+            raise RuntimeError("sendPolicy failed")
+
+        rpe_ids = sorted(self.rpes.keys())
+        fetched = {}
+        pending = set(rpe_ids)
+        while pending:
+            status, content = grpc_client.queryPolicyByIds(
+                self.grpc_server_address, ",".join(sorted(pending))
+            )
+            if not status:
+                raise RuntimeError("queryPolicyByIds failed")
+            blob = json.loads(content)
+            for rid, b64 in blob.items():
+                fetched[rid] = b64
+                pending.discard(rid)
+            if pending:
+                time.sleep(0.05)
+        perf_timestamps["phase2_policy_exchange_end"] = time.time()
+        perf_timestamps["t_exchange"] = (
+            perf_timestamps["phase2_policy_exchange_end"]
+            - perf_timestamps["phase2_policy_exchange_start"]
+        )
+
+        policies_by_id = {}
+        for rid, b64 in fetched.items():
+            raw = crypto_utility.base64_to_byte_array(b64).decode("UTF-8")
+            policy = json.loads(raw)
+            digest = consensus_policy.hash_policy(policy)
+            expected = self.peer_policy_hashes.get(rid)
+            if rid == local_rpe_id:
+                expected = consensus_policy.hash_policy(self.local_policy)
+            if expected is None:
+                raise RuntimeError("missing peer policy_hash for %s" % rid)
+            if digest != expected:
+                logger.error(
+                    "hash_mismatch: received policy for %s does not match Evidence Quote policy_hash",
+                    rid,
+                )
+                raise RuntimeError("policy hash mismatch for %s" % rid)
+            policies_by_id[rid] = policy
+
+        ordered = [policies_by_id[rid] for rid in sorted(policies_by_id.keys())]
+        join_start = time.time()
+        self.consensus_policy = consensus_policy.compute_consensus(ordered)
+        self.consensus_policy_hash = consensus_policy.hash_policy(self.consensus_policy)
+        join_end = time.time()
+        perf_timestamps["phase2_join_start"] = join_start
+        perf_timestamps["phase2_join_end"] = join_end
+        perf_timestamps["t_join"] = join_end - join_start
+        # Switch Attest lookups to π*
+        self.policies_obj = Policies(self.consensus_policy)
+        self._remap_collaterals_for_consensus()
+        logger.info(
+            "Consensus policy computed: H(π*)=%s t_exchange=%.6fs t_join=%.6fs",
+            self.consensus_policy_hash.hex(),
+            perf_timestamps["t_exchange"],
+            perf_timestamps["t_join"],
+        )
+
+    def _remap_collaterals_for_consensus(self):
+        """Map content-addressed TCB ids in π* to loaded collateral blobs."""
+        if self.consensus_policy is None or self.collaterals is None:
+            return
+        hash_to_collateral = {}
+        for tcb_id, collateral in self.collaterals.items():
+            try:
+                digest = self.compute_message_hash(collateral.encode("UTF-8"), SHA384)
+                b64_hash = crypto_utility.byte_array_to_base64(bytes(digest))
+                hash_to_collateral[b64_hash] = collateral
+            except Exception:
+                pass
+            hash_to_collateral[tcb_id] = collateral
+        remapped = dict(self.collaterals)
+        for entry in self.consensus_policy.get("tcb") or []:
+            eid = entry.get("id")
+            data = entry.get("data")
+            if eid in remapped:
+                continue
+            if data in hash_to_collateral:
+                remapped[eid] = hash_to_collateral[data]
+            else:
+                logger.warning(
+                    "No collateral remap for consensus tcb id %s (data=%s)",
+                    eid,
+                    data,
+                )
+        self.collaterals = remapped
+
     def generate_quote(self, user_data):
         try:
             logger.info("Generating Quote...")

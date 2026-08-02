@@ -9,7 +9,49 @@ logger = logging.getLogger(__name__)
 class Policies:
     def __init__(self, policies_data_json):
         self.policies_data_json = policies_data_json
-            
+
+    def _find_ce(self, ce_id):
+        for ce in self.policies_data_json.get("ce") or []:
+            if ce.get("id") == ce_id:
+                return ce
+        return None
+
+    def _find_job(self, job_id):
+        for job in self.policies_data_json.get("job") or []:
+            if job.get("id") == job_id:
+                return job
+        return None
+
+    def _job_ce_id(self, job_id):
+        job = self._find_job(job_id)
+        if job is None:
+            return None
+        return job.get("ce")
+
+    def _tcb_ids_for_ce(self, ce_id, job=None):
+        """Resolve CE tcb_allowed (new); fallback to job.tcb_allowed (legacy)."""
+        ce = self._find_ce(ce_id)
+        if ce is not None and ce.get("tcb_allowed") is not None:
+            tcb_ids = ce.get("tcb_allowed")
+            if not isinstance(tcb_ids, list) or len(tcb_ids) != 1:
+                logger.warning(
+                    "ce %s tcb_allowed should be a single-element list, got %s",
+                    ce_id,
+                    tcb_ids,
+                )
+            return tcb_ids
+        if job is not None and job.get("tcb_allowed") is not None:
+            logger.warning(
+                "Using legacy job.tcb_allowed for ce %s; move to ce.tcb_allowed",
+                ce_id,
+            )
+            return job.get("tcb_allowed")
+        return None
+
+    def _jobs_for_ce(self, ce_id):
+        return [j for j in (self.policies_data_json.get("job") or []) if j.get("ce") == ce_id]
+
+
     def get_policies_data(self):
         policies_data_json = self.policies_data_json
         return json.dumps(policies_data_json)
@@ -120,26 +162,27 @@ class Policies:
         return tcb_ids
     
     def getCETcbIds(self, rpe_id):
-        # Get ce tcb id from policies 
+        # Get ce tcb id from policies (ce.tcb_allowed; legacy job.tcb_allowed)
         logger.info("get ce tcb id from policies")
-        policies_data_json = self.policies_data_json
         ce_tcb_ids = set()
-        for job in policies_data_json["job"]:
-            if job["rpe"] == rpe_id:
-                for tcb_id in job["tcb_allowed"]:
-                    ce_tcb_ids.add(tcb_id) 
+        for job in self.policies_data_json["job"]:
+            if job["rpe"] != rpe_id:
+                continue
+            tcb_ids = self._tcb_ids_for_ce(job["ce"], job=job)
+            if not tcb_ids:
+                logger.error("Cannot resolve tcb_ids of ce %s", job["ce"])
+                continue
+            for tcb_id in tcb_ids:
+                ce_tcb_ids.add(tcb_id)
         return list(ce_tcb_ids)
     
     def checkTcbId(self, job_id, tcb_id):
         logger.info("check tcb id from policies")
-        policies_data_json = self.policies_data_json
-        result = False
-        for job in policies_data_json["job"]:
-            if job["id"] == job_id:
-                if tcb_id in job["tcb_allowed"]:
-                    result = True
-                break
-        return result
+        job = self._find_job(job_id)
+        if job is None:
+            return False
+        tcb_ids = self._tcb_ids_for_ce(job["ce"], job=job) or []
+        return tcb_id in tcb_ids
     
     def getCEMR(self, ce_id):
         # Get ce mr from policies 
@@ -212,36 +255,34 @@ class Policies:
         return rpe_id
     
     def getCEQEID(self, job_id):
-        # Get ce qeid from policies 
+        # Get ce qeid from policies (job.cust_qeid_allowed or ce.qeid_allowed)
         logger.info("get ce qeid from policies")
-        policies_data_json = self.policies_data_json
-        qeids = None
-        for job in policies_data_json["job"]:
-            if job["id"] == job_id:
-                qeids = job["cust_qeid_allowed"]
-                break
-        if qeids is None:
+        job = self._find_job(job_id)
+        if job is None:
             logger.error("Cannot resolve qeids of ce, job id is %s" % job_id)
             return None
-        return qeids
+        if job.get("cust_qeid_allowed") is not None:
+            return job["cust_qeid_allowed"]
+        ce = self._find_ce(job.get("ce"))
+        if ce is not None and ce.get("qeid_allowed") is not None:
+            return ce["qeid_allowed"]
+        logger.error("Cannot resolve qeids of ce, job id is %s" % job_id)
+        return None
     
     def getCETCBINFO(self, job_id):
-        # Get ce tcb_info from policies 
+        # Get ce tcb_info from policies (ce.tcb_allowed)
         logger.info("get ce tcb_info from policies")
         policies_data_json = self.policies_data_json
-        tcb_infos = list()
-        tcb_ids = None
-        
-        # Find the tcb allowed of the ce
-        for job in policies_data_json["job"]:
-            if job["id"] == job_id:
-                tcb_ids = job["tcb_allowed"]
-                break
+        job = self._find_job(job_id)
+        if job is None:
+            logger.error("Cannot resolve tcb_ids of ce, job id is %s" % job_id)
+            return None
+        tcb_ids = self._tcb_ids_for_ce(job["ce"], job=job)
         if tcb_ids is None:
             logger.error("Cannot resolve tcb_ids of ce, job id is %s" % job_id)
             return None
-        
-        # Get tcb infos
+
+        tcb_infos = list()
         for tcb_id in tcb_ids:
             tcb_info = None
             for tcb_item in policies_data_json["tcb"]:
@@ -263,8 +304,12 @@ class Policies:
             ce_id = job["ce"]
             ce_info = dict()
             ce_info["rpe"] = job["rpe"]
-            ce_info["cust_qeid_allowed"] = job["cust_qeid_allowed"]
-            ce_info["tcb_allowed"] = job["tcb_allowed"]
+            qeids = job.get("cust_qeid_allowed")
+            if qeids is None:
+                ce_obj = self._find_ce(ce_id)
+                qeids = (ce_obj or {}).get("qeid_allowed")
+            ce_info["cust_qeid_allowed"] = qeids
+            ce_info["tcb_allowed"] = self._tcb_ids_for_ce(ce_id, job=job)
             has_ce = False
             for ce in policies_data_json["ce"]:
                 if ce["id"] == ce_id:
@@ -303,8 +348,12 @@ class Policies:
             ce_id = job["ce"]
             ce_info = dict()
             ce_info["rpe"] = job["rpe"]
-            ce_info["cust_qeid_allowed"] = job["cust_qeid_allowed"]
-            ce_info["tcb_allowed"] = job["tcb_allowed"]
+            qeids = job.get("cust_qeid_allowed")
+            if qeids is None:
+                ce_obj = self._find_ce(ce_id)
+                qeids = (ce_obj or {}).get("qeid_allowed")
+            ce_info["cust_qeid_allowed"] = qeids
+            ce_info["tcb_allowed"] = self._tcb_ids_for_ce(ce_id, job=job)
             has_ce = False
             for ce in policies_data_json["ce"]:
                 if ce["id"] == ce_id:
@@ -341,8 +390,12 @@ class Policies:
                 continue
             ce_info = dict()
             ce_info["rpe"] = job["rpe"]
-            ce_info["cust_qeid_allowed"] = job["cust_qeid_allowed"]
-            ce_info["tcb_allowed"] = job["tcb_allowed"]
+            qeids = job.get("cust_qeid_allowed")
+            if qeids is None:
+                ce_obj = self._find_ce(ce_id)
+                qeids = (ce_obj or {}).get("qeid_allowed")
+            ce_info["cust_qeid_allowed"] = qeids
+            ce_info["tcb_allowed"] = self._tcb_ids_for_ce(ce_id, job=job)
             has_ce = False
             for ce in policies_data_json["ce"]:
                 if ce["id"] == ce_id:
@@ -371,26 +424,47 @@ class Policies:
         return ces_info
     
     def getCorrespondingJobs(self, job_id):
-        # Get corresponding jobs from policies 
+        # connection refs are ce ids (new); legacy job ids still accepted
         logger.info("get corresponding jobs from policies")
         policies_data_json = self.policies_data_json
+        local_ce = self._job_ce_id(job_id)
         jobs = list()
         for connection in policies_data_json["connection"]:
             job_dict = dict()
-            job_ids = list()
-            if connection["server"] == job_id:
-                job_ids += connection["clients"]
-            else:
-                clients = connection["clients"]
-                for client in clients:
-                    if client == job_id:
-                        job_ids.append(connection["server"])
-                        break
-            if len(job_ids) > 0:
+            peer_refs = list()
+            server = connection["server"]
+            clients = list(connection.get("clients") or [])
+            # New semantics: match by ce id
+            if local_ce is not None and server == local_ce:
+                peer_refs += clients
+            elif local_ce is not None and local_ce in clients:
+                peer_refs.append(server)
+            # Legacy: connection still points at job ids
+            elif server == job_id:
+                peer_refs += clients
+            elif job_id in clients:
+                peer_refs.append(server)
+
+            peer_job_ids = []
+            for ref in peer_refs:
+                # ref may be ce id → expand to jobs; or already a job id
+                mapped = [j["id"] for j in self._jobs_for_ce(ref)]
+                if mapped:
+                    peer_job_ids.extend(mapped)
+                elif self._find_job(ref) is not None:
+                    peer_job_ids.append(ref)
+            # de-dup preserve order
+            seen = set()
+            ordered = []
+            for jid in peer_job_ids:
+                if jid not in seen and jid != job_id:
+                    seen.add(jid)
+                    ordered.append(jid)
+            if ordered:
                 job_dict["connection_id"] = connection["id"]
-                job_dict["jobs"] = job_ids
+                job_dict["jobs"] = ordered
                 jobs.append(job_dict)
-    
+
         if len(jobs) == 0:
             logger.error("Cannot resolve any corresponding job id")
             return None
