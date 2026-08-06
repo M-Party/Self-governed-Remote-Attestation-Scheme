@@ -91,6 +91,19 @@ class MultiPartySetup:
                 config['grpc']['port'] = f'"{grpc_port}"'
                 with open(config_file, 'w') as f:
                     config.write(f)
+
+        # Prefer per-party credential store paths so concurrent fabric_clients
+        # do not corrupt /tmp/hfc-kvs (Cannot deserialize the user).
+        network_template = os.path.join(party_fc_dir, "config", "network.json.template")
+        network_file = os.path.join(party_fc_dir, "config", "network.json")
+        if os.path.exists(network_template):
+            with open(network_template, "r") as f:
+                network_content = f.read().replace("${PARTY_ID}", str(party_id))
+            with open(network_file, "w") as f:
+                f.write(network_content)
+            # Ensure empty private stores for this party.
+            os.makedirs("/tmp/hfc-kvs-%d" % party_id, exist_ok=True)
+            os.makedirs("/tmp/hfc-cvs-%d" % party_id, exist_ok=True)
         
         return party_fc_dir
     

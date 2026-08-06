@@ -135,6 +135,30 @@ class PolicyExchangeP2PTest(unittest.TestCase):
         self.assertIn("policy:rpe-1", stored)
         self.assertIn("policy:rpe-2", stored)
 
+    def test_send_and_query_consensus_hash_roundtrip(self):
+        addr1 = "127.0.0.1:%d" % self.BASE_PORT
+        addr2 = "127.0.0.1:%d" % (self.BASE_PORT + 1)
+        h = "ab" * 48
+        self.assertTrue(grpc_client.sendConsensusHash(addr1, "rpe-1", h))
+        self.assertTrue(grpc_client.sendConsensusHash(addr2, "rpe-2", h))
+        deadline = time.time() + 8
+        got = {}
+        while time.time() < deadline:
+            ok, content = grpc_client.queryConsensusHashByIds(addr1, "rpe-1,rpe-2")
+            self.assertTrue(ok)
+            got = json.loads(content)
+            if "rpe-1" in got and "rpe-2" in got:
+                break
+            time.sleep(0.2)
+        self.assertEqual(got.get("rpe-1"), h)
+        self.assertEqual(got.get("rpe-2"), h)
+        ok_q, qcontent = grpc_client.queryQuoteByIds(addr1, "hpi:rpe-1,hpi:rpe-2")
+        self.assertTrue(ok_q)
+        stored = json.loads(qcontent)
+        self.assertIn("hpi:rpe-1", stored)
+        self.assertIn("hpi:rpe-2", stored)
+
+
 
 if __name__ == "__main__":
     unittest.main()

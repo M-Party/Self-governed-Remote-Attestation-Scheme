@@ -147,7 +147,7 @@ class Phase3PerformanceTest:
                 return flag_file
         return None
 
-    def wait_for_all_ces_pre_connect_ready(self, ce_ids, timeout=120):
+    def wait_for_all_ces_pre_connect_ready(self, ce_ids, timeout=600):
         """Wait until all CEs are pre-connect ready and have written ready flags."""
         logger.info("Waiting for all CEs to be pre-connect ready...")
         start_time = time.time()
@@ -166,7 +166,7 @@ class Phase3PerformanceTest:
         logger.info("All %d CE(s) pre-connect ready. You can start RPE now." % len(ce_ids))
         return True
 
-    def wait_for_ces_complete(self, ce_ids, timeout=300):
+    def wait_for_ces_complete(self, ce_ids, timeout=900):
         """Wait until all CEs complete authentication."""
         start_time = time.time()
         completed_ces = set()
@@ -821,11 +821,12 @@ class Phase3PerformanceTest:
         total_time=True measures total authentication time across N CEs. Start
         CEs with CE_WAIT_FOR_START_RPE=1, wait for initialization, signal RPE
         startup, then write START_RPE_NOW.flag so CE-side timing starts.
+        Reports both CE-side and RPE-side Total Time for comparison.
         """
         logger.info("=" * 60)
         logger.info("Starting Phase 3 performance test with %d CEs" % num_ces)
         if total_time:
-            logger.info("Mode: Total-time. Start CEs with CE_WAIT_FOR_START_RPE=1; script signals when to start RPE, then CE-side timing = first auth_start to last auth_end.")
+            logger.info("Mode: Total-time. Start CEs with CE_WAIT_FOR_START_RPE=1; after START_RPE_NOW.flag, report both CE-side and RPE-side Total Time.")
         elif ce_first:
             logger.info("Mode: CE-first. Start all CEs first; script will signal when you can start RPE.")
         else:
@@ -959,45 +960,77 @@ class Phase3PerformanceTest:
             if valid_auths:
                 first_auth_start = min(auth.get("auth_start", float('inf')) for auth in valid_auths)
                 last_auth_end = max(auth.get("auth_end", 0) for auth in valid_auths)
-        
-        # --total-time mode: calculate Total Time from CE-side auth_start/auth_end.
-        if total_time and ce_data:
-            ce_valid = [(ce_id, ce_data[ce_id]) for ce_id in ce_ids if ce_id in ce_data 
+
+        # Always compute RPE-side wall-clock total time when RPE auth timestamps exist.
+        rpe_side_total_time = None
+        rpe_first_auth_start = None
+        rpe_last_auth_end = None
+        if all_rpe_ce_auths:
+            valid_auths = [auth for auth in all_rpe_ce_auths
+                           if auth.get("auth_start") is not None and auth.get("auth_end") is not None]
+            if valid_auths:
+                rpe_first_auth_start = min(auth.get("auth_start", float('inf')) for auth in valid_auths)
+                rpe_last_auth_end = max(auth.get("auth_end", 0) for auth in valid_auths)
+                if rpe_first_auth_start != float('inf') and rpe_last_auth_end > 0:
+                    rpe_side_total_time = rpe_last_auth_end - rpe_first_auth_start
+
+        # Always compute CE-side wall-clock total time when CE perf timestamps exist.
+        ce_total_time = None
+        ce_first_auth_start = None
+        ce_last_auth_end = None
+        ce_valid = []
+        if ce_data:
+            ce_valid = [(ce_id, ce_data[ce_id]) for ce_id in ce_ids if ce_id in ce_data
                         and ce_data[ce_id].get("auth_start") is not None and ce_data[ce_id].get("auth_end") is not None]
             if ce_valid:
-                first_auth_start = min(ce_data[ce_id].get("auth_start", float('inf')) for ce_id, _ in ce_valid)
-                last_auth_end = max(ce_data[ce_id].get("auth_end", 0) for ce_id, _ in ce_valid)
-                logger.info("Total Time (--total-time) computed from CE-side perf files (first CE auth_start to last CE auth_end)")
+                ce_first_auth_start = min(ce_data[ce_id].get("auth_start", float('inf')) for ce_id, _ in ce_valid)
+                ce_last_auth_end = max(ce_data[ce_id].get("auth_end", 0) for ce_id, _ in ce_valid)
+                if ce_first_auth_start != float('inf') and ce_last_auth_end > 0:
+                    ce_total_time = ce_last_auth_end - ce_first_auth_start
+
+        # Primary Total Time / first-last used for logging & legacy field:
+        # --total-time prefers CE-side; otherwise RPE-side.
+        if total_time and ce_total_time is not None:
+            first_auth_start = ce_first_auth_start
+            last_auth_end = ce_last_auth_end
+            logger.info(
+                "Total Time (--total-time): CE-side=%.6f s, RPE-side=%s" % (
+                    ce_total_time,
+                    ("%.6f s" % rpe_side_total_time) if rpe_side_total_time is not None else "N/A",
+                )
+            )
+        elif rpe_side_total_time is not None:
+            first_auth_start = rpe_first_auth_start
+            last_auth_end = rpe_last_auth_end
         
         # Calculate average auth_duration.
         avg_auth_duration = sum(rpe_auth_durations) / len(rpe_auth_durations) if rpe_auth_durations else 0
         
-        # Calculate total time from first auth_start to last auth_end.
+        # Legacy primary total-time field (kept for compatibility).
         rpe_total_time = None
+        if total_time and ce_total_time is not None:
+            rpe_total_time = ce_total_time
+        elif rpe_side_total_time is not None:
+            rpe_total_time = rpe_side_total_time
+
+        # Spread / processing range: prefer CE timestamps in --total-time mode.
         first_auth_start_time = None
         last_auth_start_time = None
         first_auth_end_time = None
         last_auth_end_time = None
-        
-        if first_auth_start is not None and last_auth_end is not None and first_auth_start != float('inf') and last_auth_end > 0:
-            rpe_total_time = last_auth_end - first_auth_start
-            # Calculate the time span between first auth_start and last auth_end.
-            if total_time and ce_data:
-                ce_valid = [(ce_id, ce_data[ce_id]) for ce_id in ce_ids if ce_id in ce_data 
-                            and ce_data[ce_id].get("auth_start") is not None and ce_data[ce_id].get("auth_end") is not None]
-                if ce_valid:
-                    first_auth_start_time = min(ce_data[ce_id].get("auth_start", float('inf')) for ce_id, _ in ce_valid)
-                    last_auth_start_time = max(ce_data[ce_id].get("auth_start", 0) for ce_id, _ in ce_valid)
-                    first_auth_end_time = min(ce_data[ce_id].get("auth_end", float('inf')) for ce_id, _ in ce_valid)
-                    last_auth_end_time = max(ce_data[ce_id].get("auth_end", 0) for ce_id, _ in ce_valid)
-            elif all_rpe_ce_auths:
-                valid_auths = [auth for auth in all_rpe_ce_auths 
-                              if auth.get("auth_start") is not None and auth.get("auth_end") is not None]
-                if valid_auths:
-                    first_auth_start_time = min(auth.get("auth_start", float('inf')) for auth in valid_auths)
-                    last_auth_start_time = max(auth.get("auth_start", 0) for auth in valid_auths)
-                    first_auth_end_time = min(auth.get("auth_end", float('inf')) for auth in valid_auths)
-                    last_auth_end_time = max(auth.get("auth_end", 0) for auth in valid_auths)
+        if total_time and ce_valid:
+            first_auth_start_time = min(ce_data[ce_id].get("auth_start", float('inf')) for ce_id, _ in ce_valid)
+            last_auth_start_time = max(ce_data[ce_id].get("auth_start", 0) for ce_id, _ in ce_valid)
+            first_auth_end_time = min(ce_data[ce_id].get("auth_end", float('inf')) for ce_id, _ in ce_valid)
+            last_auth_end_time = max(ce_data[ce_id].get("auth_end", 0) for ce_id, _ in ce_valid)
+        elif all_rpe_ce_auths:
+            valid_auths = [auth for auth in all_rpe_ce_auths
+                           if auth.get("auth_start") is not None and auth.get("auth_end") is not None]
+            if valid_auths:
+                first_auth_start_time = min(auth.get("auth_start", float('inf')) for auth in valid_auths)
+                last_auth_start_time = max(auth.get("auth_start", 0) for auth in valid_auths)
+                first_auth_end_time = min(auth.get("auth_end", float('inf')) for auth in valid_auths)
+                last_auth_end_time = max(auth.get("auth_end", 0) for auth in valid_auths)
         
         # Calculate CE start-time spread from first auth_start to last auth_start.
         ce_start_time_spread = None
@@ -1029,7 +1062,9 @@ class Phase3PerformanceTest:
             "ce_ids": ce_ids,
             "first_auth_start": first_auth_start,
             "last_auth_end": last_auth_end,
-            "rpe_total_time": rpe_total_time,  # Total time from first auth_start to last auth_end, including start-time spread.
+            "rpe_total_time": rpe_total_time,  # Primary total time (CE-side if --total-time else RPE-side).
+            "ce_total_time": ce_total_time,  # CE-side: first CE auth_start -> last CE auth_end.
+            "rpe_side_total_time": rpe_side_total_time,  # RPE-side: first RPE auth_start -> last RPE auth_end.
             "ce_start_time_spread": ce_start_time_spread,  # CE start-time spread from first auth_start to last auth_start.
             "processing_time_range": processing_time_range,  # Processing-time range from first auth_end to last auth_end.
             "total_auth_duration": total_auth_duration,  # Sum of all CE auth_duration values, i.e. pure processing time.
@@ -1079,11 +1114,12 @@ class Phase3PerformanceTest:
             logger.info("  First CE auth_start: %.3f" % first_auth_start)
         if last_auth_end is not None:
             logger.info("  Last CE auth_end: %.3f" % last_auth_end)
-        if rpe_total_time is not None and rpe_total_time > 0:
-            if total_time:
-                logger.info("  Total Time (CE-side: first auth_start to last auth_end): %.3f seconds" % rpe_total_time)
-            else:
-                logger.info("  Total Time (first auth_start to last auth_end): %.3f seconds" % rpe_total_time)
+        if ce_total_time is not None:
+            logger.info("  Total Time CE-side (first auth_start to last auth_end): %.6f seconds" % ce_total_time)
+        if rpe_side_total_time is not None:
+            logger.info("  Total Time RPE-side (first auth_start to last auth_end): %.6f seconds" % rpe_side_total_time)
+        if rpe_total_time is not None and rpe_total_time > 0 and not total_time:
+            logger.info("  Total Time (primary/RPE-side): %.3f seconds" % rpe_total_time)
         if ce_start_time_spread is not None:
             logger.info("  CE Start Time Spread (startup delay): %.3f seconds" % ce_start_time_spread)
         if processing_time_range is not None:
@@ -1155,6 +1191,8 @@ class Phase3PerformanceTest:
                 "First Auth Start",
                 "Last Auth End",
                 "Total Time (s)",
+                "Total Time CE-side (s)",
+                "Total Time RPE-side (s)",
                 "CE Start Time Spread (s)",
                 "Processing Time Range (s)",
                 "Total Auth Duration (s)",
@@ -1183,6 +1221,8 @@ class Phase3PerformanceTest:
                 stage3_policy_stats = result["statistics"]["stage3_expectation_policy_enforcement"]
                 ft_stats = result["statistics"].get("ft_state_propagation", {})
                 rpe_total_time = result.get("rpe_total_time", 0)
+                ce_total_time = result.get("ce_total_time")
+                rpe_side_total_time = result.get("rpe_side_total_time")
                 first_start = result.get("first_auth_start", 0)
                 last_end = result.get("last_auth_end", 0)
                 ce_start_spread = result.get("ce_start_time_spread")
@@ -1195,6 +1235,8 @@ class Phase3PerformanceTest:
                     "%.3f" % first_start if first_start else "N/A",
                     "%.3f" % last_end if last_end else "N/A",
                     "%.3f" % rpe_total_time if rpe_total_time else "N/A",
+                    "%.6f" % ce_total_time if ce_total_time is not None else "N/A",
+                    "%.6f" % rpe_side_total_time if rpe_side_total_time is not None else "N/A",
                     "%.3f" % ce_start_spread if ce_start_spread is not None else "N/A",
                     "%.3f" % processing_range if processing_range is not None else "N/A",
                     "%.3f" % total_auth_duration if total_auth_duration else "N/A",
@@ -1223,9 +1265,9 @@ class Phase3PerformanceTest:
             f.write("Phase 3 Performance Test Summary (RPE Authentication of CEs)\n")
             f.write("=" * 100 + "\n\n")
             
-            f.write("Repeat | Number | First Auth  | Last Auth   | Total Time | Start Spread| Proc Range  | Total Auth | Avg Auth   | Min Auth   | Max Auth   | Native Avg | Policy Avg | FT Prop Avg| Count | Throughput\n")
-            f.write("       | of CEs | Start        | End          | (s)        | (s)         | (s)         | Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)|       | (CEs/min)\n")
-            f.write("-" * 181 + "\n")
+            f.write("Repeat | Number | First Auth  | Last Auth   | Total(CE)  | Total(RPE) | Start Spread| Proc Range  | Total Auth | Avg Auth   | Min Auth   | Max Auth   | Native Avg | Policy Avg | FT Prop Avg| Count | Throughput\n")
+            f.write("       | of CEs | Start        | End          | (s)        | (s)        | (s)         | (s)         | Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)| Duration(s)|       | (CEs/min)\n")
+            f.write("-" * 195 + "\n")
             
             for result in all_results:
                 num_ces = result["num_ces"]
@@ -1234,18 +1276,21 @@ class Phase3PerformanceTest:
                 stage3_policy_stats = result["statistics"]["stage3_expectation_policy_enforcement"]
                 ft_stats = result["statistics"].get("ft_state_propagation", {})
                 rpe_total_time = result.get("rpe_total_time", 0)
+                ce_total_time = result.get("ce_total_time")
+                rpe_side_total_time = result.get("rpe_side_total_time")
                 first_start = result.get("first_auth_start", 0)
                 last_end = result.get("last_auth_end", 0)
                 ce_start_spread = result.get("ce_start_time_spread")
                 processing_range = result.get("processing_time_range")
                 total_auth_duration = result.get("total_auth_duration", 0)
                 
-                f.write("%6d | %6d | %12.3f | %12.3f | %10.3f | %11.3f | %11.3f | %11.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %5d | %10.2f\n" % (
+                f.write("%6d | %6d | %12.3f | %12.3f | %10.3f | %10.3f | %11.3f | %11.3f | %11.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %10.3f | %5d | %10.2f\n" % (
                     result.get("repeat", 1),
                     num_ces,
                     first_start if first_start else 0,
                     last_end if last_end else 0,
-                    rpe_total_time if rpe_total_time else 0,
+                    ce_total_time if ce_total_time is not None else (rpe_total_time or 0),
+                    rpe_side_total_time if rpe_side_total_time is not None else 0,
                     ce_start_spread if ce_start_spread is not None else 0,
                     processing_range if processing_range is not None else 0,
                     total_auth_duration if total_auth_duration else 0,
@@ -1329,7 +1374,7 @@ if __name__ == "__main__":
     parser.add_argument("--rpe-dir", type=str, default=None, help="Issuing RPE for current FT rpe_phase3_perf_*.json (default: discover RPE_party1 or first RPE)")
     parser.add_argument("--ce-base-dir", type=str, default=None, help="CE base directory")
     parser.add_argument("--ce-first", action="store_true", help="CE-first mode: start CEs first, script signals when to start RPE, then wait for auth complete")
-    parser.add_argument("--total-time", action="store_true", help="N CE auth total-time mode: start CEs with CE_WAIT_FOR_START_RPE=1, signal when CE init done, after you start RPE and Enter script creates START_RPE_NOW.flag, CE-side timing = first auth_start to last auth_end")
+    parser.add_argument("--total-time", action="store_true", help="N CE auth total-time mode: CE_WAIT_FOR_START_RPE=1 + START_RPE_NOW.flag barrier; reports Total Time CE-side and RPE-side (first auth_start to last auth_end)")
     parser.add_argument("--generate-report", action="store_true", help="Generate summary report from existing JSON files")
     parser.add_argument(
         "--repeat",

@@ -175,3 +175,37 @@ def queryPolicyByIds(address, rpeIds):
         bare = key[len(_POLICY_RPE_ID_PREFIX):] if key.startswith(_POLICY_RPE_ID_PREFIX) else key
         out[bare] = value
     return True, json.dumps(out)
+
+
+_HPI_RPE_ID_PREFIX = "hpi:"
+
+
+def _hpi_storage_id(rpe_id):
+    if rpe_id.startswith(_HPI_RPE_ID_PREFIX):
+        return rpe_id
+    return _HPI_RPE_ID_PREFIX + rpe_id
+
+
+def sendConsensusHash(address, rpeId, hash_hex):
+    """Exchange H(π*) hex digests via the Quote channel (Stage2 agreement)."""
+    return sendQuote(address, _hpi_storage_id(rpeId), hash_hex)
+
+
+def queryConsensusHashByIds(address, rpeIds):
+    """Query H(π*) digests; returns (ok, json_dict_str keyed by bare rpe id)."""
+    if isinstance(rpeIds, str):
+        bare_ids = [item.strip() for item in rpeIds.split(",") if item.strip()]
+    else:
+        bare_ids = list(rpeIds)
+    storage_ids = ",".join(_hpi_storage_id(rpe_id) for rpe_id in bare_ids)
+    ok, content = queryQuoteByIds(address, storage_ids)
+    if not ok or content is None:
+        return False, None
+    import json
+    stored = json.loads(content)
+    out = {}
+    for key, value in stored.items():
+        bare = key[len(_HPI_RPE_ID_PREFIX):] if key.startswith(_HPI_RPE_ID_PREFIX) else key
+        out[bare] = value
+    return True, json.dumps(out)
+

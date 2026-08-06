@@ -298,6 +298,7 @@ class RPEPerformanceTest:
         phase2_policy_enforcement_times = []
         t_exchange_times = []
         t_join_times = []
+        t_hpi_agree_times = []
         total_times = []
         for rpe_id, perf_data in all_perf_data.items():
             durations = perf_data.get("durations", {})
@@ -323,6 +324,8 @@ class RPEPerformanceTest:
                 t_exchange_times.append(durations["t_exchange"])
             if durations.get("t_join") is not None:
                 t_join_times.append(durations["t_join"])
+            if durations.get("t_hpi_agree") is not None:
+                t_hpi_agree_times.append(durations["t_hpi_agree"])
             if durations.get("total"):
                 total_times.append(durations["total"])
         result = {
@@ -344,6 +347,7 @@ class RPEPerformanceTest:
                 "phase2_policy_enforcement": _build_stats(phase2_policy_enforcement_times),
                 "t_exchange": _build_stats(t_exchange_times),
                 "t_join": _build_stats(t_join_times),
+                "t_hpi_agree": _build_stats(t_hpi_agree_times),
                 "total": _build_stats(total_times),
             }
         }
@@ -408,6 +412,11 @@ class RPEPerformanceTest:
             result["statistics"]["t_join"]["avg"],
             result["statistics"]["t_join"]["min"],
             result["statistics"]["t_join"]["max"]
+        ))
+        logger.info("  Phase 2.6 H(π*) agreement (t_hpi_agree) - Avg: %.6f, Min: %.6f, Max: %.6f" % (
+            result["statistics"]["t_hpi_agree"]["avg"],
+            result["statistics"]["t_hpi_agree"]["min"],
+            result["statistics"]["t_hpi_agree"]["max"]
         ))
         logger.info("  Total (Individual) - Avg: %.3f, Min: %.3f, Max: %.3f" % (
             result["statistics"]["total"]["avg"],
@@ -522,6 +531,7 @@ class RPEPerformanceTest:
         phase2_policy_enforcement_times = []
         t_exchange_times = []
         t_join_times = []
+        t_hpi_agree_times = []
         total_times = []
         for rpe_id, perf_data in all_perf_data.items():
             durations = perf_data.get("durations", {})
@@ -547,6 +557,8 @@ class RPEPerformanceTest:
                 t_exchange_times.append(durations["t_exchange"])
             if durations.get("t_join") is not None:
                 t_join_times.append(durations["t_join"])
+            if durations.get("t_hpi_agree") is not None:
+                t_hpi_agree_times.append(durations["t_hpi_agree"])
             if durations.get("total"):
                 total_times.append(durations["total"])
         result = {
@@ -568,6 +580,7 @@ class RPEPerformanceTest:
                 "phase2_policy_enforcement": _build_stats(phase2_policy_enforcement_times),
                 "t_exchange": _build_stats(t_exchange_times),
                 "t_join": _build_stats(t_join_times),
+                "t_hpi_agree": _build_stats(t_hpi_agree_times),
                 "total": _build_stats(total_times),
             }
         }
@@ -622,6 +635,11 @@ class RPEPerformanceTest:
             result["statistics"]["t_join"]["avg"],
             result["statistics"]["t_join"]["min"],
             result["statistics"]["t_join"]["max"]
+        ))
+        logger.info("  Phase 2.6 H(π*) agreement (t_hpi_agree) - Avg: %.6f, Min: %.6f, Max: %.6f" % (
+            result["statistics"]["t_hpi_agree"]["avg"],
+            result["statistics"]["t_hpi_agree"]["min"],
+            result["statistics"]["t_hpi_agree"]["max"]
         ))
         logger.info("  Total (Individual) - Avg: %.3f, Min: %.3f, Max: %.3f" % (
             result["statistics"]["total"]["avg"],
@@ -707,12 +725,15 @@ class RPEPerformanceTest:
                 "Phase2.3.2 Policy Enforcement Avg (s)",
                 "Phase2.3.2 Policy Enforcement Min (s)",
                 "Phase2.3.2 Policy Enforcement Max (s)",
-                "t_exchange Avg (s)",
-                "t_exchange Min (s)",
-                "t_exchange Max (s)",
-                "t_join Avg (s)",
-                "t_join Min (s)",
-                "t_join Max (s)",
+                "Phase2.4 Policy Exchange (t_exchange) Avg (s)",
+                "Phase2.4 Policy Exchange (t_exchange) Min (s)",
+                "Phase2.4 Policy Exchange (t_exchange) Max (s)",
+                "Phase2.5 Consensus Join (t_join) Avg (s)",
+                "Phase2.5 Consensus Join (t_join) Min (s)",
+                "Phase2.5 Consensus Join (t_join) Max (s)",
+                "Phase2.6 H(pi*) Agreement (t_hpi_agree) Avg (s)",
+                "Phase2.6 H(pi*) Agreement (t_hpi_agree) Min (s)",
+                "Phase2.6 H(pi*) Agreement (t_hpi_agree) Max (s)",
                 "Total Avg (s)",
                 "Total Min (s)",
                 "Total Max (s)"
@@ -732,6 +753,7 @@ class RPEPerformanceTest:
                 phase2_policy_enforcement_stats = result["statistics"]["phase2_policy_enforcement"]
                 t_exchange_stats = result["statistics"].get("t_exchange") or {"avg": 0, "min": 0, "max": 0}
                 t_join_stats = result["statistics"].get("t_join") or {"avg": 0, "min": 0, "max": 0}
+                t_hpi_agree_stats = result["statistics"].get("t_hpi_agree") or {"avg": 0, "min": 0, "max": 0}
                 total_stats = result["statistics"]["total"]
                 
                 writer.writerow([
@@ -769,6 +791,9 @@ class RPEPerformanceTest:
                     "%.6f" % t_join_stats["avg"],
                     "%.6f" % t_join_stats["min"],
                     "%.6f" % t_join_stats["max"],
+                    "%.6f" % t_hpi_agree_stats["avg"],
+                    "%.6f" % t_hpi_agree_stats["min"],
+                    "%.6f" % t_hpi_agree_stats["max"],
                     "%.3f" % total_stats["avg"],
                     "%.3f" % total_stats["min"],
                     "%.3f" % total_stats["max"]
@@ -791,8 +816,11 @@ class RPEPerformanceTest:
                    "P2.3 Avg | P2.3 Min | P2.3 Max | "
                    "P2.3.1 Avg | P2.3.1 Min | P2.3.1 Max | "
                    "P2.3.2 Avg | P2.3.2 Min | P2.3.2 Max | "
+                   "P2.4 Avg | P2.4 Min | P2.4 Max | "
+                   "P2.5 Avg | P2.5 Min | P2.5 Max | "
+                   "P2.6 Avg | P2.6 Min | P2.6 Max | "
                    "Total Avg | Total Min | Total Max\n")
-            f.write("-" * 360 + "\n")
+            f.write("-" * 420 + "\n")
             
             for result in all_results:
                 num_rpes = result["num_rpes"]
@@ -805,6 +833,9 @@ class RPEPerformanceTest:
                 phase2_verification_stats = result["statistics"]["phase2_verification"]
                 phase2_native_quote_verification_stats = result["statistics"]["phase2_native_quote_verification"]
                 phase2_policy_enforcement_stats = result["statistics"]["phase2_policy_enforcement"]
+                t_exchange_stats = result["statistics"].get("t_exchange") or {"avg": 0, "min": 0, "max": 0}
+                t_join_stats = result["statistics"].get("t_join") or {"avg": 0, "min": 0, "max": 0}
+                t_hpi_agree_stats = result["statistics"].get("t_hpi_agree") or {"avg": 0, "min": 0, "max": 0}
                 total_stats = result["statistics"]["total"]
                 
                 f.write("%14d | %10.3f | %10.3f | %10.3f | "
@@ -816,6 +847,9 @@ class RPEPerformanceTest:
                        "%8.3f | %8.3f | %8.3f | "
                        "%10.3f | %10.3f | %10.3f | "
                        "%10.3f | %10.3f | %10.3f | "
+                       "%8.3f | %8.3f | %8.3f | "
+                       "%8.3f | %8.3f | %8.3f | "
+                       "%8.3f | %8.3f | %8.3f | "
                        "%9.3f | %9.3f | %9.3f\n" % (
                     num_rpes,
                     phase1_stats["avg"], phase1_stats["min"], phase1_stats["max"],
@@ -827,6 +861,9 @@ class RPEPerformanceTest:
                     phase2_verification_stats["avg"], phase2_verification_stats["min"], phase2_verification_stats["max"],
                     phase2_native_quote_verification_stats["avg"], phase2_native_quote_verification_stats["min"], phase2_native_quote_verification_stats["max"],
                     phase2_policy_enforcement_stats["avg"], phase2_policy_enforcement_stats["min"], phase2_policy_enforcement_stats["max"],
+                    t_exchange_stats["avg"], t_exchange_stats["min"], t_exchange_stats["max"],
+                    t_join_stats["avg"], t_join_stats["min"], t_join_stats["max"],
+                    t_hpi_agree_stats["avg"], t_hpi_agree_stats["min"], t_hpi_agree_stats["max"],
                     total_stats["avg"], total_stats["min"], total_stats["max"]
                 ))
             
@@ -875,6 +912,17 @@ class RPEPerformanceTest:
             return None
 
         all_results.sort(key=lambda result: result.get("num_rpes", 0))
+        # Backfill Stage2 H(π*) stats from individual_perf when older JSONs lack them.
+        for result in all_results:
+            stats = result.setdefault("statistics", {})
+            if not stats.get("t_hpi_agree") or stats["t_hpi_agree"].get("avg") in (None, 0):
+                vals = []
+                for perf in result.get("individual_perf", {}).values():
+                    v = (perf.get("durations") or {}).get("t_hpi_agree")
+                    if v is not None:
+                        vals.append(v)
+                if vals:
+                    stats["t_hpi_agree"] = _build_stats(vals)
         name_suffix = "_".join(str(result["num_rpes"]) for result in all_results)
         self.generate_summary_report(all_results, name_suffix=name_suffix)
         return all_results

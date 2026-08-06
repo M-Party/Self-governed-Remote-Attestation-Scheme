@@ -1,6 +1,7 @@
 import logging
 import json
 import time
+import threading
 
 from dist.other_pkgs.avalon_sdk.connector.blockchains.fabric.fabric_worker_registry import \
     FabricWorkerRegistryImpl
@@ -13,9 +14,20 @@ logger = logging.getLogger(__name__)
 class Connector:
     def __init__(self, conf):
         self.conf = conf
+        # Reuse one FabricWorkerRegistryImpl/FabricWrapper across RPCs.
+        # Recreating TxCommitter on every upload/query dominated Stage2 wait polls.
+        self._worker_registry = None
+        self._worker_registry_lock = threading.Lock()
+
+    def _get_worker_registry(self):
+        if self._worker_registry is None:
+            with self._worker_registry_lock:
+                if self._worker_registry is None:
+                    self._worker_registry = FabricWorkerRegistryImpl(self.conf)
+        return self._worker_registry
 
     def worker_lookup(self):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         result = worker_registry.worker_lookup(
                     worker_type=WorkerType.MPC)
 
@@ -28,7 +40,7 @@ class Connector:
 
     def get_workers_detail(self, worker_ids):
         workers = []
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         for worker_id in worker_ids:
             worker = self.get_worker_detail(worker_registry, worker_id)
             if worker is not None:
@@ -38,7 +50,7 @@ class Connector:
 
     def get_all_workers(self):
         workers = []
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         result = worker_registry.worker_lookup(
                     worker_type=WorkerType.MPC)
 
@@ -64,7 +76,7 @@ class Connector:
                 ret = self._update_worker(worker)
                 time.sleep(5)
                 if ret == True:
-                    worker_registry = FabricWorkerRegistryImpl(self.conf)
+                    worker_registry = self._get_worker_registry()
                     current_details = self.get_worker_detail(worker_registry,worker['worker_id'])
                     current_details = current_details['details']
                     logger.info("Worker_id: " + worker['worker_id'] + " details")
@@ -79,7 +91,7 @@ class Connector:
 
 
     def _update_worker(self, worker):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         ret = worker_registry.worker_update(
                   worker['worker_id'],
                   json.dumps(worker['details']))
@@ -98,7 +110,7 @@ class Connector:
 
 
     def _remove_worker(self, worker_ids):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         for wid in worker_ids:
             ret = worker_registry.worker_set_status(
                       wid,
@@ -121,7 +133,7 @@ class Connector:
 
 
     def _add_worker(self, worker):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         ret = worker_registry.worker_register(
                   worker['worker_id'],
                   WorkerType.MPC,
@@ -152,7 +164,7 @@ class Connector:
 
 
     def _set_worker_status(self,worker_id,status):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         ret = worker_registry.worker_set_status(
                       worker_id,
                       status)
@@ -177,7 +189,7 @@ class Connector:
                 time.sleep(10)
 
     def _get_worker_status(self,worker_id):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         result = worker_registry\
                         .worker_retrieve(worker_id)
         if len(result) != 5:
@@ -207,7 +219,7 @@ class Connector:
                 time.sleep(10)
 
     def _generate_nonce(self, worker_id, nonce):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         ret = worker_registry.generate_nonce(worker_id, nonce)
         return ret == ContractResponse.SUCCESS
 
@@ -222,7 +234,7 @@ class Connector:
                 time.sleep(10)
 
     def _get_nonce(self, worker_ids):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         return worker_registry.get_nonce(worker_ids)[0]
 
     def remove_nonce(self, worker_id):
@@ -236,7 +248,7 @@ class Connector:
                 time.sleep(10)
 
     def _remove_nonce(self, worker_id):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         ret = worker_registry.remove_nonce(worker_id)
         return ret == ContractResponse.SUCCESS
 
@@ -251,7 +263,7 @@ class Connector:
                 time.sleep(10)
 
     def _upload_quote(self, worker_id, quote):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         ret = worker_registry.upload_quote(
                   worker_id,
                   str(quote)
@@ -269,7 +281,7 @@ class Connector:
                 time.sleep(10)
 
     def _get_quote(self, worker_id):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         return worker_registry.get_quote(worker_id)[1]
     
     def get_quote_by_ids(self, worker_ids):
@@ -283,7 +295,7 @@ class Connector:
                 time.sleep(10)
 
     def _get_quote_by_ids(self, worker_ids):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         return worker_registry.get_quote_by_ids(worker_ids)[0]
 
     def upload_verify_result(self, worker_id, verify_results):
@@ -297,7 +309,7 @@ class Connector:
                 time.sleep(10)
 
     def _upload_verify_result(self, worker_id, verify_results):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         ret = worker_registry.upload_verify_result(
                   worker_id,
                   verify_results
@@ -316,7 +328,7 @@ class Connector:
                 time.sleep(10)
 
     def _get_verify_final_result(self, worker_ids):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         return worker_registry.get_verify_final_result(worker_ids)[0]
 
     def upload_customer_enclaves(self, customer_enclaves):
@@ -330,7 +342,7 @@ class Connector:
                 time.sleep(10)
 
     def _upload_customer_enclaves(self, customer_enclaves):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         ret = worker_registry.upload_customer_enclaves(customer_enclaves)
         return ret == ContractResponse.SUCCESS
 
@@ -345,7 +357,7 @@ class Connector:
                 time.sleep(10)
 
     def _get_customer_enclaves(self, job_ids):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         return worker_registry.get_customer_enclaves(job_ids)[0]
 
     def send_heartbeat(self, worker_id):
@@ -359,7 +371,7 @@ class Connector:
                 time.sleep(10)
 
     def _send_heartbeat(self, worker_id):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         ret = worker_registry.send_heartbeat(worker_id)
         return ret == ContractResponse.SUCCESS
 
@@ -374,5 +386,5 @@ class Connector:
                 time.sleep(10)
 
     def _check_heartbeat(self, worker_id, worker_ids):
-        worker_registry = FabricWorkerRegistryImpl(self.conf)
+        worker_registry = self._get_worker_registry()
         return worker_registry.check_heartbeat(worker_id, worker_ids)[0]

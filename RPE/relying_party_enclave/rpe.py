@@ -84,6 +84,8 @@ class RPE:
             "init_start": init_start_time,
             "phase1_start": None,
             "phase1_end": None,
+            "pre_phase2_barrier_start": None,
+            "pre_phase2_barrier_end": None,
             "phase2_start": None,
             "phase2_quote_generation_start": None,
             "phase2_quote_generation_end": None,
@@ -256,9 +258,41 @@ class RPE:
             phase1_duration = perf_timestamps["phase1_end"] - perf_timestamps["phase1_start"]
             logger.error("Phase 1 duration: %.3f seconds" % phase1_duration)
             logger.info("======================= Phase one finished =======================\n")
+
+            # Pre-Phase2 barrier (not timed in Phase2): register + wait until all N RPEs
+            # are visible on the transport. Warms the gRPC channel and aligns send start
+            # for both P2P and Fabric (same proto).
+            required_rpes = self.num_rpes_in_policies or len(self.rpes or {})
+            perf_timestamps["pre_phase2_barrier_start"] = time.time()
+            logger.info(
+                "======================= Pre-Phase2 barrier: register and wait for %d RPEs... =======================",
+                required_rpes,
+            )
+            if not grpc_client.sendRPEVerificationInfo(
+                self.grpc_server_address,
+                json.dumps(rpe_verification_info),
+            ):
+                logger.error("Pre-Phase2 barrier: sendRPEVerificationInfo failed")
+                return
+            ok, workers_content = grpc_client.queryRPEs(self.grpc_server_address, required_rpes)
+            if not ok:
+                logger.error("Pre-Phase2 barrier: queryRPEs failed")
+                return
+            perf_timestamps["pre_phase2_barrier_end"] = time.time()
+            barrier_duration = (
+                perf_timestamps["pre_phase2_barrier_end"]
+                - perf_timestamps["pre_phase2_barrier_start"]
+            )
+            logger.error(
+                "Pre-Phase2 barrier done: required=%d elapsed=%.3fs",
+                required_rpes,
+                barrier_duration,
+            )
+            logger.info("======================= Pre-Phase2 barrier finished =======================\n")
         else:
             logger.error("FT recovery cached Expt load duration: %.3f seconds" % phase1_duration)
             logger.info("======================= FT recovery startup Expt load finished =======================\n")
+            barrier_duration = None
 	        
         # =============== Phase two ===============
         perf_timestamps["phase2_start"] = time.time()
@@ -357,7 +391,7 @@ class RPE:
                     sorted(evidence_quotes_dict.keys()),
                 )
                 if not evidence_quotes_dict:
-                    time.sleep(0.05)
+                    self._sleep_for_poll_interval(query_started_at, query_finished_at)
                     continue
                 
                 for rpe_id, evidence_quote_base64 in evidence_quotes_dict.items():
@@ -367,7 +401,7 @@ class RPE:
                 if len(rpe_id_dict_to_be_fetched) == 0:
                     break
                 # P2P QueryQuoteByIds is non-blocking; poll until all peers arrive.
-                time.sleep(0.05)
+                self._sleep_for_poll_interval(query_started_at, query_finished_at)
     
             perf_timestamps["phase2_wait_remote_quotes_end"] = time.time()
             perf_timestamps["phase2_exchange_end"] = time.time()
@@ -467,10 +501,13 @@ class RPE:
             logger.error("Phase 2.3.2 policy enforcement duration: %.3f seconds" % phase2_policy_enforcement_duration)
             t_exchange = perf_timestamps.get("t_exchange")
             t_join = perf_timestamps.get("t_join")
+            t_hpi_agree = perf_timestamps.get("t_hpi_agree")
             if t_exchange is not None:
                 logger.error("Phase 2.4 policy exchange duration (t_exchange): %.6f seconds" % t_exchange)
             if t_join is not None:
                 logger.error("Phase 2.5 consensus join duration (t_join): %.6f seconds" % t_join)
+            if t_hpi_agree is not None:
+                logger.error("Phase 2.6 H(π*) agreement duration (t_hpi_agree): %.6f seconds" % t_hpi_agree)
             logger.error("Total initialization duration: %.3f seconds" % total_duration)
     
             # =============== Performance test: save timestamps to file ===============
@@ -479,6 +516,7 @@ class RPE:
                 "timestamps": perf_timestamps,
                 "durations": {
                     "phase1": phase1_duration,
+                    "pre_phase2_barrier": barrier_duration if not skip_phase2_for_recovery else None,
                     "phase2": phase2_duration,
                     "phase2_quote_generation": phase2_quote_generation_duration,
                     "phase2_exchange": phase2_exchange_duration,
@@ -489,6 +527,7 @@ class RPE:
                     "phase2_policy_enforcement": phase2_policy_enforcement_duration,
                     "t_exchange": t_exchange,
                     "t_join": t_join,
+                    "t_hpi_agree": perf_timestamps.get("t_hpi_agree"),
                     "total": total_duration
                 }
             }
@@ -618,16 +657,10 @@ class RPE:
                     )
                 
                 # Sign CE's public signing key and generate a cert.
-                consensus_hash_hex = (
-                    self.consensus_policy_hash.hex()
-                    if self.consensus_policy_hash is not None
-                    else None
-                )
                 ce_cert = certificate.generate_ce_certificate(
                     self.signing_keys["private"],
                     ce_public_signing_key_obj,
                     self.local_rpe["rpe_id"],
-                    consensus_policy_hash=consensus_hash_hex,
                 )
                 ce_cert_base64 = crypto_utility.byte_array_to_base64(ce_cert)
                 
@@ -756,13 +789,8 @@ class RPE:
                     self.ratls.close_connection()
                     continue
                 
-                expected_hash = (
-                    self.consensus_policy_hash.hex()
-                    if self.consensus_policy_hash is not None
-                    else None
-                )
                 verification_result = certificate.verify_ce_certificate(
-                    cert, collaborativeRPEkey, expected_consensus_policy_hash=expected_hash
+                    cert, collaborativeRPEkey
                 )
                 ret = self.ratls.send_verification_result(verification_result)
                 if ret != 0:
@@ -1305,6 +1333,13 @@ class RPE:
             logger.error("Generate quote with policy hash failed! Error message %s", str(e))
             return None
 
+    @staticmethod
+    def _sleep_for_poll_interval(query_started_at, query_finished_at, interval=0.05):
+        """Keep ~interval between poll starts; skip extra sleep if query already slow (Fabric)."""
+        remaining = interval - (query_finished_at - query_started_at)
+        if remaining > 0:
+            time.sleep(remaining)
+
     def _exchange_policies_and_compute_consensus(self, perf_timestamps):
         """After mutual attestation: exchange ρ over quote channel and join to π*."""
         if self.local_policy is None:
@@ -1322,9 +1357,11 @@ class RPE:
         fetched = {}
         pending = set(rpe_ids)
         while pending:
+            query_started_at = time.time()
             status, content = grpc_client.queryPolicyByIds(
                 self.grpc_server_address, ",".join(sorted(pending))
             )
+            query_finished_at = time.time()
             if not status:
                 raise RuntimeError("queryPolicyByIds failed")
             blob = json.loads(content)
@@ -1332,7 +1369,7 @@ class RPE:
                 fetched[rid] = b64
                 pending.discard(rid)
             if pending:
-                time.sleep(0.05)
+                self._sleep_for_poll_interval(query_started_at, query_finished_at)
         perf_timestamps["phase2_policy_exchange_end"] = time.time()
         perf_timestamps["t_exchange"] = (
             perf_timestamps["phase2_policy_exchange_end"]
@@ -1373,6 +1410,54 @@ class RPE:
             self.consensus_policy_hash.hex(),
             perf_timestamps["t_exchange"],
             perf_timestamps["t_join"],
+        )
+
+        # Stage2: exchange and agree on H(π*) (no longer deferred to Stage4 certificates).
+        local_hash_hex = self.consensus_policy_hash.hex()
+        perf_timestamps["phase2_hpi_agree_start"] = time.time()
+        if not grpc_client.sendConsensusHash(
+            self.grpc_server_address, local_rpe_id, local_hash_hex
+        ):
+            raise RuntimeError("sendConsensusHash failed")
+        pending_hpi = set(rpe_ids)
+        fetched_hpi = {}
+        while pending_hpi:
+            query_started_at = time.time()
+            status, content = grpc_client.queryConsensusHashByIds(
+                self.grpc_server_address, ",".join(sorted(pending_hpi))
+            )
+            query_finished_at = time.time()
+            if not status:
+                raise RuntimeError("queryConsensusHashByIds failed")
+            blob = json.loads(content)
+            for rid, digest_hex in blob.items():
+                fetched_hpi[rid] = digest_hex
+                pending_hpi.discard(rid)
+            if pending_hpi:
+                self._sleep_for_poll_interval(query_started_at, query_finished_at)
+        for rid in rpe_ids:
+            peer_hex = fetched_hpi.get(rid)
+            if peer_hex is None:
+                raise RuntimeError("missing H(π*) from %s" % rid)
+            if peer_hex != local_hash_hex:
+                logger.error(
+                    "negotiation_abort: H(π*) mismatch local=%s peer=%s from %s",
+                    local_hash_hex,
+                    peer_hex,
+                    rid,
+                )
+                raise consensus_policy.JoinError(
+                    "H(π*) mismatch with %s" % rid
+                )
+        perf_timestamps["phase2_hpi_agree_end"] = time.time()
+        perf_timestamps["t_hpi_agree"] = (
+            perf_timestamps["phase2_hpi_agree_end"]
+            - perf_timestamps["phase2_hpi_agree_start"]
+        )
+        logger.info(
+            "Stage2 H(π*) agreement ok: H(π*)=%s t_hpi_agree=%.6fs",
+            local_hash_hex,
+            perf_timestamps["t_hpi_agree"],
         )
 
     def _remap_collaterals_for_consensus(self):

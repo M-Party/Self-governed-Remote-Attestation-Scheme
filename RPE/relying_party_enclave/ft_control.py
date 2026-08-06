@@ -176,10 +176,15 @@ def derive_ft_quorum(num_rpes, quorum_override=0):
         if quorum_override > num_rpes:
             raise ValueError("quorum_override must be <= num_rpes")
         return quorum_override
-    # Quorum: floor(N/2) + 1; N=2 keeps quorum=1 (only one remote peer).
+    # Quorum: floor(N/2) + 1; N=2 keeps quorum=1 but requires a remote peer echo.
     if num_rpes == 2:
         return 1
     return num_rpes // 2 + 1
+
+
+def local_echo_counts_toward_quorum(num_rpes):
+    """N=2 waits for a remote peer echo; N>2 keeps counting the local echo toward quorum."""
+    return num_rpes != 2
 
 
 def _as_bool(value, default=False):
@@ -252,6 +257,7 @@ class FTConfig:
     expt_cache_path: str
     counter_cache_path: str
     ft_quorum: int
+    num_rpes: int = 0
 
     @classmethod
     def from_conf(cls, conf, num_rpes, local_rpe_id):
@@ -270,6 +276,7 @@ class FTConfig:
                 ft_conf.get("counter_cache_path"), "collaterals/ft_counter_cache.json"
             ),
             ft_quorum=derive_ft_quorum(num_rpes, quorum_override),
+            num_rpes=num_rpes,
         )
 
 
@@ -917,7 +924,10 @@ class FTControlManager:
         sign_echo_started = time.perf_counter()
         local_echo = self._build_local_echo(state)
         local_sign_echo_ms = elapsed_ms(sign_echo_started)
-        valid_echoes = [local_echo]
+        if local_echo_counts_toward_quorum(self.config.num_rpes):
+            valid_echoes = [local_echo]
+        else:
+            valid_echoes = []
         quorum_target = self.config.ft_quorum
         peer_timings = {}
         peer_targets = [
@@ -942,19 +952,23 @@ class FTControlManager:
             }
             return len(valid_echoes) >= quorum_target, list(valid_echoes)
 
+        if valid_echoes:
+            propagation_mode = "with local echo"
+        else:
+            propagation_mode = "awaiting remote peer echo (N=2)"
         logger.info(
-            "SRAS-FT propagating state request_id=%s for TEE %s counter %d with local echo; "
+            "SRAS-FT propagating state request_id=%s for TEE %s counter %d %s; "
             "need %d/%d echoes from peers %s",
             request_id,
             state["tee_id"],
             state["attestation_counter"],
+            propagation_mode,
             max(0, quorum_target - len(valid_echoes)),
             quorum_target,
             [peer_id for peer_id, _ in peer_targets],
         )
         propagation_started_at = time.time()
 
-        threads = []
         lock = threading.Lock()
         stop_event = threading.Event()
         deadline = time.time() + self.config.echo_timeout_sec
@@ -1055,27 +1069,35 @@ class FTControlManager:
                 with lock:
                     peer_timings[peer_id] = dict(peer_timing)
 
-        for peer_id, address in peer_targets:
-            thread = threading.Thread(target=send_one, args=(peer_id, address), daemon=True)
-            thread.start()
-            threads.append(thread)
+        # N=2: single remote peer, run synchronously (Gramine enclave thread limits
+        # and scheduling inflate verify_echo timing under echo_timeout).
+        single_peer_sync = self.config.num_rpes == 2 and len(peer_targets) == 1
+        if single_peer_sync:
+            peer_id, address = peer_targets[0]
+            send_one(peer_id, address)
+        else:
+            threads = []
+            for peer_id, address in peer_targets:
+                thread = threading.Thread(target=send_one, args=(peer_id, address), daemon=True)
+                thread.start()
+                threads.append(thread)
 
-        while time.time() < deadline:
-            with lock:
-                if len(valid_echoes) >= quorum_target:
-                    stop_event.set()
+            while time.time() < deadline:
+                with lock:
+                    if len(valid_echoes) >= quorum_target:
+                        stop_event.set()
+                        break
+                any_alive = False
+                for thread in threads:
+                    thread.join(timeout=0.05)
+                    if thread.is_alive():
+                        any_alive = True
+                with lock:
+                    if len(valid_echoes) >= quorum_target:
+                        stop_event.set()
+                        break
+                if not any_alive:
                     break
-            any_alive = False
-            for thread in threads:
-                thread.join(timeout=0.05)
-                if thread.is_alive():
-                    any_alive = True
-            with lock:
-                if len(valid_echoes) >= quorum_target:
-                    stop_event.set()
-                    break
-            if not any_alive:
-                break
 
         stop_event.set()
         with lock:

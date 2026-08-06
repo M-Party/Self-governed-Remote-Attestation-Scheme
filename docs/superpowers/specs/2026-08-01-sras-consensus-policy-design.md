@@ -2,7 +2,7 @@
 
 > 日期：2026-08-01  
 > 依据：`docs/consensus/SRASConsensusPolicySPEC.md` + 与用户对齐的工程约束  
-> 状态：实现中（核心 join / Stage2 / 证书扩展已落地）
+> 状态：实现中（join / Stage2 H(π*) 对齐；Stage4 证书不再挂 H(π*)）
 
 ---
 
@@ -13,7 +13,7 @@
 1. 在现有 JSON 策略形态上对齐 SPEC 四分量语义（τ / ι / β）。
 2. Stage2：**先互证 Evidence Quote，再交换完整 ρ，本地 join 得 π\***。
 3. Phase3 实例认证按 π\* 执行（β + τ + ι）。
-4. Stage4（CE 换证 / RPE 验证书）比对证书中的 `H(π*)`，确认各方共识一致。
+4. Stage2 在 join 后交换并比对 `H(π*)`；Stage4 证书不再携带/比对 `H(π*)`。
 5. 功能测试可用不同 ρ_i；评估测试可各方 ρ 相同（join ≈ 恒等）。
 6. 提供 join 单测与阶段埋点。
 
@@ -22,7 +22,7 @@
 - SRAS-FT 冗余、recovery、FT 传播（本轮不改）。
 - `cust_qeid_allowed` 进入 join。
 - enclave 内直接解析 YAML。
-- Stage2 为 `H(π*)` 另开 RPE↔RPE 等齐轮（一致性放 Stage4 证书）。
+- ~~Stage2 不为 `H(π*)` 另开等齐轮~~ → **已改为 Stage2 交换比对 `H(π*)`；Stage4 证书不再挂/比 `H(π*)`。**
 
 ---
 
@@ -42,8 +42,8 @@
 | report_data / Evidence Quote | Evidence Quote 显式带 `policy_hash=H(ρ_i)`；**去掉** PK_e。**report_data（64B）**：`SHA384(PK_s ‖ H(ρ_i))`（48B）再零填充至 64B，完整绑进 quote（修复原 96B 截断只验策略哈希前 16B 的问题）。验 peer 用信封 `PK_s`+`policy_hash` 重建，不用本地策略哈希 |
 | qeid | 评估沿用现逻辑；不进 join |
 | 策略交换 | 复用现有 quote 信道（P2P/Fabric） |
-| `H(π*)` 一致性 | **Stage4**：写入 CE 证书扩展 / Verification Report 新字段后比对 |
-| Stage2 不为 `H(π*)` 另开等齐轮 | 本地算完只存储；避免加重 `phase2_exchange` |
+| `H(π*)` 一致性 | **Stage2**：quote 信道交换 `hpi:<rpeId>` 后与本地比对；不一致 `negotiation_abort` |
+| Stage4 证书 | **不**再写入/比对 `H(π*)` 扩展 |
 | `min_status` | collateral 验 Quote 后取 status 与 `min_status` 比；**第一期：status < min_status 仍接受**（打日志，便于 debug） |
 | 评估 | 各方 policy 可相同 |
 
@@ -145,19 +145,19 @@ Phase2a 交换 Evidence Quote（含 quote、PK_s、policy_hash=H(ρ_i)；不含 
 Phase2b 互证通过 → 复用 quote 信道交换完整 ρ
         → 校验 SHA384(ρ_j) == Evidence Quote 中的 policy_hash
         → π*, H(π*) = compute_consensus(S)；JoinError → negotiation_abort
-        → 本地持久化 π* / H(π*)（Stage2 不互发 H(π*) 等齐）
+        → 本地持久化 π* / H(π*)
+        → quote 信道交换 H(π*)（`hpi:<rpeId>`）并与本地比对；不一致 negotiation_abort
 Phase3  Attest(E)：β=(local_rpe,E)∈π*.job；τ / ι 来自 π*.ce
-        → 签发证书，扩展字段写入 H(π*)
+        → 签发证书（不挂 H(π*)）
 Phase4  CE 换证；验证方 RPE 验证书时：
-        → 验签 + nonce 等现有逻辑
-        → 比较证书中 H(π*) 与本地 H(π*)；不一致则拒绝
+        → 验签 + nonce 等现有逻辑（不再比对 H(π*)）
 ```
 
-### 4.1 为何 Stage4 比对 `H(π*)`
+### 4.1 为何 Stage2 比对 `H(π*)`（方案 C）
 
-- 评估显示 Stage2 瓶颈是 `phase2_exchange`（等齐），再开一轮 RPE↔RPE 等齐会叠加等待。
-- 确定性 join 保证「该一致」；Stage4 证书携带 `H(π*)` 让对端观测到一致。
-- 代价：不一致发现晚于发证；接受该取舍。
+- 确定性 join 保证「该一致」；Stage2 显式交换 `H(π*)` 尽早发现分歧。
+- Pre-Phase2 barrier + 热 channel 后，再加一轮轻量 `H(π*)` 交换成本可接受。
+- Stage4 证书路径不再绑定 `H(π*)`。
 
 ---
 
@@ -229,8 +229,8 @@ report_data = inner ‖ 0x00 * 16              # pad 到 SGX report_data 64 byte
 
 ### 6.3 Stage4 证书
 
-- `generate_ce_certificate`（或 Verification Report）新增扩展 OID/字段：`consensus_policy_hash` = `H(π*)`
-- `verify_ce_certificate`：在现有验签后比较该字段与验证方本地 `H(π*)`
+- 证书**不**再携带 `consensus_policy_hash` / `H(π*)` 扩展。
+- `verify_ce_certificate` 仅做常规验签（方案 C）。
 
 ---
 
@@ -243,7 +243,7 @@ report_data = inner ‖ 0x00 * 16              # pad 到 SGX report_data 64 byte
 | `setup_multi_party.py` | 生成符合新语义的 policies；支持同 ρ 评估与异 ρ 功能用例 |
 | `grpc_client` + P2P/Fabric | `sendPolicy` / `queryPolicyByIds`（仿 quote） |
 | `rpe.py` Phase2 | Evidence Quote 加 `policy_hash`、去 PK_e；report_data=`SHA384(PK_s‖H(ρ))‖pad16`；验 peer 用信封重建；互证后 exchange + join；埋点 `t_exchange` / `t_join` |
-| `rpe.py` Phase3 | Attest 读 π\*；签发带 `H(π*)` |
+| `rpe.py` Phase3 | Attest 读 π\*；签发证书（无 H(π*)） |
 | `certificate.py` | 扩展字段读写 |
 | `tests/test_consensus_policy.py` | SPEC §9.1–9.2 矩阵 |
 | FT / `ft_control.py` | 本轮不动 |
@@ -256,8 +256,8 @@ report_data = inner ‖ 0x00 * 16              # pad 到 SGX report_data 64 byte
 2. 模板与 `policies.py` 解析迁移
 3. 策略交换 API（复用 quote 信道）
 4. Stage2 接入 exchange + join + 本地存 π\*
-5. Phase3 Attest + 证书写 `H(π*)`
-6. Stage4 验证书比 `H(π*)`
+5. Phase2b 末尾交换比对 `H(π*)`
+6. Phase3 Attest；Stage4 验书无 `H(π*)` 比对
 7. setup / 埋点 / 功能与评估用例
 
 ---
@@ -267,12 +267,12 @@ report_data = inner ‖ 0x00 * 16              # pad 到 SGX report_data 64 byte
 - 单元：ι/τ/β join 矩阵；顺序无关确定性；两类 ⊥ only
 - 功能：两方不同 ρ → 期望 π\*；冲突注入 → `JoinError`
 - 评估：各方相同 ρ；Stage2 时延 = 原口径 + ρ exchange + join（无额外 H 等齐轮）
-- Stage4：证书携带的 `H(π*)` 一致则过；故意改本地 π\* 则拒绝
+- Stage2：故意改本地 `H(π*)` 则 negotiation_abort；Stage4 证书无该扩展
 
 ---
 
 ## 10. 用户最终确认项（已并入上文）
 
-1. 证书挂 `H(π*)`：扩展 / Verification Report 新字段  
+1. Stage2 `hpi:` 信道交换比对 `H(π*)`  
 2. `min_status`：比较但第一期不达标仍接受 + 日志  
 3. `connection`：直接引用 ce id  

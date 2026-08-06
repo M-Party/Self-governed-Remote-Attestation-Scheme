@@ -14,6 +14,7 @@ from RPE.relying_party_enclave.ft_control import (
     FTStateStore,
     canonical_json_bytes,
     derive_ft_quorum,
+    local_echo_counts_toward_quorum,
     parse_peer_addresses,
     sign_json,
     verify_json_signature,
@@ -29,6 +30,11 @@ class FTConfigTest(unittest.TestCase):
         self.assertEqual(derive_ft_quorum(6, 0), 4)
         self.assertEqual(derive_ft_quorum(7, 0), 4)
         self.assertEqual(derive_ft_quorum(8, 0), 5)
+
+    def test_local_echo_quorum_policy_by_party_count(self):
+        self.assertFalse(local_echo_counts_toward_quorum(2))
+        self.assertTrue(local_echo_counts_toward_quorum(3))
+        self.assertTrue(local_echo_counts_toward_quorum(5))
 
     def test_quorum_override_is_validated(self):
         self.assertEqual(derive_ft_quorum(4, 3), 3)
@@ -62,6 +68,7 @@ class FTConfigTest(unittest.TestCase):
         config = FTConfig.from_conf({}, num_rpes=4, local_rpe_id="rpe-1")
         self.assertFalse(config.enabled)
         self.assertEqual(config.ft_quorum, 3)
+        self.assertEqual(config.num_rpes, 4)
         self.assertEqual(config.peer_addresses, {})
 
     def test_config_accepts_explicit_enabled_tokens(self):
@@ -335,6 +342,63 @@ class FTControlServiceTest(unittest.TestCase):
                 self.assertGreaterEqual(timings["peers"]["rpe-2"]["rpc_total_ms"], 0)
                 self.assertGreaterEqual(timings["peers"]["rpe-2"]["local_verify_echo_ms"], 0)
                 self.assertIn("remote_timings", timings["peers"]["rpe-2"])
+            finally:
+                receiver.stop()
+
+    def test_n2_propagation_waits_for_peer_echo(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            sender_private, sender_public = self._key_pair()
+            receiver_private, receiver_public = self._key_pair()
+            receiver_config = FTConfig(
+                enabled=True,
+                local_rpe_id="rpe-2",
+                listen_host="127.0.0.1",
+                listen_port=0,
+                peer_addresses={},
+                echo_timeout_sec=2,
+                recovery_timeout_sec=2,
+                expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                counter_cache_path=os.path.join(temp_dir, "receiver_counter.json"),
+                ft_quorum=1,
+                num_rpes=2,
+            )
+            receiver = FTControlManager(
+                receiver_config,
+                receiver_private,
+                self._pem(receiver_public),
+                {"rpe-1": self._pem(sender_public), "rpe-2": self._pem(receiver_public)},
+            )
+            receiver.start()
+            try:
+                sender_config = FTConfig(
+                    enabled=True,
+                    local_rpe_id="rpe-1",
+                    listen_host="127.0.0.1",
+                    listen_port=0,
+                    peer_addresses={"rpe-2": receiver.bound_address()},
+                    echo_timeout_sec=2,
+                    recovery_timeout_sec=2,
+                    expt_cache_path=os.path.join(temp_dir, "expt.json"),
+                    counter_cache_path=os.path.join(temp_dir, "sender_counter.json"),
+                    ft_quorum=1,
+                    num_rpes=2,
+                )
+                sender = FTControlManager(
+                    sender_config,
+                    sender_private,
+                    self._pem(sender_public),
+                    {"rpe-1": self._pem(sender_public), "rpe-2": self._pem(receiver_public)},
+                )
+                ok, echoes = sender.propagate_attestation_state("ce-1")
+                self.assertTrue(ok)
+                self.assertEqual(len(echoes), 1)
+                self.assertEqual(echoes[0]["responder_rpe_id"], "rpe-2")
+                timings = sender.last_propagation_timings
+                self.assertEqual(timings["quorum_target"], 1)
+                self.assertIn("rpe-2", timings["peers"])
+                self.assertTrue(timings["peers"]["rpe-2"]["accepted"])
+                self.assertGreaterEqual(timings["peers"]["rpe-2"]["rpc_total_ms"], 0)
+                self.assertGreaterEqual(timings["peers"]["rpe-2"]["local_verify_echo_ms"], 0)
             finally:
                 receiver.stop()
 

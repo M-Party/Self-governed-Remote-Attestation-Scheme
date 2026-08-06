@@ -49,8 +49,12 @@ class RpeService(rpe_pb2_grpc.RpeServiceServicer):
         required_rpe_number = request.requiredRPENumber
         rpe_ids = self.fabric_client.worker_lookup()
         while len(rpe_ids) < required_rpe_number:
-            logger.info("RPE in fabric: %d (required is %d), waiting for 3s" % (len(rpe_ids), required_rpe_number))
-            time.sleep(3)
+            logger.info(
+                "RPE in fabric: %d (required is %d), waiting for 0.05s",
+                len(rpe_ids),
+                required_rpe_number,
+            )
+            time.sleep(0.05)
             rpe_ids = self.fabric_client.worker_lookup()
         logger.info("RPE in fabric: %d, getting the details" % len(rpe_ids))
         

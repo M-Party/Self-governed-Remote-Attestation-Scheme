@@ -82,5 +82,12 @@ RPO_party*
 RPE_party*
 CE_party*
 
-RPO/policies.json.template.bak
+RPO/policies.json.template.bak*
 RPO/policies_1rpe_50ce.json
+
+# Local docs / paper drafts (not part of the build)
+*.pdf
+
+# Ad-hoc Stage3 / overnight experiment drivers (local only)
+performance/_run_phase3_*.sh
+performance/_overnight_*.sh

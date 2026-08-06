@@ -14,7 +14,7 @@ loader.env.RA_TLS_ALLOW_DEBUG_ENCLAVE_INSECURE = "1"
 loader.env.RA_TLS_ALLOW_OUTDATED_TCB_INSECURE = "1"
 
 # Phase3 TTP mode: set CE_WAIT_FOR_START_RPE=1，CE waits the START_RPE_NOW.flag,then begin to count and connect RPE
-loader.env.CE_WAIT_FOR_START_RPE = "0"
+loader.env.CE_WAIT_FOR_START_RPE = "1"
 
 # Python's NumPy spawns as many threads as there are CPU cores, and each thread
 # consumes a chunk of memory, so on large machines 1G enclave size may be not enough.
