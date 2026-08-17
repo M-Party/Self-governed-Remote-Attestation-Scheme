@@ -1,35 +1,58 @@
-# Q1：SRAS-FT 认证开销验证
+# SRAS Performance Tests
 
-## 研究问题
+This guide covers Stage **1 / 2 / 3** latency experiments and the FT-oriented
+**Q1 / Q2** studies. For a short entry point in the main demo guide, see
+[README.md — SRAS Stage 1 / 2 / 3](../README.md#sras-stage-1--2--3-performance-tests).
+
+| Stage | Script | Typical output |
+|------:|---|---|
+| 1–2 init (P2P) | `run_init_n1_10.sh`, `performance_test.py` | `test_result_<N>rpes.json` |
+| 1–2 init (Fabric) | `run_init_fabric_n1_10.sh` | same |
+| 1–2 + NetEm | `run_with_netem_delay.py --delay-ms <RTT>` | wrap either batch above |
+| 3 CE auth | `phase3_performance_test.py` (`--ce-first --total-time` or `--repeat`) | `summary_report_*` / `state_update_report_*` |
+| Q1 FT overhead | see below | `state_update_report.*` |
+| Q2 FT recovery | `q2_ft_recovery_test.py` | `q2_ft_recovery_report.*` |
+
+NetEm note: `--delay-ms` is **target RTT** on `lo` (one-way = RTT/2).
+
+---
+
+# Q1: SRAS-FT Attestation Overhead
+
+## Research question
 
 **Q1: What is the attestation overhead introduced by SRAS-FT?**
 
-比较原 SRAS 与 SRAS-FT：在 TEE 证书签发（`generate_ce_certificate`）之前，增加 **state propagation** 与 **echo verification** 后，总延迟增加多少。
+Compare baseline SRAS vs SRAS-FT: before TEE certificate issuance
+(`generate_ce_certificate`), how much total latency increases after adding
+**state propagation** and **echo verification**.
 
 ---
 
-## 实验设计
+## Experiment design
 
-| 组别 | RPE 配置 | 发证前额外步骤 | 对比指标 |
-|------|----------|----------------|----------|
-| **Baseline（原 SRAS）** | `ft.enabled = false` | 无 FT propagation | `attestation_overhead`（≈ TEE quote verify） |
-| **SRAS-FT** | `ft.enabled = true`，配置 peer | state propagation + echo quorum | `attestation_overhead`、`ft_state_propagation`、breakdown 各列 |
+| Group | RPE config | Extra steps before issuance | Metrics |
+|------|------------|-----------------------------|---------|
+| **Baseline (plain SRAS)** | `ft.enabled = false` | No FT propagation | `attestation_overhead` (≈ TEE quote verify) |
+| **SRAS-FT** | `ft.enabled = true`, peers configured | State propagation + echo quorum | `attestation_overhead`, `ft_state_propagation`, breakdown columns |
 
-两组使用 **相同的 party 数量、P2P 传输、CE 数量**，仅 FT 开关不同。建议各跑 **≥5 次 CE 认证** 取平均。
-
----
-
-## 前置条件
-
-1. 已在 SGX 机器上完成 RPE / RPO / CE 的 **build**（含 SRAS-FT 代码）。
-2. 各 party 的 **collaterals**、**QEID** 已按主 README 配置。
-3. 本机 loopback 多 party 测试时，推荐 **P2P** 作为 Phase 2 quote 交换通道（无需 Fabric 网络）。
+Use the **same** party count, P2P transport, and CE count; only the FT switch
+differs. Prefer **≥5** successful CE authentications per group and report averages.
 
 ---
 
-## 一、环境搭建
+## Prerequisites
 
-### 1. Build（每个 party 只需 build 一次模板）
+1. Build RPE / RPO / CE on an SGX machine (including SRAS-FT code).
+2. Configure **collaterals** and **QEID** for each party as in the main README.
+3. For local multi-party loopback tests, prefer **P2P** as the Phase 2 quote
+   exchange path (no Fabric network required).
+
+---
+
+## 1. Environment setup
+
+### 1.1 Build (template binaries once)
 
 ```bash
 cd RPE && ./startup.sh build
@@ -37,9 +60,9 @@ cd ../RPO && ./startup.sh build
 cd ../CE  && ./startup.sh build
 ```
 
-### 2. 生成多 party 目录
+### 1.2 Create multi-party directories
 
-**SRAS-FT 组**（开启 FT）：
+**SRAS-FT group** (FT on):
 
 ```bash
 python3 performance/setup_multi_party.py \
@@ -49,7 +72,7 @@ python3 performance/setup_multi_party.py \
   --ft-enabled
 ```
 
-**Baseline 组**（关闭 FT，去掉 `--ft-enabled`）：
+**Baseline group** (FT off; omit `--ft-enabled`):
 
 ```bash
 python3 performance/setup_multi_party.py \
@@ -58,9 +81,11 @@ python3 performance/setup_multi_party.py \
   --p2p-port 51051
 ```
 
-会生成 `RPO_party*`、`RPE_party*`、`fabric_client_party*`（P2P 模式下 fabric client 不参与 Phase 2，但目录仍会创建）及对应的 `policies-N.json`。
+This creates `RPO_party*`, `RPE_party*`, `fabric_client_party*` (under P2P the
+Fabric client is unused in Phase 2 but directories are still created) and
+`policies-N.json`.
 
-### 3. 配置 CE（连到发证 RPE，默认 RPE_party1 / 端口 4455）
+### 1.3 Configure CEs (issuing RPE defaults to RPE_party1 / port 4455)
 
 ```bash
 python3 performance/setup_multi_ce.py \
@@ -69,45 +94,49 @@ python3 performance/setup_multi_ce.py \
   --rpe-port 4455
 ```
 
-生成 `CE_party1` … `CE_party3`，均向 **rpe-1** 申请证书。
+Creates `CE_party1` … `CE_party3`, all requesting certificates from **rpe-1**.
 
 ---
 
-## 二、启动顺序（重要）
+## 2. Startup order (important)
 
-按以下顺序启动，并 **等待所有 RPE 完成 Phase 1 + Phase 2** 后再触发 CE 认证：
+Start in the order below and **wait until every RPE finishes Phase 1 + Phase 2**
+before triggering CE authentication:
 
 ```bash
-# 终端 1：P2P quote 交换
+# Terminal 1: P2P quote exchange
 python3 performance/start_multi_p2p.py --num-parties 5 --base-port 51051
 
-# 终端 2：RPO
+# Terminal 2: RPO
 python3 performance/start_multi_rpo.py --num-parties 5
 
-# 终端 3：RPE（会阻塞运行）
+# Terminal 3: RPE (blocks while running)
 python3 performance/start_multi_rpe.py --num-parties 5
 ```
 
-**就绪检查**（以 RPE_party1 为例）：
+**Ready check** (example: RPE_party1):
 
 ```bash
 grep -E "Phase two|quorum|Phase 3|pre_init_ready" RPE_party1/logs/rpe_party1.log | tail -20
 ```
 
-确认 5 个 RPE 均完成 Phase 2、进入 Phase 3 待命后再继续。
+Confirm all 5 RPEs completed Phase 2 and are waiting in Phase 3 before continuing.
 
-> **常见坑**：RPE / P2P 未完全就绪时 CE 连上，会出现 `quorum not reached`、`DEADLINE_EXCEEDED`、CE 侧 `Invalid certificate length: 0` 并多次重试。务必等 Phase 2 完成。
+> **Common pitfall:** Connecting CEs before RPE / P2P are ready yields
+> `quorum not reached`, `DEADLINE_EXCEEDED`, CE-side `Invalid certificate length: 0`,
+> and repeated retries. Always wait for Phase 2 to finish.
 
 ---
 
-## 三、采集性能数据
+## 3. Collect performance data
 
-### 1. 先启动采集脚本（`--repeat` 模式）
+### 3.1 Start the collector first (`--repeat` mode)
 
-在 **触发 CE 认证之前** 启动，脚本会阻塞等待新增认证条数：
+Start **before** triggering CE auth; the script blocks until enough new
+authentications arrive:
 
 ```bash
-# SRAS-FT 组示例
+# SRAS-FT example
 python3 performance/phase3_performance_test.py \
   --repeat 5 \
   --perf-dir performance_data/q1_ft_n5 \
@@ -115,90 +144,103 @@ python3 performance/phase3_performance_test.py \
 ```
 
 ```bash
-# Baseline 组示例（换输出目录）
+# Baseline example (different output directory)
 python3 performance/phase3_performance_test.py \
   --repeat 5 \
   --perf-dir performance_data/q1_baseline_n5 \
   --rpe-dir RPE_party1
 ```
 
-**`--repeat N` 语义**：
+**Semantics of `--repeat N`:**
 
-- 累计采集 **N 次新的 CE 认证**（不论一次启动几个 CE）。
-- **不清空** RPE 历史 perf 数据；启动时记录 `baseline_count`，等总条数达到 `baseline_count + N` 后，只取新增的 N 条写入报告。
-- 默认读取 `RPE_party1/performance_data/rpe_phase3_perf_rpe-1.json`；可用 `--rpe-dir` 指定发证 RPE。
+- Collect **N new CE authentications** in total (regardless of how many CEs
+  start at once).
+- Does **not** clear historical RPE perf data; records `baseline_count` at start
+  and waits until total count reaches `baseline_count + N`, then reports only
+  the new N entries.
+- Default input: `RPE_party1/performance_data/rpe_phase3_perf_rpe-1.json`;
+  override the issuing RPE with `--rpe-dir`.
 
-### 2. 再触发 CE 认证
+### 3.2 Then trigger CE authentication
 
-另开终端：
+In another terminal:
 
 ```bash
 python3 performance/start_multi_ce.py --num-parties 3
 ```
 
-或手动进入各 `CE_party*` 执行 `./startup.sh start`。每完成一次向 RPE1 的成功认证，发证 RPE 的 perf JSON 会追加一条记录。
+Or manually run `./startup.sh start` inside each `CE_party*`. Each successful
+auth to RPE1 appends one record to the issuing RPE perf JSON.
 
-采集脚本凑满 N 条后自动退出，并生成报告。
+When N records are collected, the script exits and writes the report.
 
 ---
 
-## 四、输出报告
+## 4. Output reports
 
-报告写在 `--perf-dir` 下：
+Files under `--perf-dir`:
 
-| 文件 | 说明 |
-|------|------|
-| `state_update_report.txt` | 人类可读摘要 + breakdown 表 |
-| `state_update_report.csv` | 表格数据 |
-| `state_update_report.xlsx` | Excel（需 `openpyxl`） |
-| `state_update_report.json` | 完整原始数据 |
+| File | Description |
+|------|-------------|
+| `state_update_report.txt` | Human-readable summary + breakdown table |
+| `state_update_report.csv` | Tabular data |
+| `state_update_report.xlsx` | Excel (requires `openpyxl`) |
+| `state_update_report.json` | Full raw payload |
 
-### Breakdown 表列说明
+### Breakdown columns
 
-每行 = 一次 CE 认证：
+One row = one CE authentication:
 
-| 列名 | 含义 |
-|------|------|
+| Column | Meaning |
+|--------|---------|
 | `counter` | FT attestation counter |
-| `ce_id` | CE 标识 |
-| `bottleneck_peer` | 本次认证中 `rpc + verify_echo` 最大的 peer（同源取值，避免混用不同 peer 的 MAX） |
-| `attestation_overhead` | TEE quote verify + state broadcast（echo wait）+ echo verification（**不含**发证） |
-| `tee_quote_verify` | CE DCAP quote 验证（`stage3_native_quote_verification`，FT 之前） |
-| `state_broadcast_echo_wait` | 向 bottleneck peer 发 `StateUpdate` 的 gRPC 往返（**含**网络 + 远端处理） |
-| `remote.veri+record` | 远端 `verify_state_signature + record_state`（**已包含在 state_broadcast_echo_wait 列内**，不可相加） |
-| `echo_verification` | RPC 返回后，本端验证 echo 签名（与 state broadcast **串行**，在其之外） |
+| `ce_id` | CE identity |
+| `bottleneck_peer` | Peer with largest `rpc + verify_echo` in this auth (same-peer values; do not mix MAXes across peers) |
+| `attestation_overhead` | TEE quote verify + state broadcast (echo wait) + echo verification (**excludes** cert issuance) |
+| `tee_quote_verify` | CE DCAP quote verification (`stage3_native_quote_verification`, before FT) |
+| `state_broadcast_echo_wait` | gRPC RTT of `StateUpdate` to the bottleneck peer (**includes** network + remote processing) |
+| `remote.veri+record` | Remote `verify_state_signature + record_state` (**already inside** `state_broadcast_echo_wait`; do not add again) |
+| `echo_verification` | Local echo-signature verify after RPC returns (serial after state broadcast) |
 
-### 计时边界（发证 RPE 侧）
+### Timing boundaries (issuing RPE)
 
 ```
 ce_auth_start
   ├─ perform_handshake + verify_peer     → quote_verify
-  ├─ get_ce_info + verify_ce_body      → policy（通常接近 0）
+  ├─ get_ce_info + verify_ce_body      → policy (usually near 0)
   ├─ propagate_attestation_state()       → ft_state_propagation / breakdown
   │     ├─ local sign state + echo
-  │     ├─ rpc(incl.remote.veri+record)  → 对每个 peer 并行，取 bottleneck
-  │     └─ verify_echo                   → RPC 返回后本端验 echo
-  ├─ generate_ce_certificate()         → 计入 end-to-end auth_duration，未单独列
+  │     ├─ rpc(incl.remote.veri+record)  → parallel per peer; take bottleneck
+  │     └─ verify_echo                   → local echo verify after RPC returns
+  ├─ generate_ce_certificate()         → counted in end-to-end auth_duration only
   └─ send_ce_cert()
 ce_auth_end                              → end-to-end auth_duration
 attestation_overhead                     → tee_quote_verify + state_broadcast_echo_wait + echo_verification
 ```
 
-### Q1 结论怎么算
+### How to compute Q1 conclusions
 
-- **FT 额外开销（墙钟）**：对比两组 `ft_state_propagation_duration` 平均值；Baseline 组该值应为 0 或不存在。
-- **FT 额外开销（占 attestation_overhead）**：`avg(state_broadcast_echo_wait + echo_verification)` 或 `avg(ft_state_propagation)` 相关分项（仅 FT 组）。
-- **细分**：看 breakdown 中 `rpc(incl.remote.veri+record)` 与 `verify_echo` 的 avg/min/max。
+- **FT extra cost (wall-clock):** compare mean `ft_state_propagation_duration`;
+  baseline should be 0 / absent.
+- **FT share of `attestation_overhead`:**
+  `avg(state_broadcast_echo_wait + echo_verification)` or related
+  `ft_state_propagation` breakdown (FT group only).
+- **Detail:** use avg/min/max of `rpc(incl.remote.veri+record)` and `verify_echo`
+  in the breakdown table.
 
 ---
 
-## 五、对比 Baseline 与 SRAS-FT
+## 5. Compare Baseline vs SRAS-FT
 
-1. 分别跑完 Baseline 与 FT 两组，得到 `performance_data/q1_baseline_n5/` 与 `performance_data/q1_ft_n5/`。
-2. 对比两目录下 `state_update_report.txt` 的 Summary，或 Excel/CSV 中的 `attestation_overhead`、`tee_quote_verify` 等列。
-3. **FT overhead ≈ FT 组 `attestation_overhead` 均值 − Baseline 组 `attestation_overhead` 均值**（两组 CE 数量、party 数、网络条件应一致；Baseline 侧主要为 quote verify）。
+1. Finish both groups → `performance_data/q1_baseline_n5/` and
+   `performance_data/q1_ft_n5/`.
+2. Compare Summaries in `state_update_report.txt`, or CSV/Excel columns such as
+   `attestation_overhead` and `tee_quote_verify`.
+3. **FT overhead ≈ mean(FT `attestation_overhead`) − mean(Baseline
+   `attestation_overhead`)** (same CE count, party count, and network conditions;
+   baseline is mostly quote verify).
 
-如需保留原始 perf 快照以便事后重算，可复制发证 RPE 的 perf 文件：
+To keep a raw perf snapshot for later recomputation:
 
 ```bash
 cp RPE_party1/performance_data/rpe_phase3_perf_rpe-1.json \
@@ -207,22 +249,22 @@ cp RPE_party1/performance_data/rpe_phase3_perf_rpe-1.json \
 
 ---
 
-## 六、故障排查
+## 6. Troubleshooting
 
-| 现象 | 可能原因 | 处理 |
-|------|----------|------|
-| CE 多次失败后才成功 | FT quorum 未凑够，RPE 拒绝发证 | 确认 5 个 RPE Phase 2 完成；查 `RPE_party1/logs/rpe_party1.log` 是否有 `quorum reached` |
-| `DEADLINE_EXCEEDED` | 某 peer FT gRPC 超时（默认 3s） | 查对应 `RPE_party*/logs/` 是否有 `StateUpdate accepted` |
-| `invalid echo: signature verification failed` | peer 公钥与签名密钥不一致 | 重新 setup + 完整跑 Phase 2，勿混用旧 `RPE_party*` 目录 |
-| 采集脚本超时 | CE 认证次数不足 | 多启动几次 CE，或增大 `--repeat` 前确认 CE 能连上 RPE |
-| breakdown 列为 N/A | perf JSON 无 `ft_state_propagation_timings` | 确认 RPE 为 FT 开启版本且本次认证走了 propagation |
+| Symptom | Likely cause | Action |
+|---------|--------------|--------|
+| CE fails several times before success | FT quorum not met; RPE refuses issuance | Confirm all RPEs finished Phase 2; check `RPE_party1/logs/rpe_party1.log` for `quorum reached` |
+| `DEADLINE_EXCEEDED` | FT gRPC timeout to a peer (default 3s) | Check that peer’s `RPE_party*/logs/` for `StateUpdate accepted` |
+| `invalid echo: signature verification failed` | Peer public key / signing key mismatch | Re-run setup + full Phase 2; do not mix stale `RPE_party*` dirs |
+| Collector times out | Not enough successful CE auths | Restart CEs or raise `--repeat` only after CEs can reach RPE |
+| Breakdown columns are N/A | Perf JSON lacks `ft_state_propagation_timings` | Confirm FT-enabled RPE build and that this auth ran propagation |
 
 ---
 
-## 七、停止服务
+## 7. Stop services
 
 ```bash
-python3 performance/start_multi_ce.py --num-parties 3    # Ctrl+C 停 CE
+python3 performance/start_multi_ce.py --num-parties 3    # Ctrl+C to stop CEs
 python3 performance/start_multi_rpe.py --num-parties 5 --stop
 python3 performance/start_multi_rpo.py --num-parties 5 --stop
 python3 performance/start_multi_p2p.py --num-parties 5 --stop
@@ -230,44 +272,55 @@ python3 performance/start_multi_p2p.py --num-parties 5 --stop
 
 ---
 
-## 相关脚本
+## Related scripts
 
-| 脚本 | 作用 |
-|------|------|
-| `setup_multi_party.py` | 复制并配置多 party RPO/RPE（`--ft-enabled` 控制 FT） |
-| `setup_multi_ce.py` | 复制并配置多 CE |
-| `start_multi_p2p.py` | 启动 P2P quote 交换 |
-| `start_multi_rpo.py` | 启动多 RPO |
-| `start_multi_rpe.py` | 启动多 RPE |
-| `start_multi_ce.py` | 启动多 CE |
-| `phase3_performance_test.py` | Phase 3 性能测试；Q1 使用 `--repeat` 模式 |
-| `q2_ft_recovery_test.py` | Q2 recovery 采集 + 报告（合并原 `ft_recovery_report.py`） |
+| Script | Role |
+|--------|------|
+| `setup_multi_party.py` | Copy/configure multi-party RPO/RPE (`--ft-enabled` toggles FT) |
+| `setup_multi_ce.py` | Copy/configure multi CE |
+| `start_multi_p2p.py` | Start P2P quote exchange |
+| `start_multi_rpo.py` | Start multi RPO |
+| `start_multi_rpe.py` | Start multi RPE |
+| `start_multi_ce.py` | Start multi CE |
+| `phase3_performance_test.py` | Phase 3 performance; Q1 uses `--repeat` |
+| `q2_ft_recovery_test.py` | Q2 recovery collection + report |
 
-原始 perf 数据来源：`RPE_party1/performance_data/rpe_phase3_perf_rpe-1.json`（由 `RPE/relying_party_enclave/rpe.py` 写入）。
+Raw Stage 3 perf source:
+`RPE_party1/performance_data/rpe_phase3_perf_rpe-1.json`
+(written by `RPE/relying_party_enclave/rpe.py`).
 
 ---
 
-# Q2：Failed RPE Recovery 延迟验证
+# Q2: Failed-RPE Recovery Latency
 
-## 研究问题
+## Research question
 
 **Q2: How efficiently can SRAS-FT recover a failed RPE?**
 
-测 RPE crash/restart 后，recovering RPE 执行 Recovery query → Evidence Quote 验证 → Signed state 验证 → 选最大 ACj 的耗时（**Q2 主指标 `total_recovery_ms` 到此为止**）。quorum 达成后仍会继续收集并验证其余 peer 响应（慢 peer 超时仅 WARNING），并更新全部有效 peer 公钥；随后生成新 quote 并广播 EvidenceUpdate（不计入 `total_recovery_ms`）。
+After crash/restart, measure how long the recovering RPE spends on:
+Recovery query → Evidence Quote verification → signed-state verification →
+select max ACj (**primary Q2 metric `total_recovery_ms` ends here**). After
+quorum, the RPE may still collect/verify remaining peer responses (slow-peer
+timeout is WARNING only) and refresh peer public keys; then it generates a new
+quote and broadcasts EvidenceUpdate (not included in `total_recovery_ms`).
 
-堆叠柱图字段（毫秒）：
+Stacked-bar fields (ms):
 
-`recovery_query` | `evidence_quote_verification` | `signed_state_verification` | `counter_selection` | `new_quote_generation` + `new_quote_broadcast`（后两项仅作参考，不含在 Total 中）
+`recovery_query` | `evidence_quote_verification` | `signed_state_verification` |
+`counter_selection` | `new_quote_generation` + `new_quote_broadcast`
+(the last two are reference-only and excluded from Total)
 
-## 前置条件
+## Prerequisites
 
-1. 多 party FT 环境已跑通，且 **已做过若干次 CE 认证**（peer 通过 `StateUpdate` 记录了 failed RPE 的 state）。
-2. 待恢复 RPE 上存在 **`expt_cache.json`**（首次正常 startup 后写入）。
-3. **不要用** `start_multi_rpe.py --stop` 模拟 crash——它会删除 `expt_cache.json`。
+1. Multi-party FT stack is healthy and **some CE authentications already ran**
+   (peers recorded the failed RPE’s state via `StateUpdate`).
+2. The recovering RPE has **`expt_cache.json`** (written after a normal first startup).
+3. **Do not** use `start_multi_rpe.py --stop` to simulate crash — it deletes
+   `expt_cache.json`.
 
-## 采集（`--repeat` 模式）
+## Collection (`--repeat` mode)
 
-先启动采集脚本，再对每个 repeat 执行一次 kill + restart：
+Start the collector first, then kill + restart once per repeat:
 
 ```bash
 python3 performance/q2_ft_recovery_test.py \
@@ -277,33 +330,33 @@ python3 performance/q2_ft_recovery_test.py \
   --label n5
 ```
 
-对每个 repeat：
+Per repeat:
 
 ```bash
-# 模拟 crash（示例：按 RPE_party1 端口 kill，勿用 start_multi_rpe --stop）
+# Simulate crash (example: kill RPE_party1 port; do NOT use start_multi_rpe --stop)
 kill $(lsof -ti :4455)
 
-# 重启 recovering RPE（自动执行 recovery 并写 perf JSON）
+# Restart recovering RPE (runs recovery and writes perf JSON)
 cd RPE_party1 && ./startup.sh start
 ```
 
-脚本会：
+The collector:
 
-- 监视 `RPE_party1/performance_data/rpe_ft_recovery_perf_*.json` 的内容变化
-- 每次新 recovery 快照到 `performance_data/q2_n5/recovery_runs/run_XXXX.json`
-- 凑满 N 次后生成报告
+- Watches `RPE_party1/performance_data/rpe_ft_recovery_perf_*.json`
+- Snapshots each recovery into `performance_data/q2_n5/recovery_runs/run_XXXX.json`
+- Writes the report after N recoveries
 
-## 输出
+## Outputs
 
-| 文件 | 说明 |
-|------|------|
-| `recovery_runs/run_*.json` | 每次 recovery 快照 |
-| `q2_recovery_session.json` | 本次采集元数据 + 原始结果 |
-| `q2_ft_recovery_report.{txt,csv,json}` | 汇总（avg over N runs） |
+| File | Description |
+|------|-------------|
+| `recovery_runs/run_*.json` | Per-recovery snapshot |
+| `q2_recovery_session.json` | Session metadata + raw results |
+| `q2_ft_recovery_report.{txt,csv,json}` | Aggregate (avg over N runs) |
 
-## 仅生成报告
+## Report-only mode
 
-对比不同 N（2/4/8）时，从已有目录汇总：
+Aggregate across existing directories for different N (e.g. 2/4/8):
 
 ```bash
 python3 performance/q2_ft_recovery_test.py \
@@ -312,7 +365,7 @@ python3 performance/q2_ft_recovery_test.py \
   --output-dir performance_data/q2
 ```
 
-或从已采集的 `--perf-dir`：
+Or from a collected `--perf-dir`:
 
 ```bash
 python3 performance/q2_ft_recovery_test.py \
@@ -321,9 +374,13 @@ python3 performance/q2_ft_recovery_test.py \
   --label n5
 ```
 
-## 指标说明
+## Metric notes
 
-- `new_quote_broadcast_ms`：仅计 **非阻塞** 发起 `EvidenceUpdate` 广播，不等 peer 确认。
-- `evidence_quote_verification_ms` / `signed_state_verification_ms`：对 quorum 内各有效 response **求和**，非单 peer max。
+- `new_quote_broadcast_ms`: only the **non-blocking** EvidenceUpdate dispatch;
+  does not wait for peer ACKs.
+- `evidence_quote_verification_ms` / `signed_state_verification_ms`: **sum** over
+  valid quorum responses, not single-peer max.
 
-原始 perf 写入：`RPE_partyX/performance_data/rpe_ft_recovery_perf_{rpe_id}.json`（每次 recovery **覆盖**；采集脚本负责快照留存）。
+Raw recovery perf path:
+`RPE_partyX/performance_data/rpe_ft_recovery_perf_{rpe_id}.json`
+(overwritten each recovery; the collector snapshots copies).

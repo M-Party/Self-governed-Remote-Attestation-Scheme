@@ -103,6 +103,171 @@ $ sed -i 's/0.0.0.0/ip-of-fabric-network/g' config/network.json  # Modify the IP
 
 - Add the **crypto-config** dir copied from fabric_network to **fabric_service/fabric_client/fabric_client/** so that fabric client can successfully connect to fabric network
 
+## Formal Verification (ProVerif)
+
+Symbolic models of SRAS mutual attestation and consensus-policy negotiation
+live under `formal_verification/`:
+
+- `sras-n2.pv` — N=2 Stage 2 + light Stage 3 (agreement, authenticity, join, issuance)
+- `sras-n3.pv` — N=3 full views with H(π*) confirmation
+- `sras-n3-ablation.pv` — asymmetric views without confirmation (expected agreement failure)
+
+Build the `sras-proverif` image, mount the directory read-only, then run
+`proverif -parse-only` and `proverif` on each model. Full steps, threat model,
+query meanings, and reference results are documented in
+[`formal_verification/README.md`](formal_verification/README.md).
+
+## SRAS Stage 1 / 2 / 3 Performance Tests
+
+End-to-end latency experiments for the three SRAS stages. All commands assume
+the repository root (where `RPE/`, `performance/` live). Outputs go under
+`performance_data/` (gitignored).
+
+| Stage | What it measures | Primary harness |
+|------:|---|---|
+| **1** | RPE init / local setup before multi-party exchange | `performance/performance_test.py --test phase1` |
+| **2** | Quote exchange, policy join, H(π*) agreement (P2P or Fabric) | same script (Phase 2 fields in the report); batch: `run_init_n1_10.sh` / `run_init_fabric_n1_10.sh` |
+| **3** | CE attestation / certificate issuance wall-clock | `performance/phase3_performance_test.py` |
+
+Related paper-style questions (FT overhead / recovery) remain under
+[performance/README.md](performance/README.md) (Q1 / Q2).
+
+### Prerequisites
+
+1. Build templates once: `RPE`, `RPO`, `CE` (`./startup.sh build` in each).
+2. Collaterals / QEID configured as in the Demo Guide above.
+3. Prefer **P2P** on loopback for Stage 1–2 sweeps (no Fabric). Use Fabric only
+   when measuring ledger overhead (`--transport fabric` / `run_init_fabric_n1_10.sh`).
+4. After RPE/RPO code changes: rebuild, then
+   `rm -rf RPE_party* RPO_party* fabric_client_party*` before setup
+   (setup does not refresh enclave binaries inside existing party dirs).
+
+### Stage 1 + 2 (multi-party init)
+
+**One-shot for a single N (P2P):**
+
+```bash
+rm -rf RPE_party* RPO_party* fabric_client_party*
+python3 performance/setup_multi_party.py --num-parties 4 --transport p2p --p2p-port 51051
+python3 performance/start_multi_p2p.py --num-parties 4 --base-port 51051 &
+sleep 3
+python3 performance/performance_test.py \
+  --test phase1 --single 4 \
+  --perf-dir performance_data/stage12_p2p_n4
+```
+
+`performance_test.py --test phase1` runs the full init path used in Stage 1–2
+experiments and writes `test_result_<N>rpes.json` (Phase 1, pre-Phase2 barrier,
+Phase 2, remote-quote wait, `t_exchange`, `t_hpi_agree`, totals, etc.).
+
+**Batch N=1..10 (P2P, consensus path, no FT):**
+
+```bash
+bash performance/run_init_n1_10.sh performance_data/init_consensus_n1_10 1 10
+# sparse list example: bash performance/run_init_n1_10.sh performance_data/out 2 2
+# then again for 4, 6, 8 or wrap with a small loop
+```
+
+**Batch over Fabric:**
+
+```bash
+# requires a working fabric_network deploy
+bash performance/run_init_fabric_n1_10.sh performance_data/init_fabric_n1_10 1 10
+```
+
+**Summarize existing JSON files:**
+
+```bash
+python3 performance/performance_test.py \
+  --perf-dir performance_data/init_consensus_n1_10 \
+  --report-from 2 4 6 8
+```
+
+### Injected network delay (NetEm)
+
+`performance/run_with_netem_delay.py` applies Linux `tc netem` on a device
+(default `lo`). `--delay-ms` is the **target RTT**; one-way delay is RTT/2
+(both directions share the qdisc on loopback).
+
+```bash
+# Smoke-check ~20 ms RTT
+python3 performance/run_with_netem_delay.py --delay-ms 20 -- \
+  python3 performance/verify_netem_delay.py --count 3
+
+# Stage 1–2 under 20 ms / 50 ms RTT (example: sparse N)
+python3 performance/run_with_netem_delay.py --delay-ms 20 --dev lo -- \
+  bash performance/run_init_n1_10.sh performance_data/p2p_delay20 2 2
+
+python3 performance/run_with_netem_delay.py --delay-ms 50 --dev lo -- \
+  bash performance/run_init_n1_10.sh performance_data/p2p_delay50 2 2
+```
+
+Always clear leftover qdisc if a run is interrupted:
+
+```bash
+sudo tc qdisc del dev lo root 2>/dev/null || true
+```
+
+### Stage 3 (CE authentication)
+
+Wait until **all RPEs finished Phase 2** and entered Stage 3 before starting CEs.
+
+```bash
+# Example: 1 issuing RPE already up from Stage 1–2, or start a fresh 1-party stack
+python3 performance/setup_multi_party.py --num-parties 1 --transport p2p
+python3 performance/setup_multi_ce.py --num-ces 4 --rpe-address 127.0.0.1 --rpe-port 4455
+python3 performance/start_multi_p2p.py --num-parties 1 --base-port 51051 &
+python3 performance/start_multi_rpo.py --num-parties 1 &
+python3 performance/start_multi_rpe.py --num-parties 1
+# wait for "Phase two finished" / phase three ready in RPE logs
+```
+
+**CE-first + total-time** (aligned start via `CE_WAIT_FOR_START_RPE=1` /
+`START_RPE_NOW.flag`; reports CE-side and RPE-side wall-clock from first
+`auth_start` to last `auth_end`):
+
+```bash
+python3 performance/phase3_performance_test.py \
+  --single 4 --ce-first --total-time \
+  --perf-dir performance_data/stage3_ce4_cefirst_total \
+  --rpe-dir RPE_party1
+```
+
+**Repeat N authentications** (collector first, then start CEs) — also used for
+FT Q1 overhead; see [performance/README.md](performance/README.md):
+
+```bash
+python3 performance/phase3_performance_test.py \
+  --repeat 5 \
+  --perf-dir performance_data/stage3_repeat5 \
+  --rpe-dir RPE_party1
+# other terminal:
+python3 performance/start_multi_ce.py --num-parties 1
+```
+
+Stage 3 under NetEm (same RTT convention):
+
+```bash
+python3 performance/run_with_netem_delay.py --delay-ms 20 -- \
+  python3 performance/phase3_performance_test.py \
+    --single 4 --ce-first --total-time \
+    --perf-dir performance_data/stage3_delay20_ce4 \
+    --rpe-dir RPE_party1
+```
+
+### Cleanup between runs
+
+```bash
+python3 performance/start_multi_p2p.py --num-parties 10 --base-port 51051 --stop
+python3 performance/start_multi_rpe.py --num-parties 10 --stop
+python3 performance/start_multi_rpo.py --num-parties 10 --stop
+for p in $(seq 4433 4442) $(seq 4455 4464) $(seq 51051 51060); do
+  fuser -k -9 "${p}/tcp" 2>/dev/null || true
+done
+rm -rf RPE_party* RPO_party* fabric_client_party* CE_party*
+sudo tc qdisc del dev lo root 2>/dev/null || true
+```
+
 ## Performance Experiments
 
 ### Phase 2 ledger-overhead ablation: SRAS-Fabric vs SRAS-P2P
