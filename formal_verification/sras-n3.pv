@@ -1,0 +1,177 @@
+(************************************************************
+ * SRAS mutual attestation and consensus policy  (N = 3)
+ *
+ * Symmetric full views: every RPE expects the policies of all
+ * other parties. With the H(pi_star) confirmation round.
+ * Stage 3 is omitted here; this file targets agreement (Q1),
+ * authenticity (Q2), and join completeness (Q3).
+ *
+ * P3 is corrupted: rho3 is chosen by the adversary, but RPE_3
+ * still executes the protocol honestly.
+ ************************************************************)
+
+(* Honest identity pins use Any so joinid can complete on the success path.
+ * Conflicting exact(m)/exact(m') still abort by joinid rules when present
+ * (e.g. in adversary-chosen rho3). Agreement (Q1) is about Confirm events.
+ *)
+
+type party.
+type meas.
+type ident.
+type policy.
+type polstar.
+type nonce.
+type pkey.
+type skey.
+
+free net: channel.
+free P1, P2, P3: party.
+free mRPE, mE1, mE2, mE3: meas.
+
+(* identity constraints *)
+const Any: ident [data].
+fun exact(meas): ident [data].
+fun joinid(ident, ident): ident
+reduc forall x: ident; joinid(Any, x) = x
+otherwise forall x: ident; joinid(x, Any) = x
+otherwise forall m: meas; joinid(exact(m), exact(m)) = exact(m).
+
+(* policy: pol(owner, one identity pin) -- simplified for agreement *)
+fun pol(party, ident): policy [data].
+
+(* F3 over canonical party order; identity pin joined explicitly *)
+fun mkstar3(ident, policy, policy, policy): polstar [data].
+
+(* signatures and hashes *)
+fun pk(skey): pkey.
+fun sign(bitstring, skey): bitstring.
+reduc forall m: bitstring, k: skey; getmess(sign(m,k)) = m.
+reduc forall m: bitstring, k: skey; checksign(sign(m,k), pk(k)) = m.
+
+fun hpol(policy): bitstring.
+fun hbind(party, pkey, bitstring): bitstring.
+fun hstar(polstar): bitstring.
+
+(* events *)
+event PolicyDeclared(party, policy).
+event PolicyAccepted(party, party, policy).
+event FullJoin(party, polstar).
+event Confirm(party, polstar).
+
+(* queries *)
+query a: party, b: party, x: polstar, y: polstar;
+  event(Confirm(a, x)) && event(Confirm(b, y)) && a <> b ==> x = y.
+query a: party, b: party, r: policy;
+  event(PolicyAccepted(a, b, r)) ==> event(PolicyDeclared(b, r)).
+query a: party, x: polstar;
+  event(Confirm(a, x)) ==> event(FullJoin(a, x)).
+
+(* RPE of P1 (honest owner) *)
+let rpe1(akRPE: skey, pkAKRPE: pkey) =
+  new sk1: skey;
+  let pk1 = pk(sk1) in
+  let rho1 = pol(P1, Any) in
+  event PolicyDeclared(P1, rho1);
+  let q1 = sign((mRPE, hbind(P1, pk1, hpol(rho1))), akRPE) in
+  out(net, (P1, q1, pk1, hpol(rho1)));
+  in(net, (=P2, q2: bitstring, pk2: pkey, hb2: bitstring));
+  let (=mRPE, d2: bitstring) = checksign(q2, pkAKRPE) in
+  if d2 = hbind(P2, pk2, hb2) then
+  in(net, (=P3, q3: bitstring, pk3: pkey, hb3: bitstring));
+  let (=mRPE, d3: bitstring) = checksign(q3, pkAKRPE) in
+  if d3 = hbind(P3, pk3, hb3) then
+  out(net, (P1, rho1));
+  in(net, (=P2, rho2: policy));
+  if hpol(rho2) = hb2 then
+  event PolicyAccepted(P1, P2, rho2);
+  in(net, (=P3, rho3: policy));
+  if hpol(rho3) = hb3 then
+  event PolicyAccepted(P1, P3, rho3);
+  let pol(a1: party, i1: ident) = rho1 in
+  let pol(a2: party, i2: ident) = rho2 in
+  let pol(a3: party, i3: ident) = rho3 in
+  let joined12 = joinid(i1, i2) in
+  let joined123 = joinid(joined12, i3) in
+  let pistar = mkstar3(joined123, rho1, rho2, rho3) in
+  event FullJoin(P1, pistar);
+  out(net, (P1, hstar(pistar)));
+  in(net, (=P2, hs2: bitstring));
+  in(net, (=P3, hs3: bitstring));
+  if hs2 = hstar(pistar) && hs3 = hstar(pistar) then
+  event Confirm(P1, pistar).
+
+(* RPE of P2 (honest owner) *)
+let rpe2(akRPE: skey, pkAKRPE: pkey) =
+  new sk2: skey;
+  let pk2 = pk(sk2) in
+  let rho2 = pol(P2, Any) in
+  event PolicyDeclared(P2, rho2);
+  let q2 = sign((mRPE, hbind(P2, pk2, hpol(rho2))), akRPE) in
+  out(net, (P2, q2, pk2, hpol(rho2)));
+  in(net, (=P1, q1: bitstring, pk1: pkey, hb1: bitstring));
+  let (=mRPE, d1: bitstring) = checksign(q1, pkAKRPE) in
+  if d1 = hbind(P1, pk1, hb1) then
+  in(net, (=P3, q3: bitstring, pk3: pkey, hb3: bitstring));
+  let (=mRPE, d3: bitstring) = checksign(q3, pkAKRPE) in
+  if d3 = hbind(P3, pk3, hb3) then
+  out(net, (P2, rho2));
+  in(net, (=P1, rho1: policy));
+  if hpol(rho1) = hb1 then
+  event PolicyAccepted(P2, P1, rho1);
+  in(net, (=P3, rho3: policy));
+  if hpol(rho3) = hb3 then
+  event PolicyAccepted(P2, P3, rho3);
+  let pol(a1: party, i1: ident) = rho1 in
+  let pol(a2: party, i2: ident) = rho2 in
+  let pol(a3: party, i3: ident) = rho3 in
+  let joined12 = joinid(i1, i2) in
+  let joined123 = joinid(joined12, i3) in
+  let pistar = mkstar3(joined123, rho1, rho2, rho3) in
+  event FullJoin(P2, pistar);
+  out(net, (P2, hstar(pistar)));
+  in(net, (=P1, hs1: bitstring));
+  in(net, (=P3, hs3: bitstring));
+  if hs1 = hstar(pistar) && hs3 = hstar(pistar) then
+  event Confirm(P2, pistar).
+
+(* RPE of P3 (corrupted owner: adversary chooses rho3) *)
+let rpe3(akRPE: skey, pkAKRPE: pkey) =
+  in(net, rho3: policy) [precise];
+  event PolicyDeclared(P3, rho3);
+  new sk3: skey;
+  let pk3 = pk(sk3) in
+  let q3 = sign((mRPE, hbind(P3, pk3, hpol(rho3))), akRPE) in
+  out(net, (P3, q3, pk3, hpol(rho3)));
+  in(net, (=P1, q1: bitstring, pk1: pkey, hb1: bitstring));
+  let (=mRPE, d1: bitstring) = checksign(q1, pkAKRPE) in
+  if d1 = hbind(P1, pk1, hb1) then
+  in(net, (=P2, q2: bitstring, pk2: pkey, hb2: bitstring));
+  let (=mRPE, d2: bitstring) = checksign(q2, pkAKRPE) in
+  if d2 = hbind(P2, pk2, hb2) then
+  out(net, (P3, rho3));
+  in(net, (=P1, rho1: policy));
+  if hpol(rho1) = hb1 then
+  event PolicyAccepted(P3, P1, rho1);
+  in(net, (=P2, rho2: policy));
+  if hpol(rho2) = hb2 then
+  event PolicyAccepted(P3, P2, rho2);
+  let pol(a1: party, i1: ident) = rho1 in
+  let pol(a2: party, i2: ident) = rho2 in
+  let pol(a3: party, i3: ident) = rho3 in
+  let joined12 = joinid(i1, i2) in
+  let joined123 = joinid(joined12, i3) in
+  let pistar = mkstar3(joined123, rho1, rho2, rho3) in
+  event FullJoin(P3, pistar);
+  out(net, (P3, hstar(pistar)));
+  in(net, (=P1, hs1: bitstring));
+  in(net, (=P2, hs2: bitstring));
+  if hs1 = hstar(pistar) && hs2 = hstar(pistar) then
+  event Confirm(P3, pistar).
+
+process
+  new akRPE: skey;
+  new akADV: skey;
+  out(net, (pk(akRPE), pk(akADV), akADV));
+  (rpe1(akRPE, pk(akRPE)) |
+   rpe2(akRPE, pk(akRPE)) |
+   rpe3(akRPE, pk(akRPE)))

@@ -1,0 +1,261 @@
+Process 0 (that is, the initial process):
+{1}new akRPE: skey;
+{2}new akADV: skey;
+{3}out(net, (pk(akRPE),pk(akADV),akADV));
+(
+    {4}let akRPE_1: skey = akRPE in
+    {5}let pkAKRPE: pkey = pk(akRPE) in
+    {6}new sk1: skey;
+    {7}let pk1: pkey = pk(sk1) in
+    {8}let rho1: policy = pol(P1,Any) in
+    {9}event PolicyDeclared(P1,rho1);
+    {10}let q1: bitstring = sign((mRPE,hbind(P1,pk1,hpol(rho1))),akRPE_1) in
+    {11}out(net, (P1,q1,pk1,hpol(rho1)));
+    {12}in(net, (=P2,q2: bitstring,pk2: pkey,hb2: bitstring));
+    {13}let (=mRPE,d2: bitstring) = checksign(q2,pkAKRPE) in
+    {14}if (d2 = hbind(P2,pk2,hb2)) then
+    {15}in(net, (=P3,q3: bitstring,pk3: pkey,hb3: bitstring));
+    {16}let (=mRPE,d3: bitstring) = checksign(q3,pkAKRPE) in
+    {17}if (d3 = hbind(P3,pk3,hb3)) then
+    {18}out(net, (P1,rho1));
+    {19}in(net, (=P2,rho2: policy));
+    {20}if (hpol(rho2) = hb2) then
+    {21}event PolicyAccepted(P1,P2,rho2);
+    {22}in(net, (=P3,rho3: policy));
+    {23}if (hpol(rho3) = hb3) then
+    {24}event PolicyAccepted(P1,P3,rho3);
+    {25}let pol(a1: party,i1: ident) = rho1 in
+    {26}let pol(a2: party,i2: ident) = rho2 in
+    {27}let pol(a3: party,i3: ident) = rho3 in
+    {28}let joined12: ident = joinid(i1,i2) in
+    {29}let joined123: ident = joinid(joined12,i3) in
+    {30}let pistar: polstar = mkstar3(joined123,rho1,rho2,rho3) in
+    {31}event FullJoin(P1,pistar);
+    {32}out(net, (P1,hstar(pistar)));
+    {33}in(net, (=P2,hs2: bitstring));
+    {34}in(net, (=P3,hs3: bitstring));
+    {35}if ((hs2 = hstar(pistar)) && (hs3 = hstar(pistar))) then
+    {36}event Confirm(P1,pistar)
+) | (
+    {37}let akRPE_2: skey = akRPE in
+    {38}let pkAKRPE_1: pkey = pk(akRPE) in
+    {39}new sk2: skey;
+    {40}let pk2_1: pkey = pk(sk2) in
+    {41}let rho2_1: policy = pol(P2,Any) in
+    {42}event PolicyDeclared(P2,rho2_1);
+    {43}let q2_1: bitstring = sign((mRPE,hbind(P2,pk2_1,hpol(rho2_1))),akRPE_2) in
+    {44}out(net, (P2,q2_1,pk2_1,hpol(rho2_1)));
+    {45}in(net, (=P1,q1_1: bitstring,pk1_1: pkey,hb1: bitstring));
+    {46}let (=mRPE,d1: bitstring) = checksign(q1_1,pkAKRPE_1) in
+    {47}if (d1 = hbind(P1,pk1_1,hb1)) then
+    {48}in(net, (=P3,q3_1: bitstring,pk3_1: pkey,hb3_1: bitstring));
+    {49}let (=mRPE,d3_1: bitstring) = checksign(q3_1,pkAKRPE_1) in
+    {50}if (d3_1 = hbind(P3,pk3_1,hb3_1)) then
+    {51}out(net, (P2,rho2_1));
+    {52}in(net, (=P1,rho1_1: policy));
+    {53}if (hpol(rho1_1) = hb1) then
+    {54}event PolicyAccepted(P2,P1,rho1_1);
+    {55}in(net, (=P3,rho3_1: policy));
+    {56}if (hpol(rho3_1) = hb3_1) then
+    {57}event PolicyAccepted(P2,P3,rho3_1);
+    {58}let pol(a1_1: party,i1_1: ident) = rho1_1 in
+    {59}let pol(a2_1: party,i2_1: ident) = rho2_1 in
+    {60}let pol(a3_1: party,i3_1: ident) = rho3_1 in
+    {61}let joined12_1: ident = joinid(i1_1,i2_1) in
+    {62}let joined123_1: ident = joinid(joined12_1,i3_1) in
+    {63}let pistar_1: polstar = mkstar3(joined123_1,rho1_1,rho2_1,rho3_1) in
+    {64}event FullJoin(P2,pistar_1);
+    {65}out(net, (P2,hstar(pistar_1)));
+    {66}in(net, (=P1,hs1: bitstring));
+    {67}in(net, (=P3,hs3_1: bitstring));
+    {68}if ((hs1 = hstar(pistar_1)) && (hs3_1 = hstar(pistar_1))) then
+    {69}event Confirm(P2,pistar_1)
+) | (
+    {70}let akRPE_3: skey = akRPE in
+    {71}let pkAKRPE_2: pkey = pk(akRPE) in
+    {72}in(net, rho3_2: policy);
+    {73}event PolicyDeclared(P3,rho3_2);
+    {74}new sk3: skey;
+    {75}let pk3_2: pkey = pk(sk3) in
+    {76}let q3_2: bitstring = sign((mRPE,hbind(P3,pk3_2,hpol(rho3_2))),akRPE_3) in
+    {77}out(net, (P3,q3_2,pk3_2,hpol(rho3_2)));
+    {78}in(net, (=P1,q1_2: bitstring,pk1_2: pkey,hb1_1: bitstring));
+    {79}let (=mRPE,d1_1: bitstring) = checksign(q1_2,pkAKRPE_2) in
+    {80}if (d1_1 = hbind(P1,pk1_2,hb1_1)) then
+    {81}in(net, (=P2,q2_2: bitstring,pk2_2: pkey,hb2_1: bitstring));
+    {82}let (=mRPE,d2_1: bitstring) = checksign(q2_2,pkAKRPE_2) in
+    {83}if (d2_1 = hbind(P2,pk2_2,hb2_1)) then
+    {84}out(net, (P3,rho3_2));
+    {85}in(net, (=P1,rho1_2: policy));
+    {86}if (hpol(rho1_2) = hb1_1) then
+    {87}event PolicyAccepted(P3,P1,rho1_2);
+    {88}in(net, (=P2,rho2_2: policy));
+    {89}if (hpol(rho2_2) = hb2_1) then
+    {90}event PolicyAccepted(P3,P2,rho2_2);
+    {91}let pol(a1_2: party,i1_2: ident) = rho1_2 in
+    {92}let pol(a2_2: party,i2_2: ident) = rho2_2 in
+    {93}let pol(a3_2: party,i3_2: ident) = rho3_2 in
+    {94}let joined12_2: ident = joinid(i1_2,i2_2) in
+    {95}let joined123_2: ident = joinid(joined12_2,i3_2) in
+    {96}let pistar_2: polstar = mkstar3(joined123_2,rho1_2,rho2_2,rho3_2) in
+    {97}event FullJoin(P3,pistar_2);
+    {98}out(net, (P3,hstar(pistar_2)));
+    {99}in(net, (=P1,hs1_1: bitstring));
+    {100}in(net, (=P2,hs2_1: bitstring));
+    {101}if ((hs1_1 = hstar(pistar_2)) && (hs2_1 = hstar(pistar_2))) then
+    {102}event Confirm(P3,pistar_2)
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new akRPE: skey;
+{2}new akADV: skey;
+{3}out(net, (pk(akRPE),pk(akADV),akADV));
+(
+    {6}new sk1: skey;
+    {8}let rho1: policy = pol(P1,Any) in
+    {9}event PolicyDeclared(P1,rho1);
+    {7}let pk1: pkey = pk(sk1) in
+    {4}let akRPE_1: skey = akRPE in
+    {10}let q1: bitstring = sign((mRPE,hbind(P1,pk1,hpol(rho1))),akRPE_1) in
+    {11}out(net, (P1,q1,pk1,hpol(rho1)));
+    {12}in(net, (=P2,q2: bitstring,pk2: pkey,hb2: bitstring));
+    {5}let pkAKRPE: pkey = pk(akRPE) in
+    {13}let (=mRPE,d2: bitstring) = checksign(q2,pkAKRPE) in
+    {14}if (d2 = hbind(P2,pk2,hb2)) then
+    {15}in(net, (=P3,q3: bitstring,pk3: pkey,hb3: bitstring));
+    {16}let (=mRPE,d3: bitstring) = checksign(q3,pkAKRPE) in
+    {17}if (d3 = hbind(P3,pk3,hb3)) then
+    {18}out(net, (P1,rho1));
+    {19}in(net, (=P2,rho2: policy));
+    {20}if (hpol(rho2) = hb2) then
+    {21}event PolicyAccepted(P1,P2,rho2);
+    {22}in(net, (=P3,rho3: policy));
+    {23}if (hpol(rho3) = hb3) then
+    {24}event PolicyAccepted(P1,P3,rho3);
+    {25}let pol(a1: party,i1: ident) = rho1 in
+    {26}let pol(a2: party,i2: ident) = rho2 in
+    {27}let pol(a3: party,i3: ident) = rho3 in
+    {28}let joined12: ident = joinid(i1,i2) in
+    {29}let joined123: ident = joinid(joined12,i3) in
+    {30}let pistar: polstar = mkstar3(joined123,rho1,rho2,rho3) in
+    {31}event FullJoin(P1,pistar);
+    {32}out(net, (P1,hstar(pistar)));
+    {33}in(net, (=P2,hs2: bitstring));
+    {34}in(net, (=P3,hs3: bitstring));
+    {35}if ((hs2 = hstar(pistar)) && (hs3 = hstar(pistar))) then
+    {36}event Confirm(P1,pistar)
+) | (
+    {39}new sk2: skey;
+    {41}let rho2_1: policy = pol(P2,Any) in
+    {42}event PolicyDeclared(P2,rho2_1);
+    {40}let pk2_1: pkey = pk(sk2) in
+    {37}let akRPE_2: skey = akRPE in
+    {43}let q2_1: bitstring = sign((mRPE,hbind(P2,pk2_1,hpol(rho2_1))),akRPE_2) in
+    {44}out(net, (P2,q2_1,pk2_1,hpol(rho2_1)));
+    {45}in(net, (=P1,q1_1: bitstring,pk1_1: pkey,hb1: bitstring));
+    {38}let pkAKRPE_1: pkey = pk(akRPE) in
+    {46}let (=mRPE,d1: bitstring) = checksign(q1_1,pkAKRPE_1) in
+    {47}if (d1 = hbind(P1,pk1_1,hb1)) then
+    {48}in(net, (=P3,q3_1: bitstring,pk3_1: pkey,hb3_1: bitstring));
+    {49}let (=mRPE,d3_1: bitstring) = checksign(q3_1,pkAKRPE_1) in
+    {50}if (d3_1 = hbind(P3,pk3_1,hb3_1)) then
+    {51}out(net, (P2,rho2_1));
+    {52}in(net, (=P1,rho1_1: policy));
+    {53}if (hpol(rho1_1) = hb1) then
+    {54}event PolicyAccepted(P2,P1,rho1_1);
+    {55}in(net, (=P3,rho3_1: policy));
+    {56}if (hpol(rho3_1) = hb3_1) then
+    {57}event PolicyAccepted(P2,P3,rho3_1);
+    {58}let pol(a1_1: party,i1_1: ident) = rho1_1 in
+    {59}let pol(a2_1: party,i2_1: ident) = rho2_1 in
+    {60}let pol(a3_1: party,i3_1: ident) = rho3_1 in
+    {61}let joined12_1: ident = joinid(i1_1,i2_1) in
+    {62}let joined123_1: ident = joinid(joined12_1,i3_1) in
+    {63}let pistar_1: polstar = mkstar3(joined123_1,rho1_1,rho2_1,rho3_1) in
+    {64}event FullJoin(P2,pistar_1);
+    {65}out(net, (P2,hstar(pistar_1)));
+    {66}in(net, (=P1,hs1: bitstring));
+    {67}in(net, (=P3,hs3_1: bitstring));
+    {68}if ((hs1 = hstar(pistar_1)) && (hs3_1 = hstar(pistar_1))) then
+    {69}event Confirm(P2,pistar_1)
+) | (
+    {72}in(net, rho3_2: policy);
+    {73}event PolicyDeclared(P3,rho3_2);
+    {74}new sk3: skey;
+    {75}let pk3_2: pkey = pk(sk3) in
+    {70}let akRPE_3: skey = akRPE in
+    {76}let q3_2: bitstring = sign((mRPE,hbind(P3,pk3_2,hpol(rho3_2))),akRPE_3) in
+    {77}out(net, (P3,q3_2,pk3_2,hpol(rho3_2)));
+    {78}in(net, (=P1,q1_2: bitstring,pk1_2: pkey,hb1_1: bitstring));
+    {71}let pkAKRPE_2: pkey = pk(akRPE) in
+    {79}let (=mRPE,d1_1: bitstring) = checksign(q1_2,pkAKRPE_2) in
+    {80}if (d1_1 = hbind(P1,pk1_2,hb1_1)) then
+    {81}in(net, (=P2,q2_2: bitstring,pk2_2: pkey,hb2_1: bitstring));
+    {82}let (=mRPE,d2_1: bitstring) = checksign(q2_2,pkAKRPE_2) in
+    {83}if (d2_1 = hbind(P2,pk2_2,hb2_1)) then
+    {84}out(net, (P3,rho3_2));
+    {85}in(net, (=P1,rho1_2: policy));
+    {86}if (hpol(rho1_2) = hb1_1) then
+    {87}event PolicyAccepted(P3,P1,rho1_2);
+    {88}in(net, (=P2,rho2_2: policy));
+    {89}if (hpol(rho2_2) = hb2_1) then
+    {90}event PolicyAccepted(P3,P2,rho2_2);
+    {91}let pol(a1_2: party,i1_2: ident) = rho1_2 in
+    {92}let pol(a2_2: party,i2_2: ident) = rho2_2 in
+    {93}let pol(a3_2: party,i3_2: ident) = rho3_2 in
+    {94}let joined12_2: ident = joinid(i1_2,i2_2) in
+    {95}let joined123_2: ident = joinid(joined12_2,i3_2) in
+    {96}let pistar_2: polstar = mkstar3(joined123_2,rho1_2,rho2_2,rho3_2) in
+    {97}event FullJoin(P3,pistar_2);
+    {98}out(net, (P3,hstar(pistar_2)));
+    {99}in(net, (=P1,hs1_1: bitstring));
+    {100}in(net, (=P2,hs2_1: bitstring));
+    {101}if ((hs1_1 = hstar(pistar_2)) && (hs2_1 = hstar(pistar_2))) then
+    {102}event Confirm(P3,pistar_2)
+)
+
+-- Query event(Confirm(a,x)) && event(Confirm(b,y)) && a ≠ b ==> x = y in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 125 rules (38 with conclusion selected). Queue: 53 rules.
+Starting query event(Confirm(a,x)) && event(Confirm(b,y)) && a ≠ b ==> x = y
+goal reachable: b-event(@p_act(@occ72[],pol(a3_3,joined123_3))) && attacker(a3_3) && attacker(joined123_3) -> event(Confirm(P3[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3)))) && event(Confirm(P2[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3))))
+goal reachable: b-event(@p_act(@occ72[],pol(a3_3,joined123_3))) && attacker(a3_3) && attacker(joined123_3) -> event(Confirm(P3[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3)))) && event(Confirm(P1[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3))))
+goal reachable: attacker(a3_3) && attacker(joined123_3) && b-event(@p_act(@occ72[],pol(a3_3,joined123_3))) -> event(Confirm(P2[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3)))) && event(Confirm(P3[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3))))
+goal reachable: b-event(@p_act(@occ72[],pol(a3_3,joined123_3))) && attacker(a3_3) && attacker(joined123_3) -> event(Confirm(P2[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3)))) && event(Confirm(P1[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3))))
+goal reachable: attacker(a3_3) && attacker(joined123_3) && b-event(@p_act(@occ72[],pol(a3_3,joined123_3))) -> event(Confirm(P1[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3)))) && event(Confirm(P3[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3))))
+goal reachable: b-event(@p_act(@occ72[],pol(a3_3,joined123_3))) && attacker(a3_3) && attacker(joined123_3) -> event(Confirm(P1[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3)))) && event(Confirm(P2[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3))))
+RESULT event(Confirm(a,x)) && event(Confirm(b,y)) && a ≠ b ==> x = y is true.
+-- Query event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 98 rules (38 with conclusion selected). Queue: 39 rules.
+Starting query event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r))
+goal reachable: b-event(PolicyDeclared(P2[],pol(P2[],Any))) && b-event(PolicyDeclared(P1[],pol(P1[],Any))) && b-event(PolicyDeclared(P3[],rho3_3)) && attacker(rho3_3) && b-event(@p_act(@occ72_1[],rho3_3)) -> event(PolicyAccepted(P3[],P2[],pol(P2[],Any)))
+goal reachable: b-event(PolicyDeclared(P2[],pol(P2[],Any))) && b-event(PolicyDeclared(P1[],pol(P1[],Any))) && b-event(PolicyDeclared(P3[],rho3_3)) && attacker(rho3_3) && b-event(@p_act(@occ72_1[],rho3_3)) -> event(PolicyAccepted(P3[],P1[],pol(P1[],Any)))
+goal reachable: b-event(PolicyDeclared(P3[],r)) && b-event(@p_act(@occ72_1[],r)) && attacker(r) && b-event(PolicyDeclared(P1[],pol(P1[],Any))) && b-event(PolicyDeclared(P2[],pol(P2[],Any))) -> event(PolicyAccepted(P2[],P3[],r))
+goal reachable: b-event(PolicyDeclared(P3[],rho3_3)) && b-event(@p_act(@occ72_1[],rho3_3)) && attacker(rho3_3) && b-event(PolicyDeclared(P1[],pol(P1[],Any))) && b-event(PolicyDeclared(P2[],pol(P2[],Any))) -> event(PolicyAccepted(P2[],P1[],pol(P1[],Any)))
+goal reachable: b-event(PolicyDeclared(P3[],r)) && b-event(@p_act(@occ72_1[],r)) && attacker(r) && b-event(PolicyDeclared(P2[],pol(P2[],Any))) && b-event(PolicyDeclared(P1[],pol(P1[],Any))) -> event(PolicyAccepted(P1[],P3[],r))
+goal reachable: b-event(PolicyDeclared(P3[],rho3_3)) && b-event(@p_act(@occ72_1[],rho3_3)) && attacker(rho3_3) && b-event(PolicyDeclared(P2[],pol(P2[],Any))) && b-event(PolicyDeclared(P1[],pol(P1[],Any))) -> event(PolicyAccepted(P1[],P2[],pol(P2[],Any)))
+RESULT event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)) is true.
+-- Query event(Confirm(a,x)) ==> event(FullJoin(a,x)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 125 rules (38 with conclusion selected). Queue: 54 rules.
+Starting query event(Confirm(a,x)) ==> event(FullJoin(a,x))
+goal reachable: b-event(FullJoin(P3[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3)))) && attacker(a3_3) && attacker(joined123_3) && b-event(@p_act(@occ72_2[],pol(a3_3,joined123_3))) -> event(Confirm(P3[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3))))
+goal reachable: b-event(FullJoin(P2[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3)))) && b-event(@p_act(@occ72_2[],pol(a3_3,joined123_3))) && attacker(a3_3) && attacker(joined123_3) -> event(Confirm(P2[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3))))
+goal reachable: b-event(FullJoin(P1[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3)))) && b-event(@p_act(@occ72_2[],pol(a3_3,joined123_3))) && attacker(a3_3) && attacker(joined123_3) -> event(Confirm(P1[],mkstar3(joined123_3,pol(P1[],Any),pol(P2[],Any),pol(a3_3,joined123_3))))
+RESULT event(Confirm(a,x)) ==> event(FullJoin(a,x)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query event(Confirm(a,x)) && event(Confirm(b,y)) && a ≠ b ==> x = y is true.
+
+Query event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)) is true.
+
+Query event(Confirm(a,x)) ==> event(FullJoin(a,x)) is true.
+
+--------------------------------------------------------------
+

@@ -1,0 +1,226 @@
+(************************************************************
+ * SRAS mutual attestation and consensus policy  (N = 2)
+ *
+ * Stage 2: Evidence Quote exchange, policy exchange + join,
+ *          H(pi_star) confirmation (full model)
+ * Stage 3: TEE instance attestation (light model)
+ *
+ * Threat model: Dolev-Yao adversary controls hosts and network.
+ * P2 is corrupted: its policy rho2 is chosen by the adversary,
+ * but RPE_2 still executes the protocol honestly (TEE assumption).
+ *
+ * Queries:
+ *   Q1 agreement:    two confirming RPEs hold the same pi*
+ *   Q2 authenticity: an accepted policy was declared by its owner
+ *   Q3 confirmation implies the full join was performed
+ *   Q4 issuance:     certificates are issued only for Quotes
+ *                    that satisfy pi*
+ ************************************************************)
+
+(* ---------------- Types ---------------- *)
+type party.          (* collaboration parties *)
+type meas.           (* enclave code measurement *)
+type ident.          (* identity constraint: Any or exact(m) *)
+type policy.         (* expectation policy rho *)
+type polstar.        (* consensus policy pi* *)
+type nonce.
+type pkey.
+type skey.
+
+(* ---------------- Channels and public constants ---------------- *)
+free net: channel.
+free P1, P2: party.
+free mRPE, mE1, mE2: meas.   (* released code measurements are public *)
+
+(* ---------------- Identity constraints ---------------- *)
+const Any: ident [data].
+fun exact(meas): ident [data].
+
+(* joinid: identity join.
+   Any is the identity element; equal exact values join to themselves;
+   exact(u) join exact(v) with u <> v FAILS, modeling the
+   negotiation abort (bottom) of Definition 2. *)
+fun joinid(ident, ident): ident
+reduc forall x: ident; joinid(Any, x) = x
+otherwise forall x: ident; joinid(x, Any) = x
+otherwise forall m: meas; joinid(exact(m), exact(m)) = exact(m).
+
+(* ---------------- Policies ---------------- *)
+(* Simplified policy: pol(owner, pin on own instance, pin on peer instance).
+   The TCB and attesting-pair components are abstracted away in this model;
+   the identity component is explicit so that join failures (bottom) and
+   the Stage 3 identity check are visible to the verifier. *)
+fun pol(party, ident, ident): policy [data].
+
+(* Consensus function F2. Arguments are in canonical party order,
+   modeling the canonical serialization of the implementation.
+   The joined identity components are explicit; the full input policies
+   are committed inside mkstar so that F2 is injective. *)
+fun mkstar(ident, ident, policy, policy): polstar [data].
+
+(* projections of the joined identity components *)
+reduc forall i1: ident, i2: ident, p1: policy, p2: policy;
+  starId1(mkstar(i1, i2, p1, p2)) = i1.
+reduc forall i1: ident, i2: ident, p1: policy, p2: policy;
+  starId2(mkstar(i1, i2, p1, p2)) = i2.
+
+(* ---------------- Signatures (certificates and hardware Quotes) ---------------- *)
+fun pk(skey): pkey.
+fun sign(bitstring, skey): bitstring.
+reduc forall m: bitstring, k: skey; getmess(sign(m,k)) = m.
+reduc forall m: bitstring, k: skey; checksign(sign(m,k), pk(k)) = m.
+
+(* ---------------- Hashes (one per payload shape) ---------------- *)
+fun hpol(policy): bitstring.                (* H(rho) *)
+fun hbind(party, pkey, bitstring): bitstring.  (* H(owner || PK_rpe || H(rho)) *)
+fun hstar(polstar): bitstring.              (* H(pi_star) *)
+fun hchal(nonce, pkey): bitstring.          (* H(n || PK_E) *)
+fun hcert(pkey, pkey): bitstring.           (* H(PK_E || PK_rpe) *)
+
+(* ---------------- Events ---------------- *)
+event PolicyDeclared(party, policy).
+event EvidenceAccepted(party, party).
+event PolicyAccepted(party, party, policy).
+event FullJoin(party, polstar).
+event Confirm(party, polstar).
+event QuoteSatisfied(meas, polstar).
+event CertIssued(party, meas, polstar).
+
+(* ---------------- Queries ---------------- *)
+
+(* Q1: agreement *)
+query a: party, b: party, x: polstar, y: polstar;
+  event(Confirm(a, x)) && event(Confirm(b, y)) && a <> b ==> x = y.
+
+(* Q2: policy authenticity *)
+query a: party, b: party, r: policy;
+  event(PolicyAccepted(a, b, r)) ==> event(PolicyDeclared(b, r)).
+
+(* Q3: confirmation implies the full join was performed *)
+query a: party, x: polstar;
+  event(Confirm(a, x)) ==> event(FullJoin(a, x)).
+
+(* Q4: issuance compliance *)
+query a: party, m: meas, x: polstar;
+  event(CertIssued(a, m, x)) ==> event(QuoteSatisfied(m, x)).
+
+(* ---------------- RPE of party P1 (honest owner) ---------------- *)
+let rpe1(akRPE: skey, pkAKRPE: pkey, pkAKE1: pkey) =
+  new sk1: skey;
+  let pk1 = pk(sk1) in
+  (* P1 pins its own instance E1 and the peer instance E2 exactly *)
+  let rho1 = pol(P1, exact(mE1), exact(mE2)) in
+  event PolicyDeclared(P1, rho1);
+  (* R2.0/R2.1: Evidence Quote, binding owner, key, and policy hash *)
+  let q1 = sign((mRPE, hbind(P1, pk1, hpol(rho1))), akRPE) in
+  out(net, (P1, q1, pk1, hpol(rho1)));
+  (* receive peer Evidence Quote; sender tag prevents reflection *)
+  in(net, (=P2, q2: bitstring, pk2: pkey, hb2: bitstring));
+  let (=mRPE, d2: bitstring) = checksign(q2, pkAKRPE) in
+  if d2 = hbind(P2, pk2, hb2) then
+  event EvidenceAccepted(P1, P2);
+  (* R2.2: policy exchange, hash check, join *)
+  out(net, (P1, rho1));
+  in(net, (=P2, rho2: policy));
+  if hpol(rho2) = hb2 then
+  event PolicyAccepted(P1, P2, rho2);
+  let pol(a1: party, s1: ident, pe1: ident) = rho1 in
+  let pol(a2: party, s2: ident, pe2: ident) = rho2 in
+  let joined1 = joinid(s1, pe2) in
+  let joined2 = joinid(s2, pe1) in
+  let pistar = mkstar(joined1, joined2, rho1, rho2) in
+  event FullJoin(P1, pistar);
+  (* R2.3: H(pi_star) confirmation *)
+  out(net, (P1, hstar(pistar)));
+  in(net, (=P2, hs2: bitstring));
+  if hs2 = hstar(pistar) then
+  event Confirm(P1, pistar);
+  (* Stage 3: attest own instance E1 *)
+  in(net, pkE: pkey);
+  new n1: nonce;
+  out(net, n1);
+  in(net, qE: bitstring);
+  let (mEq: meas, dE: bitstring) = checksign(qE, pkAKE1) in
+  if dE = hchal(n1, pkE) then
+  let idE1 = starId1(pistar) in
+  if idE1 = Any then
+    event QuoteSatisfied(mEq, pistar);
+    event CertIssued(P1, mEq, pistar);
+    out(net, sign(hcert(pkE, pk1), sk1))
+  else
+    let exact(mm: meas) = idE1 in
+    if mm = mEq then
+    event QuoteSatisfied(mEq, pistar);
+    event CertIssued(P1, mEq, pistar);
+    out(net, sign(hcert(pkE, pk1), sk1)).
+
+(* ---------------- RPE of party P2 (corrupted owner) ---------------- *)
+(* The adversary chooses rho2, but RPE_2 executes honestly. *)
+let rpe2(akRPE: skey, pkAKRPE: pkey, pkAKE2: pkey) =
+  in(net, rho2: policy) [precise];
+  event PolicyDeclared(P2, rho2);
+  new sk2: skey;
+  let pk2 = pk(sk2) in
+  let q2 = sign((mRPE, hbind(P2, pk2, hpol(rho2))), akRPE) in
+  out(net, (P2, q2, pk2, hpol(rho2)));
+  in(net, (=P1, q1: bitstring, pk1: pkey, hb1: bitstring));
+  let (=mRPE, d1: bitstring) = checksign(q1, pkAKRPE) in
+  if d1 = hbind(P1, pk1, hb1) then
+  event EvidenceAccepted(P2, P1);
+  out(net, (P2, rho2));
+  in(net, (=P1, rho1: policy));
+  if hpol(rho1) = hb1 then
+  event PolicyAccepted(P2, P1, rho1);
+  let pol(a1: party, s1: ident, pe1: ident) = rho1 in
+  let pol(a2: party, s2: ident, pe2: ident) = rho2 in
+  let joined1 = joinid(s1, pe2) in
+  let joined2 = joinid(s2, pe1) in
+  let pistar = mkstar(joined1, joined2, rho1, rho2) in
+  event FullJoin(P2, pistar);
+  out(net, (P2, hstar(pistar)));
+  in(net, (=P1, hs1: bitstring));
+  if hs1 = hstar(pistar) then
+  event Confirm(P2, pistar);
+  (* Stage 3: attest own instance E2 *)
+  in(net, pkE: pkey);
+  new n2: nonce;
+  out(net, n2);
+  in(net, qE: bitstring);
+  let (mEq: meas, dE: bitstring) = checksign(qE, pkAKE2) in
+  if dE = hchal(n2, pkE) then
+  let idE2 = starId2(pistar) in
+  if idE2 = Any then
+    event QuoteSatisfied(mEq, pistar);
+    event CertIssued(P2, mEq, pistar);
+    out(net, sign(hcert(pkE, pk2), sk2))
+  else
+    let exact(mm: meas) = idE2 in
+    if mm = mEq then
+    event QuoteSatisfied(mEq, pistar);
+    event CertIssued(P2, mEq, pistar);
+    out(net, sign(hcert(pkE, pk2), sk2)).
+
+(* ---------------- Honest TEE instances ---------------- *)
+let inst1(akE1: skey) =
+  new skE1: skey;
+  out(net, pk(skE1));                     (* attestation request *)
+  in(net, n: nonce);
+  out(net, sign((mE1, hchal(n, pk(skE1))), akE1)).
+
+let inst2(akE2: skey) =
+  new skE2: skey;
+  out(net, pk(skE2));
+  in(net, n: nonce);
+  out(net, sign((mE2, hchal(n, pk(skE2))), akE2)).
+
+(* ---------------- Main ---------------- *)
+process
+  new akRPE: skey;   (* attestation key of genuine platforms, RPE code *)
+  new akE1: skey;    (* attestation key bound to measurement mE1 *)
+  new akE2: skey;    (* attestation key bound to measurement mE2 *)
+  new akADV: skey;   (* adversary platform key (rogue enclaves) *)
+  out(net, (pk(akRPE), pk(akE1), pk(akE2), pk(akADV), akADV));
+  (rpe1(akRPE, pk(akRPE), pk(akE1)) |
+   rpe2(akRPE, pk(akRPE), pk(akE2)) |
+   inst1(akE1) |
+   inst2(akE2))
