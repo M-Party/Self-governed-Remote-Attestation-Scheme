@@ -1,0 +1,111 @@
+SRAS revised verification package — reproducible run instructions
+
+Authoritative runs
+  results/final-v2/       40 models, 127 raw query results
+  results/primary-single/ 7 isolated timings of the same primary queries
+  reports/results-table.csv records every raw result, exact query, source line,
+  log path and timing scope. These are not 134 distinct protocol properties.
+
+Public edition and complete local bundle
+  The GitHub edition includes all models, scenarios, queries, scripts, reports,
+  diffs, original model snapshots and Dockerfile under legacy/, development
+  records, and complete final-v2/primary-single logs with DOT/PDF traces.
+  Private manuscript/instruction inputs/, duplicate legacy/results/, the
+  superseded results/final-v1/ batch and the full local SHA256SUMS.txt are omitted.
+  Those files remain in the unchanged complete local ZIP. They are not needed
+  to run the published models or regenerate the final result tables.
+  Use SHA256SUMS.public.txt to check the GitHub edition. The SHA256SUMS.txt inside
+  the complete local ZIP applies only to that original bundle, not this edition.
+
+Environment
+  ProVerif 2.05, Graphviz, GNU timeout/time from the original archived image.
+  Host Docker Engine 29.1.3, linux/amd64.
+  Original archive: /home/ecs-user/docker-archive/sras-proverif_latest.tar.gz
+  Image tag: sras-proverif:latest
+  OCI manifest: sha256:75b3b4709fa26bcb771723b73f7c4b2d0a308b81248a640572573761d0ed2be4
+  Original config: sha256:46f5847b1a04d8f5aa6206d121c8d2ecf73634ff7dcf7a3d22cab0fb6a846513
+  Exact Docker image inspect, package versions and tool output are in each run.
+  The 1.2 GB image archive is retained separately at the above path; the small
+  result package does not duplicate it. The supplied legacy Dockerfile is for
+  provenance, not an exact pinned reconstruction; use the saved image to replay.
+
+Restore image if needed
+  sudo docker load -i /home/ecs-user/docker-archive/sras-proverif_latest.tar.gz
+
+Run on the current host (choose a NEW run name; existing logs are not overwritten)
+  cd /home/ecs-user/SRAS/formal_verification/revised-20261027
+  sh run.sh reproduced-main jobs.txt
+  sh run.sh reproduced-primary-times jobs-primary-single.txt
+
+Running elsewhere
+  In a repository checkout, cd to formal_verification/revised-20261027; if using
+  the complete local bundle, extract it and cd to its revised-20261027 directory.
+  Import the same separately supplied image archive, then use the same two
+  relative commands above. The image archive is not included on GitHub. To build
+  a new image instead, follow ../README.md; a rebuild is a separate environment
+  from the recorded archived image. Host requirements are a POSIX shell and
+  Docker with sudo permission. Python 3 (standard library only) is needed only
+  for generation/reporting; every .pv model is standalone.
+
+Exact invocation inside each container
+  proverif -parse-only <model>
+  /usr/bin/time -f 'elapsed_seconds=%e user_seconds=%U system_seconds=%S max_rss_kb=%M exit_status=%x'
+    timeout 600 proverif -graph <output-graph-directory> <model>
+  The actual unambiguous commands, elapsed time and exit codes are saved in each
+  job's command.txt, parse-command.txt, time.txt, parse-time.txt, exit.txt,
+  parse-exit.txt, output.log and parse.log. stderr is included in the logs.
+  The source package is mounted read-only; only the fresh output directory is
+  writable. Docker networking is disabled; this is host isolation and does NOT
+  remove the adversarial public net channel inside the ProVerif models.
+
+Timing
+  Per-primary-query timings are from isolated runs under results/primary-single/.
+  Other table rows explicitly give their entire model's total time, including
+  all its queries, trace reconstruction and graph generation. They are not
+  individual-query timings. Parsing and container start are excluded from the
+  model time and recorded separately where applicable. These are single-run
+  wall-clock observations, not performance benchmarks or repeated-run averages.
+  The 47 final ProVerif model invocations total 62.77 seconds; this excludes
+  development, source preparation, Docker overhead and the earlier timed-out runs.
+
+Source generation and evidence checks
+  Check integrity before regenerating files:
+  sha256sum -c SHA256SUMS.public.txt
+  For the separately extracted complete local ZIP only, use its own
+  sha256sum -c SHA256SUMS.txt instead.
+
+  python3 generate_models.py
+  python3 collect_results.py
+  Generation retains the checked-in algebra diagnostics; it regenerates the
+  primary/scenario/query-timing files and both job lists deterministically.
+  Collection reads the authoritative final-v2 and primary-single logs, verifies
+  model SHA-256 values and parses actual RESULT lines; it does not run ProVerif.
+  For a new experiment, preserve its output and change the collector's run names
+  explicitly if you want a new table. Never relabel a previous result as a new run.
+
+Interpretation
+  Correspondence query true: proved in this model.
+  Correspondence query false + reconstructed trace: confirmed counterexample.
+  Reachability query prints not event(...) (or a negated conjunction): false +
+  reconstructed trace means the requested execution is REACHABLE, not insecure.
+  true for such a query means the target event/combination is unreachable.
+  cannot be proved is inconclusive; a timeout is no result. Neither is an attack.
+
+Preserved history
+  legacy/models/ contains original models, including the old ablation;
+  legacy/Dockerfile records the original build recipe. Duplicate previous logs
+  under legacy/results/ are retained only in the complete local ZIP.
+  results/development/ preserves the initial generic-join translation timeouts
+  and source snapshots before the finite-domain specialization.
+  The local ZIP also retains results/final-v1/, a superseded batch before stronger
+  Stage 3 witness events. Only final-v2 and primary-single support the final
+  reports. Old result-directory names are provenance labels, not claims that
+  the final source has the old hash.
+
+Reading order
+  SUMMARY.txt
+  reports/model-audit-and-scope.txt
+  reports/results-table.csv and reports/queries-and-results.txt
+  reports/coordination-counterexamples.txt
+  reports/final-review.txt and reports/join-design.txt
+  diffs/ and standalone sources, then raw logs/graphs as needed.

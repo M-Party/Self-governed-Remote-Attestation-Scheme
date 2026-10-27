@@ -1,0 +1,202 @@
+﻿模型,参与方数量,类别,查询编号,性质,工具原始结果,解释,耗时秒,计时范围,源文件,查询起始行,准确查询代码,原始日志,重建轨迹,图目录
+join-regression,0,algebra,01,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,209,query event(WrongJoinIdentity()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,02,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,211,query event(WrongJoinSVN()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,03,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,213,query event(WrongJoinTCB()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,04,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,215,query event(WrongJoinAttester()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,05,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,217,query event(WrongMatchIdentity()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,06,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,219,query event(WrongMatchSVN()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,07,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,221,query event(WrongMatchTCB()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,08,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,223,query event(WrongMatchAttester()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,09,algebra,false,目标事件/组合可达,0.32,该模型全部查询合计,models/join-regression.pv,225,query event(WildcardAndIdempotence()).,results/final-v2/join-regression/output.log,是,results/final-v2/join-regression/graphs
+join-regression,0,algebra,10,algebra,false,目标事件/组合可达,0.32,该模型全部查询合计,models/join-regression.pv,227,query event(RedundantInputsEqual()).,results/final-v2/join-regression/output.log,是,results/final-v2/join-regression/graphs
+join-regression,0,algebra,11,algebra,false,目标事件/组合可达,0.32,该模型全部查询合计,models/join-regression.pv,229,query event(OrderNormalization()).,results/final-v2/join-regression/output.log,是,results/final-v2/join-regression/graphs
+join-regression,0,algebra,12,algebra,false,目标事件/组合可达,0.32,该模型全部查询合计,models/join-regression.pv,231,query event(CompatibleEntryAccepted()).,results/final-v2/join-regression/output.log,是,results/final-v2/join-regression/graphs
+join-regression,0,algebra,13,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,233,query event(MeasurementConflictAccepted()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,14,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,235,query event(SignerConflictAccepted()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,15,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,237,query event(ProductConflictAccepted()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,16,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,239,query event(TCBConflictAccepted()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,17,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,241,query event(AttesterConflictAccepted()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,18,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,243,query event(RevokedAccepted()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,19,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,245,query event(InvalidAccepted()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-regression,0,algebra,20,algebra,true,目标事件/组合不可达,0.32,该模型全部查询合计,models/join-regression.pv,247,query event(UnexpectedEntryAcceptance()).,results/final-v2/join-regression/output.log,否,results/final-v2/join-regression/graphs
+join-specialization-regression,0,algebra,01,algebra,true,目标事件/组合不可达,0.1,该模型全部查询合计,models/join-specialization-regression.pv,197,query event(WrongSpecializationN2()).,results/final-v2/join-specialization-regression/output.log,否,results/final-v2/join-specialization-regression/graphs
+join-specialization-regression,0,algebra,02,algebra,true,目标事件/组合不可达,0.1,该模型全部查询合计,models/join-specialization-regression.pv,219,query event(WrongSpecializationN3()).,results/final-v2/join-specialization-regression/output.log,否,results/final-v2/join-specialization-regression/graphs
+sras-n2-auxiliary,2,auxiliary,01,auxiliary,true,证明成立,2.03,该模型全部查询合计,models/sras-n2-auxiliary.pv,280,"query a: party, b: party, ka: pkey, kb: pkey, r: policy;
+  event(PolicyAcceptedKeys(a,b,ka,kb,r)) ==> event(PolicySent(b,ka,r)).",results/final-v2/sras-n2-auxiliary/output.log,否,results/final-v2/sras-n2-auxiliary/graphs
+sras-n2-auxiliary,2,auxiliary,02,auxiliary,true,证明成立,2.03,该模型全部查询合计,models/sras-n2-auxiliary.pv,283,"query a: party, kb: pkey, r: policy;
+  event(PolicySent(a,kb,r)) ==> event(QuotesComplete(a)).",results/final-v2/sras-n2-auxiliary/output.log,否,results/final-v2/sras-n2-auxiliary/graphs
+sras-n2-auxiliary,2,auxiliary,03,auxiliary,true,证明成立,2.03,该模型全部查询合计,models/sras-n2-auxiliary.pv,286,"query a: party, x: polstar;
+  event(FullJoin(a,x)) ==> event(PoliciesComplete(a)).",results/final-v2/sras-n2-auxiliary/output.log,否,results/final-v2/sras-n2-auxiliary/graphs
+sras-n2-auxiliary,2,auxiliary,04,auxiliary,true,证明成立,2.03,该模型全部查询合计,models/sras-n2-auxiliary.pv,288,"query x: polstar, r2: policy;
+  event(FullJoin(P1,x)) ==> event(PolicyAccepted(P1,P2,r2)).",results/final-v2/sras-n2-auxiliary/output.log,否,results/final-v2/sras-n2-auxiliary/graphs
+sras-n2-auxiliary,2,auxiliary,05,auxiliary,true,证明成立,2.03,该模型全部查询合计,models/sras-n2-auxiliary.pv,290,"query x: polstar, r1: policy;
+  event(FullJoin(P2,x)) ==> event(PolicyAccepted(P2,P1,r1)).",results/final-v2/sras-n2-auxiliary/output.log,否,results/final-v2/sras-n2-auxiliary/graphs
+sras-n2-auxiliary,2,auxiliary,06,auxiliary,true,证明成立,2.03,该模型全部查询合计,models/sras-n2-auxiliary.pv,293,"query a: party, b: party, h: bitstring;
+  event(ConfirmationAccepted(a,b,h)) ==> event(ConfirmationSent(b,a,h)).",results/final-v2/sras-n2-auxiliary/output.log,否,results/final-v2/sras-n2-auxiliary/graphs
+sras-n2-auxiliary,2,auxiliary,07,auxiliary,true,证明成立,2.03,该模型全部查询合计,models/sras-n2-auxiliary.pv,295,"query x: polstar;
+  event(Confirm(P1,x)) ==> event(ConfirmationAccepted(P1,P2,hstar(x))).",results/final-v2/sras-n2-auxiliary/output.log,否,results/final-v2/sras-n2-auxiliary/graphs
+sras-n2-auxiliary,2,auxiliary,08,auxiliary,true,证明成立,2.03,该模型全部查询合计,models/sras-n2-auxiliary.pv,297,"query x: polstar;
+  event(Confirm(P2,x)) ==> event(ConfirmationAccepted(P2,P1,hstar(x))).",results/final-v2/sras-n2-auxiliary/output.log,否,results/final-v2/sras-n2-auxiliary/graphs
+sras-n2-auxiliary,2,auxiliary,09,auxiliary,true,证明成立,2.03,该模型全部查询合计,models/sras-n2-auxiliary.pv,301,"query a: party, e: entity, kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(a,e,kr,ke,n,id,t,x,body)) ==>
+    event(Confirm(a,x)) && event(ChallengeSent(a,ke,n)) && event(QuoteProduced(ke,n,id,t)) && body = hcert(ke,kr,hstar(x)).",results/final-v2/sras-n2-auxiliary/output.log,否,results/final-v2/sras-n2-auxiliary/graphs
+sras-n2-coordination,2,coordination,01,coordination,true,证明成立,0.29,该模型全部查询合计,models/sras-n2-coordination.pv,281,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E1,kr,ke,n,id,t,x,body)) ==> event(FullJoin(P2,x)).",results/final-v2/sras-n2-coordination/output.log,否,results/final-v2/sras-n2-coordination/graphs
+sras-n2-no-confirm-coordination,2,no-confirm,01,no-confirm,false,可确认反例,0.24,该模型全部查询合计,models/sras-n2-no-confirm-coordination.pv,281,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E1,kr,ke,n,id,t,x,body)) ==> event(FullJoin(P2,x)).",results/final-v2/sras-n2-no-confirm-coordination/output.log,是,results/final-v2/sras-n2-no-confirm-coordination/graphs
+sras-n2-no-confirm-primary,2,no-confirm,Q1,Agreement,true,证明成立,0.65,该模型全部查询合计,models/sras-n2-no-confirm-primary.pv,280,"query a: party, b: party, x: polstar, y: polstar;
+  event(Confirm(a,x)) && event(Confirm(b,y)) && a <> b ==> x = y.",results/final-v2/sras-n2-no-confirm-primary/output.log,否,results/final-v2/sras-n2-no-confirm-primary/graphs
+sras-n2-no-confirm-primary,2,no-confirm,Q2,Authenticity,true,证明成立,0.65,该模型全部查询合计,models/sras-n2-no-confirm-primary.pv,283,"query a: party, b: party, r: policy;
+  event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)).",results/final-v2/sras-n2-no-confirm-primary/output.log,否,results/final-v2/sras-n2-no-confirm-primary/graphs
+sras-n2-no-confirm-primary,2,no-confirm,Q3,Completeness,true,证明成立,0.65,该模型全部查询合计,models/sras-n2-no-confirm-primary.pv,286,"query a: party, x: polstar;
+  event(Confirm(a,x)) ==> event(FullJoin(a,x)).",results/final-v2/sras-n2-no-confirm-primary/output.log,否,results/final-v2/sras-n2-no-confirm-primary/graphs
+sras-n2-no-confirm-primary,2,no-confirm,Q4,Issuance,true,证明成立,0.65,该模型全部查询合计,models/sras-n2-no-confirm-primary.pv,290,"query a: party, e: entity, kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(a,e,kr,ke,n,id,t,x,body)) ==> event(QuoteSatisfied(a,e,kr,ke,n,id,t,x)).",results/final-v2/sras-n2-no-confirm-primary/output.log,否,results/final-v2/sras-n2-no-confirm-primary/graphs
+sras-n2-no-confirm-reachability,2,no-confirm,01,no-confirm,false,目标事件/组合可达,0.45,该模型全部查询合计,models/sras-n2-no-confirm-reachability.pv,280,"query x1: polstar, x2: polstar;
+  event(Confirm(P1,x1)) && event(Confirm(P2,x2)).",results/final-v2/sras-n2-no-confirm-reachability/output.log,是,results/final-v2/sras-n2-no-confirm-reachability/graphs
+sras-n2-no-confirm-reachability,2,no-confirm,02,no-confirm,false,目标事件/组合可达,0.45,该模型全部查询合计,models/sras-n2-no-confirm-reachability.pv,284,"query x1: polstar, x2: polstar, kr1: pkey, kr2: pkey, ke1: pkey, ke2: pkey,
+      n1: nonce, n2: nonce, id1: identity, id2: identity, t1: tcbstatus, t2: tcbstatus, b1: bitstring, b2: bitstring;
+  event(Confirm(P1,x1)) && event(Confirm(P2,x2)) &&
+  event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,x1,b1)) &&
+  event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,x2,b2)).",results/final-v2/sras-n2-no-confirm-reachability/output.log,是,results/final-v2/sras-n2-no-confirm-reachability/graphs
+sras-n2-primary,2,primary,Q1,Agreement,true,证明成立,0.96,该模型全部查询合计,models/sras-n2-primary.pv,280,"query a: party, b: party, x: polstar, y: polstar;
+  event(Confirm(a,x)) && event(Confirm(b,y)) && a <> b ==> x = y.",results/final-v2/sras-n2-primary/output.log,否,results/final-v2/sras-n2-primary/graphs
+sras-n2-primary,2,primary,Q2,Authenticity,true,证明成立,0.96,该模型全部查询合计,models/sras-n2-primary.pv,283,"query a: party, b: party, r: policy;
+  event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)).",results/final-v2/sras-n2-primary/output.log,否,results/final-v2/sras-n2-primary/graphs
+sras-n2-primary,2,primary,Q3,Completeness,true,证明成立,0.96,该模型全部查询合计,models/sras-n2-primary.pv,286,"query a: party, x: polstar;
+  event(Confirm(a,x)) ==> event(FullJoin(a,x)).",results/final-v2/sras-n2-primary/output.log,否,results/final-v2/sras-n2-primary/graphs
+sras-n2-primary,2,primary,Q4,Issuance,true,证明成立,0.96,该模型全部查询合计,models/sras-n2-primary.pv,290,"query a: party, e: entity, kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(a,e,kr,ke,n,id,t,x,body)) ==> event(QuoteSatisfied(a,e,kr,ke,n,id,t,x)).",results/final-v2/sras-n2-primary/output.log,否,results/final-v2/sras-n2-primary/graphs
+sras-n2-reachability,2,reachability,01,reachability,false,目标事件/组合可达,0.66,该模型全部查询合计,models/sras-n2-reachability.pv,280,"query x1: polstar, x2: polstar;
+  event(Confirm(P1,x1)) && event(Confirm(P2,x2)).",results/final-v2/sras-n2-reachability/output.log,是,results/final-v2/sras-n2-reachability/graphs
+sras-n2-reachability,2,reachability,02,reachability,false,目标事件/组合可达,0.66,该模型全部查询合计,models/sras-n2-reachability.pv,284,"query x1: polstar, x2: polstar, kr1: pkey, kr2: pkey, ke1: pkey, ke2: pkey,
+      n1: nonce, n2: nonce, id1: identity, id2: identity, t1: tcbstatus, t2: tcbstatus, b1: bitstring, b2: bitstring;
+  event(Confirm(P1,x1)) && event(Confirm(P2,x2)) &&
+  event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,x1,b1)) &&
+  event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,x2,b2)).",results/final-v2/sras-n2-reachability/output.log,是,results/final-v2/sras-n2-reachability/graphs
+sras-n3-auxiliary,3,auxiliary,01,auxiliary,true,证明成立,17.22,该模型全部查询合计,models/sras-n3-auxiliary.pv,284,"query a: party, b: party, ka: pkey, kb: pkey, r: policy;
+  event(PolicyAcceptedKeys(a,b,ka,kb,r)) ==> event(PolicySent(b,ka,r)).",results/final-v2/sras-n3-auxiliary/output.log,否,results/final-v2/sras-n3-auxiliary/graphs
+sras-n3-auxiliary,3,auxiliary,02,auxiliary,true,证明成立,17.22,该模型全部查询合计,models/sras-n3-auxiliary.pv,287,"query a: party, kb: pkey, r: policy;
+  event(PolicySent(a,kb,r)) ==> event(QuotesComplete(a)).",results/final-v2/sras-n3-auxiliary/output.log,否,results/final-v2/sras-n3-auxiliary/graphs
+sras-n3-auxiliary,3,auxiliary,03,auxiliary,true,证明成立,17.22,该模型全部查询合计,models/sras-n3-auxiliary.pv,290,"query a: party, x: polstar;
+  event(FullJoin(a,x)) ==> event(PoliciesComplete(a)).",results/final-v2/sras-n3-auxiliary/output.log,否,results/final-v2/sras-n3-auxiliary/graphs
+sras-n3-auxiliary,3,auxiliary,04,auxiliary,true,证明成立,17.22,该模型全部查询合计,models/sras-n3-auxiliary.pv,292,"query x: polstar, r2: policy, r3: policy;
+  event(FullJoin(P1,x)) ==> event(PolicyAccepted(P1,P2,r2)) && event(PolicyAccepted(P1,P3,r3)).",results/final-v2/sras-n3-auxiliary/output.log,否,results/final-v2/sras-n3-auxiliary/graphs
+sras-n3-auxiliary,3,auxiliary,05,auxiliary,true,证明成立,17.22,该模型全部查询合计,models/sras-n3-auxiliary.pv,294,"query x: polstar, r1: policy, r3: policy;
+  event(FullJoin(P2,x)) ==> event(PolicyAccepted(P2,P1,r1)) && event(PolicyAccepted(P2,P3,r3)).",results/final-v2/sras-n3-auxiliary/output.log,否,results/final-v2/sras-n3-auxiliary/graphs
+sras-n3-auxiliary,3,auxiliary,06,auxiliary,true,证明成立,17.22,该模型全部查询合计,models/sras-n3-auxiliary.pv,296,"query x: polstar, r1: policy, r2: policy;
+  event(FullJoin(P3,x)) ==> event(PolicyAccepted(P3,P1,r1)) && event(PolicyAccepted(P3,P2,r2)).",results/final-v2/sras-n3-auxiliary/output.log,否,results/final-v2/sras-n3-auxiliary/graphs
+sras-n3-auxiliary,3,auxiliary,07,auxiliary,true,证明成立,17.22,该模型全部查询合计,models/sras-n3-auxiliary.pv,299,"query a: party, b: party, h: bitstring;
+  event(ConfirmationAccepted(a,b,h)) ==> event(ConfirmationSent(b,a,h)).",results/final-v2/sras-n3-auxiliary/output.log,否,results/final-v2/sras-n3-auxiliary/graphs
+sras-n3-auxiliary,3,auxiliary,08,auxiliary,true,证明成立,17.22,该模型全部查询合计,models/sras-n3-auxiliary.pv,301,"query x: polstar;
+  event(Confirm(P1,x)) ==> event(ConfirmationAccepted(P1,P2,hstar(x))) && event(ConfirmationAccepted(P1,P3,hstar(x))).",results/final-v2/sras-n3-auxiliary/output.log,否,results/final-v2/sras-n3-auxiliary/graphs
+sras-n3-auxiliary,3,auxiliary,09,auxiliary,true,证明成立,17.22,该模型全部查询合计,models/sras-n3-auxiliary.pv,303,"query x: polstar;
+  event(Confirm(P2,x)) ==> event(ConfirmationAccepted(P2,P1,hstar(x))) && event(ConfirmationAccepted(P2,P3,hstar(x))).",results/final-v2/sras-n3-auxiliary/output.log,否,results/final-v2/sras-n3-auxiliary/graphs
+sras-n3-auxiliary,3,auxiliary,10,auxiliary,true,证明成立,17.22,该模型全部查询合计,models/sras-n3-auxiliary.pv,305,"query x: polstar;
+  event(Confirm(P3,x)) ==> event(ConfirmationAccepted(P3,P1,hstar(x))) && event(ConfirmationAccepted(P3,P2,hstar(x))).",results/final-v2/sras-n3-auxiliary/output.log,否,results/final-v2/sras-n3-auxiliary/graphs
+sras-n3-coordination,3,coordination,01,coordination,true,证明成立,1.8,该模型全部查询合计,models/sras-n3-coordination.pv,284,"query x: polstar;
+  event(Confirm(P1,x)) ==> event(FullJoin(P2,x)) && event(FullJoin(P3,x)).",results/final-v2/sras-n3-coordination/output.log,否,results/final-v2/sras-n3-coordination/graphs
+sras-n3-no-confirm-coordination,3,no-confirm,01,no-confirm,false,可确认反例,0.51,该模型全部查询合计,models/sras-n3-no-confirm-coordination.pv,284,"query x: polstar;
+  event(Confirm(P1,x)) ==> event(FullJoin(P2,x)) && event(FullJoin(P3,x)).",results/final-v2/sras-n3-no-confirm-coordination/output.log,是,results/final-v2/sras-n3-no-confirm-coordination/graphs
+sras-n3-no-confirm-primary,3,no-confirm,Q1,Agreement,true,证明成立,1.52,该模型全部查询合计,models/sras-n3-no-confirm-primary.pv,284,"query a: party, b: party, x: polstar, y: polstar;
+  event(Confirm(a,x)) && event(Confirm(b,y)) && a <> b ==> x = y.",results/final-v2/sras-n3-no-confirm-primary/output.log,否,results/final-v2/sras-n3-no-confirm-primary/graphs
+sras-n3-no-confirm-primary,3,no-confirm,Q2,Authenticity,true,证明成立,1.52,该模型全部查询合计,models/sras-n3-no-confirm-primary.pv,287,"query a: party, b: party, r: policy;
+  event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)).",results/final-v2/sras-n3-no-confirm-primary/output.log,否,results/final-v2/sras-n3-no-confirm-primary/graphs
+sras-n3-no-confirm-primary,3,no-confirm,Q3,Completeness,true,证明成立,1.52,该模型全部查询合计,models/sras-n3-no-confirm-primary.pv,290,"query a: party, x: polstar;
+  event(Confirm(a,x)) ==> event(FullJoin(a,x)).",results/final-v2/sras-n3-no-confirm-primary/output.log,否,results/final-v2/sras-n3-no-confirm-primary/graphs
+sras-n3-no-confirm-reachability,3,no-confirm,01,no-confirm,false,目标事件/组合可达,0.49,该模型全部查询合计,models/sras-n3-no-confirm-reachability.pv,284,"query x1: polstar, x2: polstar, x3: polstar;
+  event(Confirm(P1,x1)) && event(Confirm(P2,x2)) && event(Confirm(P3,x3)).",results/final-v2/sras-n3-no-confirm-reachability/output.log,是,results/final-v2/sras-n3-no-confirm-reachability/graphs
+sras-n3-primary,3,primary,Q1,Agreement,true,证明成立,4.98,该模型全部查询合计,models/sras-n3-primary.pv,284,"query a: party, b: party, x: polstar, y: polstar;
+  event(Confirm(a,x)) && event(Confirm(b,y)) && a <> b ==> x = y.",results/final-v2/sras-n3-primary/output.log,否,results/final-v2/sras-n3-primary/graphs
+sras-n3-primary,3,primary,Q2,Authenticity,true,证明成立,4.98,该模型全部查询合计,models/sras-n3-primary.pv,287,"query a: party, b: party, r: policy;
+  event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)).",results/final-v2/sras-n3-primary/output.log,否,results/final-v2/sras-n3-primary/graphs
+sras-n3-primary,3,primary,Q3,Completeness,true,证明成立,4.98,该模型全部查询合计,models/sras-n3-primary.pv,290,"query a: party, x: polstar;
+  event(Confirm(a,x)) ==> event(FullJoin(a,x)).",results/final-v2/sras-n3-primary/output.log,否,results/final-v2/sras-n3-primary/graphs
+sras-n3-reachability,3,reachability,01,reachability,false,目标事件/组合可达,1.67,该模型全部查询合计,models/sras-n3-reachability.pv,284,"query x1: polstar, x2: polstar, x3: polstar;
+  event(Confirm(P1,x1)) && event(Confirm(P2,x2)) && event(Confirm(P3,x3)).",results/final-v2/sras-n3-reachability/output.log,是,results/final-v2/sras-n3-reachability/graphs
+n2-bad-measurement,2,regression,01,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-bad-measurement.pv,278,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n2-bad-measurement/output.log,是,results/final-v2/n2-bad-measurement/graphs
+n2-bad-measurement,2,regression,02,regression,true,目标事件/组合不可达,0.62,该模型全部查询合计,scenarios/n2-bad-measurement.pv,279,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E1,kr,ke,n,id,t,x,body)).",results/final-v2/n2-bad-measurement/output.log,否,results/final-v2/n2-bad-measurement/graphs
+n2-bad-measurement,2,regression,03,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-bad-measurement.pv,281,"query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).",results/final-v2/n2-bad-measurement/output.log,是,results/final-v2/n2-bad-measurement/graphs
+n2-bad-product,2,regression,01,regression,false,目标事件/组合可达,0.63,该模型全部查询合计,scenarios/n2-bad-product.pv,278,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n2-bad-product/output.log,是,results/final-v2/n2-bad-product/graphs
+n2-bad-product,2,regression,02,regression,true,目标事件/组合不可达,0.63,该模型全部查询合计,scenarios/n2-bad-product.pv,279,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E1,kr,ke,n,id,t,x,body)).",results/final-v2/n2-bad-product/output.log,否,results/final-v2/n2-bad-product/graphs
+n2-bad-product,2,regression,03,regression,false,目标事件/组合可达,0.63,该模型全部查询合计,scenarios/n2-bad-product.pv,281,"query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).",results/final-v2/n2-bad-product/output.log,是,results/final-v2/n2-bad-product/graphs
+n2-bad-signer,2,regression,01,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-bad-signer.pv,278,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n2-bad-signer/output.log,是,results/final-v2/n2-bad-signer/graphs
+n2-bad-signer,2,regression,02,regression,true,目标事件/组合不可达,0.62,该模型全部查询合计,scenarios/n2-bad-signer.pv,279,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E1,kr,ke,n,id,t,x,body)).",results/final-v2/n2-bad-signer/output.log,否,results/final-v2/n2-bad-signer/graphs
+n2-bad-signer,2,regression,03,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-bad-signer.pv,281,"query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).",results/final-v2/n2-bad-signer/output.log,是,results/final-v2/n2-bad-signer/graphs
+n2-bad-svn,2,regression,01,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-bad-svn.pv,278,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n2-bad-svn/output.log,是,results/final-v2/n2-bad-svn/graphs
+n2-bad-svn,2,regression,02,regression,true,目标事件/组合不可达,0.62,该模型全部查询合计,scenarios/n2-bad-svn.pv,279,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E1,kr,ke,n,id,t,x,body)).",results/final-v2/n2-bad-svn/output.log,否,results/final-v2/n2-bad-svn/graphs
+n2-bad-svn,2,regression,03,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-bad-svn.pv,281,"query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).",results/final-v2/n2-bad-svn/output.log,是,results/final-v2/n2-bad-svn/graphs
+n2-bad-tcb,2,regression,01,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-bad-tcb.pv,278,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n2-bad-tcb/output.log,是,results/final-v2/n2-bad-tcb/graphs
+n2-bad-tcb,2,regression,02,regression,true,目标事件/组合不可达,0.62,该模型全部查询合计,scenarios/n2-bad-tcb.pv,279,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E1,kr,ke,n,id,t,x,body)).",results/final-v2/n2-bad-tcb/output.log,否,results/final-v2/n2-bad-tcb/graphs
+n2-bad-tcb,2,regression,03,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-bad-tcb.pv,281,"query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).",results/final-v2/n2-bad-tcb/output.log,是,results/final-v2/n2-bad-tcb/graphs
+n2-invalid-signature,2,regression,01,regression,false,目标事件/组合可达,0.82,该模型全部查询合计,scenarios/n2-invalid-signature.pv,278,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n2-invalid-signature/output.log,是,results/final-v2/n2-invalid-signature/graphs
+n2-invalid-signature,2,regression,02,regression,true,目标事件/组合不可达,0.82,该模型全部查询合计,scenarios/n2-invalid-signature.pv,279,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E1,kr,ke,n,id,t,x,body)).",results/final-v2/n2-invalid-signature/output.log,否,results/final-v2/n2-invalid-signature/graphs
+n2-invalid-signature,2,regression,03,regression,false,目标事件/组合可达,0.82,该模型全部查询合计,scenarios/n2-invalid-signature.pv,281,"query ke: pkey, n: nonce; event(QuoteReceived(P1,E1,ke,n)).",results/final-v2/n2-invalid-signature/output.log,是,results/final-v2/n2-invalid-signature/graphs
+n2-invalid-signature,2,regression,04,regression,true,目标事件/组合不可达,0.82,该模型全部查询合计,scenarios/n2-invalid-signature.pv,282,"query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteSignatureChecked(P1,E1,ke,n,id,t)).",results/final-v2/n2-invalid-signature/output.log,否,results/final-v2/n2-invalid-signature/graphs
+n2-invalid-tcb,2,regression,01,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-invalid-tcb.pv,278,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n2-invalid-tcb/output.log,是,results/final-v2/n2-invalid-tcb/graphs
+n2-invalid-tcb,2,regression,02,regression,true,目标事件/组合不可达,0.62,该模型全部查询合计,scenarios/n2-invalid-tcb.pv,279,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E1,kr,ke,n,id,t,x,body)).",results/final-v2/n2-invalid-tcb/output.log,否,results/final-v2/n2-invalid-tcb/graphs
+n2-invalid-tcb,2,regression,03,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-invalid-tcb.pv,281,"query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).",results/final-v2/n2-invalid-tcb/output.log,是,results/final-v2/n2-invalid-tcb/graphs
+n2-revoked-tcb,2,regression,01,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-revoked-tcb.pv,278,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n2-revoked-tcb/output.log,是,results/final-v2/n2-revoked-tcb/graphs
+n2-revoked-tcb,2,regression,02,regression,true,目标事件/组合不可达,0.62,该模型全部查询合计,scenarios/n2-revoked-tcb.pv,279,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E1,kr,ke,n,id,t,x,body)).",results/final-v2/n2-revoked-tcb/output.log,否,results/final-v2/n2-revoked-tcb/graphs
+n2-revoked-tcb,2,regression,03,regression,false,目标事件/组合可达,0.62,该模型全部查询合计,scenarios/n2-revoked-tcb.pv,281,"query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).",results/final-v2/n2-revoked-tcb/output.log,是,results/final-v2/n2-revoked-tcb/graphs
+n2-wrong-attester,2,regression,01,regression,false,目标事件/组合可达,0.63,该模型全部查询合计,scenarios/n2-wrong-attester.pv,278,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n2-wrong-attester/output.log,是,results/final-v2/n2-wrong-attester/graphs
+n2-wrong-attester,2,regression,02,regression,true,目标事件/组合不可达,0.63,该模型全部查询合计,scenarios/n2-wrong-attester.pv,279,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E2,kr,ke,n,id,t,x,body)).",results/final-v2/n2-wrong-attester/output.log,否,results/final-v2/n2-wrong-attester/graphs
+n2-wrong-attester,2,regression,03,regression,false,目标事件/组合可达,0.63,该模型全部查询合计,scenarios/n2-wrong-attester.pv,281,"query ke: pkey, n: nonce; event(QuoteVerified(P1,E2,ke,n,Identity(mE2,s2,prodA,V2),Good)).",results/final-v2/n2-wrong-attester/output.log,是,results/final-v2/n2-wrong-attester/graphs
+n2-wrong-challenge,2,regression,01,regression,false,目标事件/组合可达,0.8,该模型全部查询合计,scenarios/n2-wrong-challenge.pv,278,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n2-wrong-challenge/output.log,是,results/final-v2/n2-wrong-challenge/graphs
+n2-wrong-challenge,2,regression,02,regression,true,目标事件/组合不可达,0.8,该模型全部查询合计,scenarios/n2-wrong-challenge.pv,279,"query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(P1,E1,kr,ke,n,id,t,x,body)).",results/final-v2/n2-wrong-challenge/output.log,否,results/final-v2/n2-wrong-challenge/graphs
+n2-wrong-challenge,2,regression,03,regression,false,目标事件/组合可达,0.8,该模型全部查询合计,scenarios/n2-wrong-challenge.pv,281,"query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteSignatureChecked(P1,E1,ke,n,id,t)).",results/final-v2/n2-wrong-challenge/output.log,是,results/final-v2/n2-wrong-challenge/graphs
+n2-wrong-challenge,2,regression,04,regression,true,目标事件/组合不可达,0.8,该模型全部查询合计,scenarios/n2-wrong-challenge.pv,282,"query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).",results/final-v2/n2-wrong-challenge/output.log,否,results/final-v2/n2-wrong-challenge/graphs
+n3-bad-rpe-code,3,regression,01,regression,false,目标事件/组合可达,0.97,该模型全部查询合计,scenarios/n3-bad-rpe-code.pv,282,"query k: pkey, h: bitstring; event(EvidenceChecked(P1,P2,k,h)).",results/final-v2/n3-bad-rpe-code/output.log,是,results/final-v2/n3-bad-rpe-code/graphs
+n3-bad-rpe-code,3,regression,02,regression,true,目标事件/组合不可达,0.97,该模型全部查询合计,scenarios/n3-bad-rpe-code.pv,283,query event(QuotesComplete(P1)).,results/final-v2/n3-bad-rpe-code/output.log,否,results/final-v2/n3-bad-rpe-code/graphs
+n3-bad-rpe-tcb,3,regression,01,regression,false,目标事件/组合可达,0.96,该模型全部查询合计,scenarios/n3-bad-rpe-tcb.pv,282,"query k: pkey, h: bitstring; event(EvidenceChecked(P1,P2,k,h)).",results/final-v2/n3-bad-rpe-tcb/output.log,是,results/final-v2/n3-bad-rpe-tcb/graphs
+n3-bad-rpe-tcb,3,regression,02,regression,true,目标事件/组合不可达,0.96,该模型全部查询合计,scenarios/n3-bad-rpe-tcb.pv,283,query event(QuotesComplete(P1)).,results/final-v2/n3-bad-rpe-tcb/output.log,否,results/final-v2/n3-bad-rpe-tcb/graphs
+n3-confirmation-mismatch,3,regression,01,regression,false,目标事件/组合可达,4.6,该模型全部查询合计,scenarios/n3-confirmation-mismatch.pv,282,"query x: polstar; event(FullJoin(P1,x)).",results/final-v2/n3-confirmation-mismatch/output.log,是,results/final-v2/n3-confirmation-mismatch/graphs
+n3-confirmation-mismatch,3,regression,02,regression,true,目标事件/组合不可达,4.6,该模型全部查询合计,scenarios/n3-confirmation-mismatch.pv,283,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n3-confirmation-mismatch/output.log,否,results/final-v2/n3-confirmation-mismatch/graphs
+n3-confirmation-mismatch,3,regression,03,regression,false,目标事件/组合可达,4.6,该模型全部查询合计,scenarios/n3-confirmation-mismatch.pv,284,"query event(ConfirmationAuthenticated(P1,P3,badHash)).",results/final-v2/n3-confirmation-mismatch/output.log,是,results/final-v2/n3-confirmation-mismatch/graphs
+n3-conflict-attester,3,regression,01,regression,false,目标事件/组合可达,0.38,该模型全部查询合计,scenarios/n3-conflict-attester.pv,282,query event(PoliciesComplete(P1)).,results/final-v2/n3-conflict-attester/output.log,是,results/final-v2/n3-conflict-attester/graphs
+n3-conflict-attester,3,regression,02,regression,true,目标事件/组合不可达,0.38,该模型全部查询合计,scenarios/n3-conflict-attester.pv,283,"query x: polstar; event(FullJoin(P1,x)).",results/final-v2/n3-conflict-attester/output.log,否,results/final-v2/n3-conflict-attester/graphs
+n3-conflict-measurement,3,regression,01,regression,false,目标事件/组合可达,0.39,该模型全部查询合计,scenarios/n3-conflict-measurement.pv,282,query event(PoliciesComplete(P1)).,results/final-v2/n3-conflict-measurement/output.log,是,results/final-v2/n3-conflict-measurement/graphs
+n3-conflict-measurement,3,regression,02,regression,true,目标事件/组合不可达,0.39,该模型全部查询合计,scenarios/n3-conflict-measurement.pv,283,"query x: polstar; event(FullJoin(P1,x)).",results/final-v2/n3-conflict-measurement/output.log,否,results/final-v2/n3-conflict-measurement/graphs
+n3-conflict-product,3,regression,01,regression,false,目标事件/组合可达,0.38,该模型全部查询合计,scenarios/n3-conflict-product.pv,282,query event(PoliciesComplete(P1)).,results/final-v2/n3-conflict-product/output.log,是,results/final-v2/n3-conflict-product/graphs
+n3-conflict-product,3,regression,02,regression,true,目标事件/组合不可达,0.38,该模型全部查询合计,scenarios/n3-conflict-product.pv,283,"query x: polstar; event(FullJoin(P1,x)).",results/final-v2/n3-conflict-product/output.log,否,results/final-v2/n3-conflict-product/graphs
+n3-conflict-signer,3,regression,01,regression,false,目标事件/组合可达,0.38,该模型全部查询合计,scenarios/n3-conflict-signer.pv,282,query event(PoliciesComplete(P1)).,results/final-v2/n3-conflict-signer/output.log,是,results/final-v2/n3-conflict-signer/graphs
+n3-conflict-signer,3,regression,02,regression,true,目标事件/组合不可达,0.38,该模型全部查询合计,scenarios/n3-conflict-signer.pv,283,"query x: polstar; event(FullJoin(P1,x)).",results/final-v2/n3-conflict-signer/output.log,否,results/final-v2/n3-conflict-signer/graphs
+n3-conflict-tcb,3,regression,01,regression,false,目标事件/组合可达,0.38,该模型全部查询合计,scenarios/n3-conflict-tcb.pv,282,query event(PoliciesComplete(P1)).,results/final-v2/n3-conflict-tcb/output.log,是,results/final-v2/n3-conflict-tcb/graphs
+n3-conflict-tcb,3,regression,02,regression,true,目标事件/组合不可达,0.38,该模型全部查询合计,scenarios/n3-conflict-tcb.pv,283,"query x: polstar; event(FullJoin(P1,x)).",results/final-v2/n3-conflict-tcb/output.log,否,results/final-v2/n3-conflict-tcb/graphs
+n3-duplicate-policy,3,regression,01,regression,false,目标事件/组合可达,1.73,该模型全部查询合计,scenarios/n3-duplicate-policy.pv,282,query event(QuotesComplete(P1)).,results/final-v2/n3-duplicate-policy/output.log,是,results/final-v2/n3-duplicate-policy/graphs
+n3-duplicate-policy,3,regression,02,regression,true,目标事件/组合不可达,1.73,该模型全部查询合计,scenarios/n3-duplicate-policy.pv,283,query event(PoliciesComplete(P1)).,results/final-v2/n3-duplicate-policy/output.log,否,results/final-v2/n3-duplicate-policy/graphs
+n3-missing-confirmation,3,regression,01,regression,false,目标事件/组合可达,2.47,该模型全部查询合计,scenarios/n3-missing-confirmation.pv,282,"query x: polstar; event(FullJoin(P1,x)).",results/final-v2/n3-missing-confirmation/output.log,是,results/final-v2/n3-missing-confirmation/graphs
+n3-missing-confirmation,3,regression,02,regression,true,目标事件/组合不可达,2.47,该模型全部查询合计,scenarios/n3-missing-confirmation.pv,283,"query x: polstar; event(Confirm(P1,x)).",results/final-v2/n3-missing-confirmation/output.log,否,results/final-v2/n3-missing-confirmation/graphs
+n3-missing-policy,3,regression,01,regression,false,目标事件/组合可达,1.74,该模型全部查询合计,scenarios/n3-missing-policy.pv,282,query event(QuotesComplete(P1)).,results/final-v2/n3-missing-policy/output.log,是,results/final-v2/n3-missing-policy/graphs
+n3-missing-policy,3,regression,02,regression,true,目标事件/组合不可达,1.74,该模型全部查询合计,scenarios/n3-missing-policy.pv,283,query event(PoliciesComplete(P1)).,results/final-v2/n3-missing-policy/output.log,否,results/final-v2/n3-missing-policy/graphs
+n3-missing-quote,3,regression,01,regression,false,目标事件/组合可达,0.9,该模型全部查询合计,scenarios/n3-missing-quote.pv,282,"query k: pkey, h: bitstring; event(EvidenceChecked(P1,P2,k,h)).",results/final-v2/n3-missing-quote/output.log,是,results/final-v2/n3-missing-quote/graphs
+n3-missing-quote,3,regression,02,regression,true,目标事件/组合不可达,0.9,该模型全部查询合计,scenarios/n3-missing-quote.pv,283,query event(QuotesComplete(P1)).,results/final-v2/n3-missing-quote/output.log,否,results/final-v2/n3-missing-quote/graphs
+n3-policy-hash-mismatch,3,regression,01,regression,false,目标事件/组合可达,0.77,该模型全部查询合计,scenarios/n3-policy-hash-mismatch.pv,282,query event(QuotesComplete(P1)).,results/final-v2/n3-policy-hash-mismatch/output.log,是,results/final-v2/n3-policy-hash-mismatch/graphs
+n3-policy-hash-mismatch,3,regression,02,regression,true,目标事件/组合不可达,0.77,该模型全部查询合计,scenarios/n3-policy-hash-mismatch.pv,283,query event(PoliciesComplete(P1)).,results/final-v2/n3-policy-hash-mismatch/output.log,否,results/final-v2/n3-policy-hash-mismatch/graphs
+n3-policy-hash-mismatch,3,regression,03,regression,false,目标事件/组合可达,0.77,该模型全部查询合计,scenarios/n3-policy-hash-mismatch.pv,284,"query r: policy; event(PolicyAuthenticated(P1,P3,r)).",results/final-v2/n3-policy-hash-mismatch/output.log,是,results/final-v2/n3-policy-hash-mismatch/graphs
+n3-reject-peer-tcb,3,regression,01,regression,false,目标事件/组合可达,0.27,该模型全部查询合计,scenarios/n3-reject-peer-tcb.pv,282,"query r: policy; event(PolicyDeclared(P3,r)).",results/final-v2/n3-reject-peer-tcb/output.log,是,results/final-v2/n3-reject-peer-tcb/graphs
+n3-reject-peer-tcb,3,regression,02,regression,true,目标事件/组合不可达,0.27,该模型全部查询合计,scenarios/n3-reject-peer-tcb.pv,283,query event(QuotesComplete(P3)).,results/final-v2/n3-reject-peer-tcb/output.log,否,results/final-v2/n3-reject-peer-tcb/graphs
+n2-Q1,2,primary-single,Q1,Agreement,true,证明成立,0.21,单查询整次运行,queries/n2-Q1.pv,280,"query a: party, b: party, x: polstar, y: polstar;
+  event(Confirm(a,x)) && event(Confirm(b,y)) && a <> b ==> x = y.",results/primary-single/n2-Q1/output.log,否,results/primary-single/n2-Q1/graphs
+n2-Q2,2,primary-single,Q2,Authenticity,true,证明成立,0.24,单查询整次运行,queries/n2-Q2.pv,282,"query a: party, b: party, r: policy;
+  event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)).",results/primary-single/n2-Q2/output.log,否,results/primary-single/n2-Q2/graphs
+n2-Q3,2,primary-single,Q3,Completeness,true,证明成立,0.23,单查询整次运行,queries/n2-Q3.pv,284,"query a: party, x: polstar;
+  event(Confirm(a,x)) ==> event(FullJoin(a,x)).",results/primary-single/n2-Q3/output.log,否,results/primary-single/n2-Q3/graphs
+n2-Q4,2,primary-single,Q4,Issuance,true,证明成立,0.32,单查询整次运行,queries/n2-Q4.pv,287,"query a: party, e: entity, kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(a,e,kr,ke,n,id,t,x,body)) ==> event(QuoteSatisfied(a,e,kr,ke,n,id,t,x)).",results/primary-single/n2-Q4/output.log,否,results/primary-single/n2-Q4/graphs
+n3-Q1,3,primary-single,Q1,Agreement,true,证明成立,1.55,单查询整次运行,queries/n3-Q1.pv,284,"query a: party, b: party, x: polstar, y: polstar;
+  event(Confirm(a,x)) && event(Confirm(b,y)) && a <> b ==> x = y.",results/primary-single/n3-Q1/output.log,否,results/primary-single/n3-Q1/graphs
+n3-Q2,3,primary-single,Q2,Authenticity,true,证明成立,1.64,单查询整次运行,queries/n3-Q2.pv,286,"query a: party, b: party, r: policy;
+  event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)).",results/primary-single/n3-Q2/output.log,否,results/primary-single/n3-Q2/graphs
+n3-Q3,3,primary-single,Q3,Completeness,true,证明成立,1.77,单查询整次运行,queries/n3-Q3.pv,288,"query a: party, x: polstar;
+  event(Confirm(a,x)) ==> event(FullJoin(a,x)).",results/primary-single/n3-Q3/output.log,否,results/primary-single/n3-Q3/graphs

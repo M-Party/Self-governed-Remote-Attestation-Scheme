@@ -1,0 +1,1 @@
+timeout 600 proverif -graph /out/n2-wrong-challenge/graphs scenarios/n2-wrong-challenge.pv

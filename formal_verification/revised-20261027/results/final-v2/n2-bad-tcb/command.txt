@@ -1,0 +1,1 @@
+timeout 600 proverif -graph /out/n2-bad-tcb/graphs scenarios/n2-bad-tcb.pv

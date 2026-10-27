@@ -1,0 +1,1 @@
+timeout 600 proverif -graph /out/n3-conflict-signer/graphs scenarios/n3-conflict-signer.pv

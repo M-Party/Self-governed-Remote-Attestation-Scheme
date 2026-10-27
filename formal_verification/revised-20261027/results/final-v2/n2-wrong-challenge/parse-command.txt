@@ -1,0 +1,1 @@
+proverif -parse-only scenarios/n2-wrong-challenge.pv

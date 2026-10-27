@@ -1,0 +1,484 @@
+Process 0 (that is, the initial process):
+{1}new akRPE: skey;
+{2}new akTEE: skey;
+{3}new akADV: skey;
+{4}out(net, (pk(akRPE),pk(akTEE),pk(akADV),akADV));
+(
+    {5}let akR: skey = akRPE in
+    {6}let pkAKR: pkey = pk(akRPE) in
+    {7}let pkAKE: pkey = pk(akTEE) in
+    {8}let rho1: policy = pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {9}new sk1: skey;
+    {10}let pk1: pkey = pk(sk1) in
+    {11}event PolicyDeclared(P1,rho1);
+    {12}let q1: bitstring = sign(rpeQuote(mRPE,Good,hbind(pk1,hpol(rho1))),akR) in
+    {13}out(net, (P1,q1,pk1,hpol(rho1)));
+    {14}in(net, (=P2,q2: bitstring,pk2: pkey,hb2: bitstring));
+    {15}let rpeQuote(=mRPE,ts2: tcbstatus,d2: bitstring) = checksign(q2,pkAKR) in
+    {16}if (d2 = hbind(pk2,hb2)) then
+    {17}let tcbok2: bool = matchtcb(rpeTcb2(rho1),ts2) in
+    {18}if (tcbok2 = true) then
+    {19}if (pk2 ≠ pk1) then
+    {20}event EvidenceChecked(P1,P2,pk2,hb2);
+    {21}in(net, (=P3,q3: bitstring,pk3: pkey,hb3: bitstring));
+    {22}let rpeQuote(=mRPE,ts3: tcbstatus,d3: bitstring) = checksign(q3,pkAKR) in
+    {23}if (d3 = hbind(pk3,hb3)) then
+    {24}let tcbok3: bool = matchtcb(rpeTcb3(rho1),ts3) in
+    {25}if (tcbok3 = true) then
+    {26}if ((pk3 ≠ pk1) && (pk3 ≠ pk2)) then
+    {27}event EvidenceChecked(P1,P3,pk3,hb3);
+    {28}event QuotesComplete(P1);
+    {29}event PolicySent(P1,pk2,rho1);
+    {30}out(net, (P1,P2,sign(policyMsg(pk2,rho1),sk1)));
+    {31}event PolicySent(P1,pk3,rho1);
+    {32}out(net, (P1,P3,sign(policyMsg(pk3,rho1),sk1)));
+    {33}in(net, (=P2,=P1,msg2: bitstring));
+    {34}let policyMsg(=pk1,rho2: policy) = checksign(msg2,pk2) in
+    {35}event PolicyAuthenticated(P1,P2,rho2);
+    {36}if (hpol(rho2) = hb2) then
+    {37}if (policySelf(rho2) = P2) then
+    {38}event PolicyAccepted(P1,P2,rho2);
+    {39}event PolicyAcceptedKeys(P1,P2,pk1,pk2,rho2);
+    {40}in(net, (=P3,=P1,msg3: bitstring));
+    {41}let policyMsg(=pk1,rho3: policy) = checksign(msg3,pk3) in
+    {42}event PolicyAuthenticated(P1,P3,rho3);
+    {43}if (hpol(rho3) = hb3) then
+    {44}if (policySelf(rho3) = P3) then
+    {45}event PolicyAccepted(P1,P3,rho3);
+    {46}event PolicyAcceptedKeys(P1,P3,pk1,pk3,rho3);
+    {47}event PoliciesComplete(P1);
+    {48}let joined12: polstar = joinstar(constraints(rho1),constraints(rho2)) in
+    {49}let pistar: polstar = joinstar(joined12,constraints(rho3)) in
+    {50}event FullJoin(P1,pistar);
+    {51}event ConfirmationSent(P1,P2,hstar(pistar));
+    {52}out(net, (P1,P2,sign(confirmMsg(pk2,hstar(pistar)),sk1)));
+    {53}event ConfirmationSent(P1,P3,hstar(pistar));
+    {54}out(net, (P1,P3,sign(confirmMsg(pk3,hstar(pistar)),sk1)));
+    {55}in(net, (=P2,=P1,confirmation2: bitstring));
+    {56}let confirmMsg(=pk1,hs2: bitstring) = checksign(confirmation2,pk2) in
+    {57}event ConfirmationAuthenticated(P1,P2,hs2);
+    {58}if (hs2 = hstar(pistar)) then
+    {59}event ConfirmationAccepted(P1,P2,hs2);
+    {60}in(net, (=P3,=P1,confirmation3: bitstring));
+    {61}let confirmMsg(=pk1,hs3: bitstring) = checksign(confirmation3,pk3) in
+    {62}event ConfirmationAuthenticated(P1,P3,hs3);
+    {63}if (hs3 = hstar(pistar)) then
+    {64}event ConfirmationAccepted(P1,P3,hs3);
+    {65}event Confirm(P1,pistar)
+) | (
+    {66}let akR_1: skey = akRPE in
+    {67}let pkAKR_1: pkey = pk(akRPE) in
+    {68}let pkAKE_1: pkey = pk(akTEE) in
+    {69}let rho2_1: policy = pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {70}new sk2: skey;
+    {71}let pk2_1: pkey = pk(sk2) in
+    {72}event PolicyDeclared(P2,rho2_1);
+    {73}let q2_1: bitstring = sign(rpeQuote(mRPE,Good,hbind(pk2_1,hpol(rho2_1))),akR_1) in
+    {74}out(net, (P2,q2_1,pk2_1,hpol(rho2_1)));
+    {75}in(net, (=P1,q1_1: bitstring,pk1_1: pkey,hb1: bitstring));
+    {76}let rpeQuote(=mRPE,ts1: tcbstatus,d1: bitstring) = checksign(q1_1,pkAKR_1) in
+    {77}if (d1 = hbind(pk1_1,hb1)) then
+    {78}let tcbok1: bool = matchtcb(rpeTcb1(rho2_1),ts1) in
+    {79}if (tcbok1 = true) then
+    {80}if (pk1_1 ≠ pk2_1) then
+    {81}event EvidenceChecked(P2,P1,pk1_1,hb1);
+    {82}in(net, (=P3,q3_1: bitstring,pk3_1: pkey,hb3_1: bitstring));
+    {83}let rpeQuote(=mRPE,ts3_1: tcbstatus,d3_1: bitstring) = checksign(q3_1,pkAKR_1) in
+    {84}if (d3_1 = hbind(pk3_1,hb3_1)) then
+    {85}let tcbok3_1: bool = matchtcb(rpeTcb3(rho2_1),ts3_1) in
+    {86}if (tcbok3_1 = true) then
+    {87}if ((pk3_1 ≠ pk2_1) && (pk3_1 ≠ pk1_1)) then
+    {88}event EvidenceChecked(P2,P3,pk3_1,hb3_1);
+    {89}event QuotesComplete(P2);
+    {90}event PolicySent(P2,pk1_1,rho2_1);
+    {91}out(net, (P2,P1,sign(policyMsg(pk1_1,rho2_1),sk2)));
+    {92}event PolicySent(P2,pk3_1,rho2_1);
+    {93}out(net, (P2,P3,sign(policyMsg(pk3_1,rho2_1),sk2)));
+    {94}in(net, (=P1,=P2,msg1: bitstring));
+    {95}let policyMsg(=pk2_1,rho1_1: policy) = checksign(msg1,pk1_1) in
+    {96}event PolicyAuthenticated(P2,P1,rho1_1);
+    {97}if (hpol(rho1_1) = hb1) then
+    {98}if (policySelf(rho1_1) = P1) then
+    {99}event PolicyAccepted(P2,P1,rho1_1);
+    {100}event PolicyAcceptedKeys(P2,P1,pk2_1,pk1_1,rho1_1);
+    {101}in(net, (=P3,=P2,msg3_1: bitstring));
+    {102}let policyMsg(=pk2_1,rho3_1: policy) = checksign(msg3_1,pk3_1) in
+    {103}event PolicyAuthenticated(P2,P3,rho3_1);
+    {104}if (hpol(rho3_1) = hb3_1) then
+    {105}if (policySelf(rho3_1) = P3) then
+    {106}event PolicyAccepted(P2,P3,rho3_1);
+    {107}event PolicyAcceptedKeys(P2,P3,pk2_1,pk3_1,rho3_1);
+    {108}event PoliciesComplete(P2);
+    {109}let joined12_1: polstar = joinstar(constraints(rho1_1),constraints(rho2_1)) in
+    {110}let pistar_1: polstar = joinstar(joined12_1,constraints(rho3_1)) in
+    {111}event FullJoin(P2,pistar_1);
+    {112}event ConfirmationSent(P2,P1,hstar(pistar_1));
+    {113}out(net, (P2,P1,sign(confirmMsg(pk1_1,hstar(pistar_1)),sk2)));
+    {114}event ConfirmationSent(P2,P3,hstar(pistar_1));
+    {115}out(net, (P2,P3,sign(confirmMsg(pk3_1,hstar(pistar_1)),sk2)));
+    {116}in(net, (=P1,=P2,confirmation1: bitstring));
+    {117}let confirmMsg(=pk2_1,hs1: bitstring) = checksign(confirmation1,pk1_1) in
+    {118}event ConfirmationAuthenticated(P2,P1,hs1);
+    {119}if (hs1 = hstar(pistar_1)) then
+    {120}event ConfirmationAccepted(P2,P1,hs1);
+    {121}in(net, (=P3,=P2,confirmation3_1: bitstring));
+    {122}let confirmMsg(=pk2_1,hs3_1: bitstring) = checksign(confirmation3_1,pk3_1) in
+    {123}event ConfirmationAuthenticated(P2,P3,hs3_1);
+    {124}if (hs3_1 = hstar(pistar_1)) then
+    {125}event ConfirmationAccepted(P2,P3,hs3_1);
+    {126}event Confirm(P2,pistar_1)
+) | (
+    {127}let akR_2: skey = akRPE in
+    {128}let pkAKR_2: pkey = pk(akRPE) in
+    {129}let pkAKE_2: pkey = pk(akTEE) in
+    {130}in(net, selectedProfile: profile);
+    {131}let rho3_2: policy = choosePolicy(selectedProfile) in
+    {132}new sk3: skey;
+    {133}let pk3_2: pkey = pk(sk3) in
+    {134}event PolicyDeclared(P3,rho3_2);
+    {135}let q3_2: bitstring = sign(rpeQuote(mRPE,Good,hbind(pk3_2,hpol(rho3_2))),akR_2) in
+    {136}out(net, (P3,q3_2,pk3_2,hpol(rho3_2)));
+    {137}in(net, (=P1,q1_2: bitstring,pk1_2: pkey,hb1_1: bitstring));
+    {138}let rpeQuote(=mRPE,ts1_1: tcbstatus,d1_1: bitstring) = checksign(q1_2,pkAKR_2) in
+    {139}if (d1_1 = hbind(pk1_2,hb1_1)) then
+    {140}let tcbok1_1: bool = matchtcb(rpeTcb1(rho3_2),ts1_1) in
+    {141}if (tcbok1_1 = true) then
+    {142}if (pk1_2 ≠ pk3_2) then
+    {143}event EvidenceChecked(P3,P1,pk1_2,hb1_1);
+    {144}in(net, (=P2,q2_2: bitstring,pk2_2: pkey,hb2_1: bitstring));
+    {145}let rpeQuote(=mRPE,ts2_1: tcbstatus,d2_1: bitstring) = checksign(q2_2,pkAKR_2) in
+    {146}if (d2_1 = hbind(pk2_2,hb2_1)) then
+    {147}let tcbok2_1: bool = matchtcb(rpeTcb2(rho3_2),ts2_1) in
+    {148}if (tcbok2_1 = true) then
+    {149}if ((pk2_2 ≠ pk3_2) && (pk2_2 ≠ pk1_2)) then
+    {150}event EvidenceChecked(P3,P2,pk2_2,hb2_1);
+    {151}event QuotesComplete(P3);
+    {152}event PolicySent(P3,pk1_2,rho3_2);
+    {153}out(net, (P3,P1,sign(policyMsg(pk1_2,rho3_2),sk3)));
+    {154}event PolicySent(P3,pk2_2,rho3_2);
+    {155}out(net, (P3,P2,sign(policyMsg(pk2_2,rho3_2),sk3)));
+    {156}in(net, (=P1,=P3,msg1_1: bitstring));
+    {157}let policyMsg(=pk3_2,rho1_2: policy) = checksign(msg1_1,pk1_2) in
+    {158}event PolicyAuthenticated(P3,P1,rho1_2);
+    {159}if (hpol(rho1_2) = hb1_1) then
+    {160}if (policySelf(rho1_2) = P1) then
+    {161}event PolicyAccepted(P3,P1,rho1_2);
+    {162}event PolicyAcceptedKeys(P3,P1,pk3_2,pk1_2,rho1_2);
+    {163}in(net, (=P2,=P3,msg2_1: bitstring));
+    {164}let policyMsg(=pk3_2,rho2_2: policy) = checksign(msg2_1,pk2_2) in
+    {165}event PolicyAuthenticated(P3,P2,rho2_2);
+    {166}if (hpol(rho2_2) = hb2_1) then
+    {167}if (policySelf(rho2_2) = P2) then
+    {168}event PolicyAccepted(P3,P2,rho2_2);
+    {169}event PolicyAcceptedKeys(P3,P2,pk3_2,pk2_2,rho2_2);
+    {170}event PoliciesComplete(P3);
+    {171}let joined12_2: polstar = joinstar(constraints(rho1_2),constraints(rho2_2)) in
+    {172}let pistar_2: polstar = joinstar(joined12_2,constraints(rho3_2)) in
+    {173}event FullJoin(P3,pistar_2);
+    {174}event ConfirmationSent(P3,P1,hstar(pistar_2));
+    {175}out(net, (P3,P1,sign(confirmMsg(pk1_2,hstar(pistar_2)),sk3)));
+    {176}event ConfirmationSent(P3,P2,hstar(pistar_2));
+    {177}out(net, (P3,P2,sign(confirmMsg(pk2_2,hstar(pistar_2)),sk3)));
+    {178}in(net, (=P1,=P3,confirmation1_1: bitstring));
+    {179}let confirmMsg(=pk3_2,hs1_1: bitstring) = checksign(confirmation1_1,pk1_2) in
+    {180}event ConfirmationAuthenticated(P3,P1,hs1_1);
+    {181}if (hs1_1 = hstar(pistar_2)) then
+    {182}event ConfirmationAccepted(P3,P1,hs1_1);
+    {183}in(net, (=P2,=P3,confirmation2_1: bitstring));
+    {184}let confirmMsg(=pk3_2,hs2_1: bitstring) = checksign(confirmation2_1,pk2_2) in
+    {185}event ConfirmationAuthenticated(P3,P2,hs2_1);
+    {186}if (hs2_1 = hstar(pistar_2)) then
+    {187}event ConfirmationAccepted(P3,P2,hs2_1);
+    {188}event Confirm(P3,pistar_2)
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new akRPE: skey;
+{2}new akTEE: skey;
+{3}new akADV: skey;
+{4}out(net, (pk(akRPE),pk(akTEE),pk(akADV),akADV));
+(
+    {9}new sk1: skey;
+    {8}let rho1: policy = pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {11}event PolicyDeclared(P1,rho1);
+    {10}let pk1: pkey = pk(sk1) in
+    {5}let akR: skey = akRPE in
+    {12}let q1: bitstring = sign(rpeQuote(mRPE,Good,hbind(pk1,hpol(rho1))),akR) in
+    {13}out(net, (P1,q1,pk1,hpol(rho1)));
+    {14}in(net, (=P2,q2: bitstring,pk2: pkey,hb2: bitstring));
+    {6}let pkAKR: pkey = pk(akRPE) in
+    {15}let rpeQuote(=mRPE,ts2: tcbstatus,d2: bitstring) = checksign(q2,pkAKR) in
+    {16}if (d2 = hbind(pk2,hb2)) then
+    {17}let tcbok2: bool = matchtcb(rpeTcb2(rho1),ts2) in
+    {18}if (tcbok2 = true) then
+    {19}if (pk2 ≠ pk1) then
+    {20}event EvidenceChecked(P1,P2,pk2,hb2);
+    {21}in(net, (=P3,q3: bitstring,pk3: pkey,hb3: bitstring));
+    {22}let rpeQuote(=mRPE,ts3: tcbstatus,d3: bitstring) = checksign(q3,pkAKR) in
+    {23}if (d3 = hbind(pk3,hb3)) then
+    {24}let tcbok3: bool = matchtcb(rpeTcb3(rho1),ts3) in
+    {25}if (tcbok3 = true) then
+    {26}if ((pk3 ≠ pk1) && (pk3 ≠ pk2)) then
+    {27}event EvidenceChecked(P1,P3,pk3,hb3);
+    {28}event QuotesComplete(P1);
+    {29}event PolicySent(P1,pk2,rho1);
+    {30}out(net, (P1,P2,sign(policyMsg(pk2,rho1),sk1)));
+    {31}event PolicySent(P1,pk3,rho1);
+    {32}out(net, (P1,P3,sign(policyMsg(pk3,rho1),sk1)));
+    {33}in(net, (=P2,=P1,msg2: bitstring));
+    {34}let policyMsg(=pk1,rho2: policy) = checksign(msg2,pk2) in
+    {35}event PolicyAuthenticated(P1,P2,rho2);
+    {36}if (hpol(rho2) = hb2) then
+    {37}if (policySelf(rho2) = P2) then
+    {38}event PolicyAccepted(P1,P2,rho2);
+    {39}event PolicyAcceptedKeys(P1,P2,pk1,pk2,rho2);
+    {40}in(net, (=P3,=P1,msg3: bitstring));
+    {41}let policyMsg(=pk1,rho3: policy) = checksign(msg3,pk3) in
+    {42}event PolicyAuthenticated(P1,P3,rho3);
+    {43}if (hpol(rho3) = hb3) then
+    {44}if (policySelf(rho3) = P3) then
+    {45}event PolicyAccepted(P1,P3,rho3);
+    {46}event PolicyAcceptedKeys(P1,P3,pk1,pk3,rho3);
+    {47}event PoliciesComplete(P1);
+    {48}let joined12: polstar = joinstar(constraints(rho1),constraints(rho2)) in
+    {49}let pistar: polstar = joinstar(joined12,constraints(rho3)) in
+    {50}event FullJoin(P1,pistar);
+    {51}event ConfirmationSent(P1,P2,hstar(pistar));
+    {52}out(net, (P1,P2,sign(confirmMsg(pk2,hstar(pistar)),sk1)));
+    {53}event ConfirmationSent(P1,P3,hstar(pistar));
+    {54}out(net, (P1,P3,sign(confirmMsg(pk3,hstar(pistar)),sk1)));
+    {55}in(net, (=P2,=P1,confirmation2: bitstring));
+    {56}let confirmMsg(=pk1,hs2: bitstring) = checksign(confirmation2,pk2) in
+    {57}event ConfirmationAuthenticated(P1,P2,hs2);
+    {58}if (hs2 = hstar(pistar)) then
+    {59}event ConfirmationAccepted(P1,P2,hs2);
+    {60}in(net, (=P3,=P1,confirmation3: bitstring));
+    {61}let confirmMsg(=pk1,hs3: bitstring) = checksign(confirmation3,pk3) in
+    {62}event ConfirmationAuthenticated(P1,P3,hs3);
+    {63}if (hs3 = hstar(pistar)) then
+    {64}event ConfirmationAccepted(P1,P3,hs3);
+    {65}event Confirm(P1,pistar)
+) | (
+    {70}new sk2: skey;
+    {69}let rho2_1: policy = pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {72}event PolicyDeclared(P2,rho2_1);
+    {71}let pk2_1: pkey = pk(sk2) in
+    {66}let akR_1: skey = akRPE in
+    {73}let q2_1: bitstring = sign(rpeQuote(mRPE,Good,hbind(pk2_1,hpol(rho2_1))),akR_1) in
+    {74}out(net, (P2,q2_1,pk2_1,hpol(rho2_1)));
+    {75}in(net, (=P1,q1_1: bitstring,pk1_1: pkey,hb1: bitstring));
+    {67}let pkAKR_1: pkey = pk(akRPE) in
+    {76}let rpeQuote(=mRPE,ts1: tcbstatus,d1: bitstring) = checksign(q1_1,pkAKR_1) in
+    {77}if (d1 = hbind(pk1_1,hb1)) then
+    {78}let tcbok1: bool = matchtcb(rpeTcb1(rho2_1),ts1) in
+    {79}if (tcbok1 = true) then
+    {80}if (pk1_1 ≠ pk2_1) then
+    {81}event EvidenceChecked(P2,P1,pk1_1,hb1);
+    {82}in(net, (=P3,q3_1: bitstring,pk3_1: pkey,hb3_1: bitstring));
+    {83}let rpeQuote(=mRPE,ts3_1: tcbstatus,d3_1: bitstring) = checksign(q3_1,pkAKR_1) in
+    {84}if (d3_1 = hbind(pk3_1,hb3_1)) then
+    {85}let tcbok3_1: bool = matchtcb(rpeTcb3(rho2_1),ts3_1) in
+    {86}if (tcbok3_1 = true) then
+    {87}if ((pk3_1 ≠ pk2_1) && (pk3_1 ≠ pk1_1)) then
+    {88}event EvidenceChecked(P2,P3,pk3_1,hb3_1);
+    {89}event QuotesComplete(P2);
+    {90}event PolicySent(P2,pk1_1,rho2_1);
+    {91}out(net, (P2,P1,sign(policyMsg(pk1_1,rho2_1),sk2)));
+    {92}event PolicySent(P2,pk3_1,rho2_1);
+    {93}out(net, (P2,P3,sign(policyMsg(pk3_1,rho2_1),sk2)));
+    {94}in(net, (=P1,=P2,msg1: bitstring));
+    {95}let policyMsg(=pk2_1,rho1_1: policy) = checksign(msg1,pk1_1) in
+    {96}event PolicyAuthenticated(P2,P1,rho1_1);
+    {97}if (hpol(rho1_1) = hb1) then
+    {98}if (policySelf(rho1_1) = P1) then
+    {99}event PolicyAccepted(P2,P1,rho1_1);
+    {100}event PolicyAcceptedKeys(P2,P1,pk2_1,pk1_1,rho1_1);
+    {101}in(net, (=P3,=P2,msg3_1: bitstring));
+    {102}let policyMsg(=pk2_1,rho3_1: policy) = checksign(msg3_1,pk3_1) in
+    {103}event PolicyAuthenticated(P2,P3,rho3_1);
+    {104}if (hpol(rho3_1) = hb3_1) then
+    {105}if (policySelf(rho3_1) = P3) then
+    {106}event PolicyAccepted(P2,P3,rho3_1);
+    {107}event PolicyAcceptedKeys(P2,P3,pk2_1,pk3_1,rho3_1);
+    {108}event PoliciesComplete(P2);
+    {109}let joined12_1: polstar = joinstar(constraints(rho1_1),constraints(rho2_1)) in
+    {110}let pistar_1: polstar = joinstar(joined12_1,constraints(rho3_1)) in
+    {111}event FullJoin(P2,pistar_1);
+    {112}event ConfirmationSent(P2,P1,hstar(pistar_1));
+    {113}out(net, (P2,P1,sign(confirmMsg(pk1_1,hstar(pistar_1)),sk2)));
+    {114}event ConfirmationSent(P2,P3,hstar(pistar_1));
+    {115}out(net, (P2,P3,sign(confirmMsg(pk3_1,hstar(pistar_1)),sk2)));
+    {116}in(net, (=P1,=P2,confirmation1: bitstring));
+    {117}let confirmMsg(=pk2_1,hs1: bitstring) = checksign(confirmation1,pk1_1) in
+    {118}event ConfirmationAuthenticated(P2,P1,hs1);
+    {119}if (hs1 = hstar(pistar_1)) then
+    {120}event ConfirmationAccepted(P2,P1,hs1);
+    {121}in(net, (=P3,=P2,confirmation3_1: bitstring));
+    {122}let confirmMsg(=pk2_1,hs3_1: bitstring) = checksign(confirmation3_1,pk3_1) in
+    {123}event ConfirmationAuthenticated(P2,P3,hs3_1);
+    {124}if (hs3_1 = hstar(pistar_1)) then
+    {125}event ConfirmationAccepted(P2,P3,hs3_1);
+    {126}event Confirm(P2,pistar_1)
+) | (
+    {130}in(net, selectedProfile: profile);
+    {131}let rho3_2: policy = choosePolicy(selectedProfile) in
+    {132}new sk3: skey;
+    {134}event PolicyDeclared(P3,rho3_2);
+    {133}let pk3_2: pkey = pk(sk3) in
+    {127}let akR_2: skey = akRPE in
+    {135}let q3_2: bitstring = sign(rpeQuote(mRPE,Good,hbind(pk3_2,hpol(rho3_2))),akR_2) in
+    {136}out(net, (P3,q3_2,pk3_2,hpol(rho3_2)));
+    {137}in(net, (=P1,q1_2: bitstring,pk1_2: pkey,hb1_1: bitstring));
+    {128}let pkAKR_2: pkey = pk(akRPE) in
+    {138}let rpeQuote(=mRPE,ts1_1: tcbstatus,d1_1: bitstring) = checksign(q1_2,pkAKR_2) in
+    {139}if (d1_1 = hbind(pk1_2,hb1_1)) then
+    {140}let tcbok1_1: bool = matchtcb(rpeTcb1(rho3_2),ts1_1) in
+    {141}if (tcbok1_1 = true) then
+    {142}if (pk1_2 ≠ pk3_2) then
+    {143}event EvidenceChecked(P3,P1,pk1_2,hb1_1);
+    {144}in(net, (=P2,q2_2: bitstring,pk2_2: pkey,hb2_1: bitstring));
+    {145}let rpeQuote(=mRPE,ts2_1: tcbstatus,d2_1: bitstring) = checksign(q2_2,pkAKR_2) in
+    {146}if (d2_1 = hbind(pk2_2,hb2_1)) then
+    {147}let tcbok2_1: bool = matchtcb(rpeTcb2(rho3_2),ts2_1) in
+    {148}if (tcbok2_1 = true) then
+    {149}if ((pk2_2 ≠ pk3_2) && (pk2_2 ≠ pk1_2)) then
+    {150}event EvidenceChecked(P3,P2,pk2_2,hb2_1);
+    {151}event QuotesComplete(P3);
+    {152}event PolicySent(P3,pk1_2,rho3_2);
+    {153}out(net, (P3,P1,sign(policyMsg(pk1_2,rho3_2),sk3)));
+    {154}event PolicySent(P3,pk2_2,rho3_2);
+    {155}out(net, (P3,P2,sign(policyMsg(pk2_2,rho3_2),sk3)));
+    {156}in(net, (=P1,=P3,msg1_1: bitstring));
+    {157}let policyMsg(=pk3_2,rho1_2: policy) = checksign(msg1_1,pk1_2) in
+    {158}event PolicyAuthenticated(P3,P1,rho1_2);
+    {159}if (hpol(rho1_2) = hb1_1) then
+    {160}if (policySelf(rho1_2) = P1) then
+    {161}event PolicyAccepted(P3,P1,rho1_2);
+    {162}event PolicyAcceptedKeys(P3,P1,pk3_2,pk1_2,rho1_2);
+    {163}in(net, (=P2,=P3,msg2_1: bitstring));
+    {164}let policyMsg(=pk3_2,rho2_2: policy) = checksign(msg2_1,pk2_2) in
+    {165}event PolicyAuthenticated(P3,P2,rho2_2);
+    {166}if (hpol(rho2_2) = hb2_1) then
+    {167}if (policySelf(rho2_2) = P2) then
+    {168}event PolicyAccepted(P3,P2,rho2_2);
+    {169}event PolicyAcceptedKeys(P3,P2,pk3_2,pk2_2,rho2_2);
+    {170}event PoliciesComplete(P3);
+    {171}let joined12_2: polstar = joinstar(constraints(rho1_2),constraints(rho2_2)) in
+    {172}let pistar_2: polstar = joinstar(joined12_2,constraints(rho3_2)) in
+    {173}event FullJoin(P3,pistar_2);
+    {174}event ConfirmationSent(P3,P1,hstar(pistar_2));
+    {175}out(net, (P3,P1,sign(confirmMsg(pk1_2,hstar(pistar_2)),sk3)));
+    {176}event ConfirmationSent(P3,P2,hstar(pistar_2));
+    {177}out(net, (P3,P2,sign(confirmMsg(pk2_2,hstar(pistar_2)),sk3)));
+    {178}in(net, (=P1,=P3,confirmation1_1: bitstring));
+    {179}let confirmMsg(=pk3_2,hs1_1: bitstring) = checksign(confirmation1_1,pk1_2) in
+    {180}event ConfirmationAuthenticated(P3,P1,hs1_1);
+    {181}if (hs1_1 = hstar(pistar_2)) then
+    {182}event ConfirmationAccepted(P3,P1,hs1_1);
+    {183}in(net, (=P2,=P3,confirmation2_1: bitstring));
+    {184}let confirmMsg(=pk3_2,hs2_1: bitstring) = checksign(confirmation2_1,pk2_2) in
+    {185}event ConfirmationAuthenticated(P3,P2,hs2_1);
+    {186}if (hs2_1 = hstar(pistar_2)) then
+    {187}event ConfirmationAccepted(P3,P2,hs2_1);
+    {188}event Confirm(P3,pistar_2)
+)
+
+-- Query event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 197 rules (82 with conclusion selected). Queue: 277 rules.
+400 rules inserted. Base: 386 rules (102 with conclusion selected). Queue: 445 rules.
+600 rules inserted. Base: 580 rules (102 with conclusion selected). Queue: 507 rules.
+800 rules inserted. Base: 766 rules (102 with conclusion selected). Queue: 507 rules.
+1000 rules inserted. Base: 874 rules (102 with conclusion selected). Queue: 533 rules.
+1200 rules inserted. Base: 999 rules (102 with conclusion selected). Queue: 553 rules.
+1400 rules inserted. Base: 1080 rules (102 with conclusion selected). Queue: 544 rules.
+1600 rules inserted. Base: 1187 rules (102 with conclusion selected). Queue: 544 rules.
+1800 rules inserted. Base: 1314 rules (102 with conclusion selected). Queue: 544 rules.
+2000 rules inserted. Base: 1325 rules (146 with conclusion selected). Queue: 1120 rules.
+2200 rules inserted. Base: 1358 rules (162 with conclusion selected). Queue: 1184 rules.
+2400 rules inserted. Base: 1408 rules (166 with conclusion selected). Queue: 1168 rules.
+2600 rules inserted. Base: 1573 rules (166 with conclusion selected). Queue: 1069 rules.
+2800 rules inserted. Base: 1733 rules (166 with conclusion selected). Queue: 957 rules.
+3000 rules inserted. Base: 1784 rules (166 with conclusion selected). Queue: 908 rules.
+3200 rules inserted. Base: 1831 rules (166 with conclusion selected). Queue: 836 rules.
+3400 rules inserted. Base: 1865 rules (166 with conclusion selected). Queue: 815 rules.
+3600 rules inserted. Base: 1874 rules (166 with conclusion selected). Queue: 771 rules.
+3800 rules inserted. Base: 1893 rules (166 with conclusion selected). Queue: 686 rules.
+4000 rules inserted. Base: 1886 rules (166 with conclusion selected). Queue: 549 rules.
+4200 rules inserted. Base: 1862 rules (166 with conclusion selected). Queue: 424 rules.
+4400 rules inserted. Base: 1879 rules (172 with conclusion selected). Queue: 339 rules.
+4600 rules inserted. Base: 1900 rules (212 with conclusion selected). Queue: 259 rules.
+4800 rules inserted. Base: 1829 rules (243 with conclusion selected). Queue: 91 rules.
+Starting query event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],Compatible)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(s3),Any,V0,Both,Assign(P3))))) && b-event(@p_act(@occ130[],Weak)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],StrongerSVN)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mBad),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictMeasurement)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(sBad),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictSigner)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodB),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictProduct)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyOutdated,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictTCB)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P3)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictAttester)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyOutdated,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],RejectPeerTCB)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],NoAssignments)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],PermissiveRpeTCB)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(s3),Any,V0,Both,Assign(P3))))) && b-event(@p_act(@occ130[],Weak)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P3,pol(P3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(s3),Any,V0,Both,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],PermissiveRpeTCB)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P3,pol(P3,Members3,Both,Both,Both,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],NoAssignments)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P3)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictAttester)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P3)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodB),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictProduct)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodB),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(sBad),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictSigner)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(sBad),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mBad),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictMeasurement)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mBad),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],Compatible)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyOutdated,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictTCB)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyOutdated,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],StrongerSVN)) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P1,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],Compatible)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(s3),Any,V0,Both,Assign(P3))))) && b-event(@p_act(@occ130[],Weak)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],StrongerSVN)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mBad),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictMeasurement)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(sBad),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictSigner)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodB),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictProduct)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyOutdated,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictTCB)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P3)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictAttester)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyOutdated,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],RejectPeerTCB)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],NoAssignments)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],PermissiveRpeTCB)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(s3),Any,V0,Both,Assign(P3))))) && b-event(@p_act(@occ130[],Weak)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P3,pol(P3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(s3),Any,V0,Both,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],PermissiveRpeTCB)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P3,pol(P3,Members3,Both,Both,Both,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],NoAssignments)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P3)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictAttester)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P3)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodB),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictProduct)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodB),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(sBad),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictSigner)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(sBad),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mBad),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictMeasurement)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mBad),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],Compatible)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyOutdated,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictTCB)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyOutdated,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],StrongerSVN)) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) -> event(PolicyAccepted(P2,P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],Compatible)) -> event(PolicyAccepted(P3,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(s3),Any,V0,Both,Assign(P3))))) && b-event(@p_act(@occ130[],Weak)) -> event(PolicyAccepted(P3,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],StrongerSVN)) -> event(PolicyAccepted(P3,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mBad),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictMeasurement)) -> event(PolicyAccepted(P3,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(sBad),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictSigner)) -> event(PolicyAccepted(P3,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodB),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictProduct)) -> event(PolicyAccepted(P3,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyOutdated,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictTCB)) -> event(PolicyAccepted(P3,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P3)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictAttester)) -> event(PolicyAccepted(P3,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],NoAssignments)) -> event(PolicyAccepted(P3,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],PermissiveRpeTCB)) -> event(PolicyAccepted(P3,P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],Compatible)) -> event(PolicyAccepted(P3,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(s3),Any,V0,Both,Assign(P3))))) && b-event(@p_act(@occ130[],Weak)) -> event(PolicyAccepted(P3,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],StrongerSVN)) -> event(PolicyAccepted(P3,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mBad),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictMeasurement)) -> event(PolicyAccepted(P3,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(sBad),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictSigner)) -> event(PolicyAccepted(P3,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodB),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictProduct)) -> event(PolicyAccepted(P3,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyOutdated,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictTCB)) -> event(PolicyAccepted(P3,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P3)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],ConflictAttester)) -> event(PolicyAccepted(P3,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],NoAssignments)) -> event(PolicyAccepted(P3,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(PolicyDeclared(P3,pol(P3,Members3,Both,Both,Both,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ130[],PermissiveRpeTCB)) -> event(PolicyAccepted(P3,P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))
+RESULT event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)) is true.
+
+--------------------------------------------------------------
+

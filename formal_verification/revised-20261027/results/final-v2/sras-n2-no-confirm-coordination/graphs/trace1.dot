@@ -1,0 +1,362 @@
+digraph {
+graph [ordering = out]
+edge [arrowhead = none, penwidth = 1.6, fontsize = 30]
+node [shape = point, width = 0, height = 0, fontsize = 30]
+Trace [label = <A trace has been found.<br/>
+>, shape = plaintext]
+P0__0 [label = "Honest Process", shape = plaintext]
+P__0 [label = "Attacker", shape = plaintext]
+Trace -> P0__0 [label = "", style = invisible, weight = 100]{rank = same; P0__0 P__0}
+P0__0 -> P0__1 [label = <>, weight = 100]
+P0__1 -> P0__2 [label = <>, weight = 100]
+P0__2 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD><FONT COLOR="darkgreen">{1}</FONT><FONT COLOR="blue">new </FONT>akRPE_1</TD></TR><TR><TD><FONT COLOR="darkgreen">{2}</FONT><FONT COLOR="blue">new </FONT>akTEE_1</TD></TR><TR><TD><FONT COLOR="darkgreen">{3}</FONT><FONT COLOR="blue">new </FONT>akADV_1</TD></TR></TABLE>>]
+P0__2 -> P0__3 [label = <>, weight = 100]
+P0__3 -> P0__4 [label = <>, weight = 100]
+P__0 -> P__1 [label = <>, weight = 100]
+{rank = same; P__1 P0__4}
+P0__4 -> P0__5 [label = <>, weight = 100]
+P__1 -> P__2 [label = <>, weight = 100]
+{rank = same; P__2 P0__5}
+P0__5 -> P__2 [label = <(~M,~M_1,~M_2,~M_3) = (pk(akRPE_1),pk(akTEE_1),<br/>
+pk(akADV_1),akADV_1)>, arrowhead = normal]
+P0__5 -> P0__6 [label = <>, weight = 100]
+P__2 -> P__3 [label = <>, weight = 100]
+{rank = same; P__3 P0__6}
+/*RPar */
+P0__6 -> P0_2__6 [label = <>]
+P0__6 -> P0_1__6 [label = <>]
+P0__6 -> P0_0__6 [label = <>]
+P0__6 [label = "", fixedsize = false, width = 0, height = 0, shape = none]
+{rank = same; P0_0__6 P0_1__6 P0_2__6}
+P0_0__6 [label = "!", shape = ellipse]
+P0_0_0__6 [label = "", fixedsize = false, width = 0, height = 0, shape = none]
+P0_0__6 -> P0_0_0__6 [label = <>, weight = 100]
+P0_0_0__6 -> P0_0_0__7 [label = <>, weight = 100]
+P0_0_0__7 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD>Beginning of process <FONT COLOR="darkgreen">instance</FONT></TD></TR></TABLE>>]
+P0_0_0__7 -> P0_0_0__8 [label = <>, weight = 100]
+P0_1__6 -> P0_1__7 [label = <>, weight = 100]
+P0_1__7 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD>Beginning of process <FONT COLOR="darkgreen">rpe2</FONT></TD></TR></TABLE>>]
+P0_1__7 -> P0_1__8 [label = <>, weight = 100]
+P0_2__6 -> P0_2__7 [label = <>, weight = 100]
+P0_2__7 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD>Beginning of process <FONT COLOR="darkgreen">rpe1</FONT></TD></TR><TR><TD><FONT COLOR="darkgreen">{9}</FONT><FONT COLOR="blue">new </FONT>sk1_1</TD></TR><TR><TD><FONT COLOR="darkgreen">{11}</FONT><FONT COLOR="blue">event</FONT> PolicyDeclared(P1,pol(P1,Members2,OnlyGood,<br/>
+OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),<br/>
+V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),<br/>
+exact(prodA),V1,OnlyGood,Assign(P2))))</TD></TR></TABLE>>]
+P0_2__7 -> P0_2__8 [label = <>, weight = 100]
+P0_2__8 -> P0_2__9 [label = <>, weight = 100]
+P0_1__8 -> P0_1__9 [label = <>, weight = 100]
+P0_0_0__8 -> P0_0_0__9 [label = <>, weight = 100]
+P__3 -> P__4 [label = <>, weight = 100]
+{rank = same; P__4 P0_0_0__9 P0_1__9 P0_2__9}
+P0_2__9 -> P0_2__10 [label = <>, weight = 100]
+P__4 -> P__5 [label = <>, weight = 100]
+{rank = same; P__5 P0_2__10}
+P0_2__10 -> P__5 [label = <(P1,~M_4,~M_5,~M_6)>, arrowhead = normal]
+P0_2__10 -> P0_2__11 [label = <>, weight = 100]
+P0_1__9 -> P0_1__10 [label = <>, weight = 100]
+P0_0_0__9 -> P0_0_0__10 [label = <>, weight = 100]
+P__5 -> P__6 [label = <>, weight = 100]
+{rank = same; P__6 P0_0_0__10 P0_1__10 P0_2__11}
+P0_1__10 -> P0_1__11 [label = <>, weight = 100]
+P0_0_0__10 -> P0_0_0__11 [label = <>, weight = 100]
+P__6 -> P__7 [label = <>, weight = 100]
+{rank = same; P__7 P0_0_0__11 P0_1__11}
+P0_1__11 -> P0_1__12 [label = <>, weight = 100]
+P__7 -> P__8 [label = <>, weight = 100]
+{rank = same; P__8 P0_1__12}
+P0_1__12 -> P__8 [label = <PermissiveRpeTCB>, dir = back, arrowhead = normal]
+P0_1__12 -> P0_1__13 [label = <>, weight = 100]
+P0_0_0__11 -> P0_0_0__12 [label = <>, weight = 100]
+P__8 -> P__9 [label = <>, weight = 100]
+{rank = same; P__9 P0_0_0__12 P0_1__13}
+P0_1__13 -> P0_1__14 [label = <>, weight = 100]
+P0_1__14 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD><FONT COLOR="darkgreen">{88}</FONT><FONT COLOR="blue">new </FONT>sk2_2</TD></TR><TR><TD><FONT COLOR="darkgreen">{90}</FONT><FONT COLOR="blue">event</FONT> PolicyDeclared(P2,pol(P2,Members2,Both,<br/>
+Both,Req(exact(mE1),exact(s1),exact(prodA),V1,<br/>
+OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),<br/>
+exact(prodA),V1,OnlyGood,Assign(P2))))</TD></TR></TABLE>>]
+P0_1__14 -> P0_1__15 [label = <>, weight = 100]
+P0_1__15 -> P0_1__16 [label = <>, weight = 100]
+P0_0_0__12 -> P0_0_0__13 [label = <>, weight = 100]
+P__9 -> P__10 [label = <>, weight = 100]
+{rank = same; P__10 P0_0_0__13 P0_1__16}
+P0_1__16 -> P0_1__17 [label = <>, weight = 100]
+P__10 -> P__11 [label = <>, weight = 100]
+{rank = same; P__11 P0_1__17}
+P0_1__17 -> P__11 [label = <(P2,~M_7,~M_8,~M_9)>, arrowhead = normal]
+P0_1__17 -> P0_1__18 [label = <>, weight = 100]
+P0_0_0__13 -> P0_0_0__14 [label = <>, weight = 100]
+P__11 -> P__12 [label = <>, weight = 100]
+{rank = same; P__12 P0_0_0__14 P0_1__18}
+P0_2__11 -> P0_2__12 [label = <>, weight = 100]
+P0_1__18 -> P0_1__19 [label = <>, weight = 100]
+P0_0_0__14 -> P0_0_0__15 [label = <>, weight = 100]
+P__12 -> P__13 [label = <>, weight = 100]
+{rank = same; P__13 P0_0_0__15 P0_1__19 P0_2__12}
+P0_2__12 -> P0_2__13 [label = <>, weight = 100]
+P__13 -> P__14 [label = <>, weight = 100]
+{rank = same; P__14 P0_2__13}
+P0_2__13 -> P__14 [label = <~X_1>, dir = back, arrowhead = normal]
+P0_2__13 -> P0_2__14 [label = <>, weight = 100]
+P0_1__19 -> P0_1__20 [label = <>, weight = 100]
+P0_0_0__15 -> P0_0_0__16 [label = <>, weight = 100]
+P__14 -> P__15 [label = <>, weight = 100]
+{rank = same; P__15 P0_0_0__16 P0_1__20 P0_2__14}
+P0_2__14 -> P0_2__15 [label = <>, weight = 100]
+P0_2__15 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD><FONT COLOR="darkgreen">{20}</FONT><FONT COLOR="blue">event</FONT> EvidenceChecked(P1,P2,pk(sk2_2),hpol(<br/>
+pol(P2,Members2,Both,Both,Req(exact(mE1),exact(<br/>
+s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(<br/>
+mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(<br/>
+P2)))))</TD></TR><TR><TD><FONT COLOR="darkgreen">{21}</FONT><FONT COLOR="blue">event</FONT> QuotesComplete(P1)</TD></TR><TR><TD><FONT COLOR="darkgreen">{22}</FONT><FONT COLOR="blue">event</FONT> PolicySent(P1,pk(sk2_2),pol(P1,Members2,<br/>
+OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(<br/>
+prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),<br/>
+exact(s2),exact(prodA),V1,OnlyGood,Assign(P2))))<br/>
+</TD></TR></TABLE>>]
+P0_2__15 -> P0_2__16 [label = <>, weight = 100]
+P0_2__16 -> P0_2__17 [label = <>, weight = 100]
+P0_1__20 -> P0_1__21 [label = <>, weight = 100]
+P0_0_0__16 -> P0_0_0__17 [label = <>, weight = 100]
+P__15 -> P__16 [label = <>, weight = 100]
+{rank = same; P__16 P0_0_0__17 P0_1__21 P0_2__17}
+P0_2__17 -> P0_2__18 [label = <>, weight = 100]
+P__16 -> P__17 [label = <>, weight = 100]
+{rank = same; P__17 P0_2__18}
+P0_2__18 -> P__17 [label = <(P1,P2,~M_10)>, arrowhead = normal]
+P0_2__18 -> P0_2__19 [label = <>, weight = 100]
+P0_1__21 -> P0_1__22 [label = <>, weight = 100]
+P0_0_0__17 -> P0_0_0__18 [label = <>, weight = 100]
+P__17 -> P__18 [label = <>, weight = 100]
+{rank = same; P__18 P0_0_0__18 P0_1__22 P0_2__19}
+P0_1__22 -> P0_1__23 [label = <>, weight = 100]
+P0_0_0__18 -> P0_0_0__19 [label = <>, weight = 100]
+P__18 -> P__19 [label = <>, weight = 100]
+{rank = same; P__19 P0_0_0__19 P0_1__23}
+P0_1__23 -> P0_1__24 [label = <>, weight = 100]
+P__19 -> P__20 [label = <>, weight = 100]
+{rank = same; P__20 P0_1__24}
+P0_1__24 -> P__20 [label = <~X_2>, dir = back, arrowhead = normal]
+P0_1__24 -> P0_1__25 [label = <>, weight = 100]
+P0_0_0__19 -> P0_0_0__20 [label = <>, weight = 100]
+P__20 -> P__21 [label = <>, weight = 100]
+{rank = same; P__21 P0_0_0__20 P0_1__25}
+P0_1__25 -> P0_1__26 [label = <>, weight = 100]
+P0_1__26 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD><FONT COLOR="darkgreen">{99}</FONT><FONT COLOR="blue">event</FONT> EvidenceChecked(P2,P1,pk(sk1_1),hpol(<br/>
+pol(P1,Members2,OnlyGood,OnlyGood,Req(exact(mE1),<br/>
+exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),<br/>
+Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,<br/>
+Assign(P2)))))</TD></TR><TR><TD><FONT COLOR="darkgreen">{100}</FONT><FONT COLOR="blue">event</FONT> QuotesComplete(P2)</TD></TR><TR><TD><FONT COLOR="darkgreen">{101}</FONT><FONT COLOR="blue">event</FONT> PolicySent(P2,pk(sk1_1),pol(P2,Members2,<br/>
+Both,Both,Req(exact(mE1),exact(s1),exact(prodA),<br/>
+V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),<br/>
+exact(prodA),V1,OnlyGood,Assign(P2))))</TD></TR></TABLE>>]
+P0_1__26 -> P0_1__27 [label = <>, weight = 100]
+P0_1__27 -> P0_1__28 [label = <>, weight = 100]
+P0_0_0__20 -> P0_0_0__21 [label = <>, weight = 100]
+P__21 -> P__22 [label = <>, weight = 100]
+{rank = same; P__22 P0_0_0__21 P0_1__28}
+P0_1__28 -> P0_1__29 [label = <>, weight = 100]
+P__22 -> P__23 [label = <>, weight = 100]
+{rank = same; P__23 P0_1__29}
+P0_1__29 -> P__23 [label = <(P2,P1,~M_11)>, arrowhead = normal]
+P0_1__29 -> P0_1__30 [label = <>, weight = 100]
+P0_0_0__21 -> P0_0_0__22 [label = <>, weight = 100]
+P__23 -> P__24 [label = <>, weight = 100]
+{rank = same; P__24 P0_0_0__22 P0_1__30}
+P0_2__19 -> P0_2__20 [label = <>, weight = 100]
+P0_1__30 -> P0_1__31 [label = <>, weight = 100]
+P0_0_0__22 -> P0_0_0__23 [label = <>, weight = 100]
+P__24 -> P__25 [label = <>, weight = 100]
+{rank = same; P__25 P0_0_0__23 P0_1__31 P0_2__20}
+P0_2__20 -> P0_2__21 [label = <>, weight = 100]
+P__25 -> P__26 [label = <>, weight = 100]
+{rank = same; P__26 P0_2__21}
+P0_2__21 -> P__26 [label = <(P2,P1,~M_11)>, dir = back, arrowhead = normal]
+P0_2__21 -> P0_2__22 [label = <>, weight = 100]
+P0_1__31 -> P0_1__32 [label = <>, weight = 100]
+P0_0_0__23 -> P0_0_0__24 [label = <>, weight = 100]
+P__26 -> P__27 [label = <>, weight = 100]
+{rank = same; P__27 P0_0_0__24 P0_1__32 P0_2__22}
+P0_2__22 -> P0_2__23 [label = <>, weight = 100]
+P0_2__23 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD><FONT COLOR="darkgreen">{26}</FONT><FONT COLOR="blue">event</FONT> PolicyAuthenticated(P1,P2,pol(P2,Members2,<br/>
+Both,Both,Req(exact(mE1),exact(s1),exact(prodA),<br/>
+V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),<br/>
+exact(prodA),V1,OnlyGood,Assign(P2))))</TD></TR><TR><TD><FONT COLOR="darkgreen">{29}</FONT><FONT COLOR="blue">event</FONT> PolicyAccepted(P1,P2,pol(P2,Members2,<br/>
+Both,Both,Req(exact(mE1),exact(s1),exact(prodA),<br/>
+V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),<br/>
+exact(prodA),V1,OnlyGood,Assign(P2))))</TD></TR><TR><TD><FONT COLOR="darkgreen">{30}</FONT><FONT COLOR="blue">event</FONT> PolicyAcceptedKeys(P1,P2,pk(sk1_1),pk(<br/>
+sk2_2),pol(P2,Members2,Both,Both,Req(exact(mE1),<br/>
+exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),<br/>
+Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,<br/>
+Assign(P2))))</TD></TR><TR><TD><FONT COLOR="darkgreen">{31}</FONT><FONT COLOR="blue">event</FONT> PoliciesComplete(P1)</TD></TR><TR><TD><FONT COLOR="darkgreen">{34}</FONT><FONT COLOR="blue">event</FONT> FullJoin(P1,mkstar(OnlyGood,OnlyGood,<br/>
+Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,<br/>
+Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),<br/>
+V1,OnlyGood,Assign(P2))))</TD></TR><TR><TD><FONT COLOR="darkgreen">{35}</FONT><FONT COLOR="blue">event</FONT> Confirm(P1,mkstar(OnlyGood,OnlyGood,<br/>
+Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,<br/>
+Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),<br/>
+V1,OnlyGood,Assign(P2))))</TD></TR><TR><TD>Beginning of process <FONT COLOR="darkgreen">attest</FONT></TD></TR></TABLE>>]
+P0_2__23 -> P0_2__24 [label = <>, weight = 100]
+P0_0_0__24 -> P0_0_0__25 [label = <>, weight = 100]
+P__27 -> P__28 [label = <>, weight = 100]
+{rank = same; P__28 P0_0_0__25}
+P0_0_0__25 -> P0_0_0__26 [label = <>, weight = 100]
+P__28 -> P__29 [label = <>, weight = 100]
+{rank = same; P__29 P0_0_0__26}
+P0_0_0__26 -> P__29 [label = <(Identity(mE1,s1,prodA,V1),Good)>, dir = back, arrowhead = normal]
+P0_0_0__26 -> P0_0_0__27 [label = <>, weight = 100]
+P__29 -> P__30 [label = <>, weight = 100]
+{rank = same; P__30 P0_0_0__27}
+P0_0_0__27 -> P0_0_0__28 [label = <>, weight = 100]
+P0_0_0__28 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD><FONT COLOR="darkgreen">{165}</FONT><FONT COLOR="blue">new </FONT>skE_2</TD></TR></TABLE>>]
+P0_0_0__28 -> P0_0_0__29 [label = <>, weight = 100]
+P0_0_0__29 -> P0_0_0__30 [label = <>, weight = 100]
+P__30 -> P__31 [label = <>, weight = 100]
+{rank = same; P__31 P0_0_0__30}
+P0_0_0__30 -> P0_0_0__31 [label = <>, weight = 100]
+P__31 -> P__32 [label = <>, weight = 100]
+{rank = same; P__32 P0_0_0__31}
+P0_0_0__31 -> P__32 [label = <~M_12 = pk(skE_2)>, arrowhead = normal]
+P0_0_0__31 -> P0_0_0__32 [label = <>, weight = 100]
+P__32 -> P__33 [label = <>, weight = 100]
+{rank = same; P__33 P0_0_0__32}
+P0_2__24 -> P0_2__25 [label = <>, weight = 100]
+P0_1__32 -> P0_1__33 [label = <>, weight = 100]
+P0_0_0__32 -> P0_0_0__33 [label = <>, weight = 100]
+P__33 -> P__34 [label = <>, weight = 100]
+{rank = same; P__34 P0_0_0__33 P0_1__33 P0_2__25}
+P0_2__25 -> P0_2__26 [label = <>, weight = 100]
+P__34 -> P__35 [label = <>, weight = 100]
+{rank = same; P__35 P0_2__26}
+P0_2__26 -> P__35 [label = <~M_12 = pk(skE_2)>, dir = back, arrowhead = normal]
+P0_2__26 -> P0_2__27 [label = <>, weight = 100]
+P0_1__33 -> P0_1__34 [label = <>, weight = 100]
+P0_0_0__33 -> P0_0_0__34 [label = <>, weight = 100]
+P__35 -> P__36 [label = <>, weight = 100]
+{rank = same; P__36 P0_0_0__34 P0_1__34 P0_2__27}
+P0_2__27 -> P0_2__28 [label = <>, weight = 100]
+P0_2__28 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD><FONT COLOR="darkgreen">{41}</FONT><FONT COLOR="blue">new </FONT>challenge_4</TD></TR><TR><TD><FONT COLOR="darkgreen">{42}</FONT><FONT COLOR="blue">event</FONT> ChallengeSent(P1,pk(skE_2),challenge_4)<br/>
+</TD></TR></TABLE>>]
+P0_2__28 -> P0_2__29 [label = <>, weight = 100]
+P0_2__29 -> P0_2__30 [label = <>, weight = 100]
+P0_1__34 -> P0_1__35 [label = <>, weight = 100]
+P0_0_0__34 -> P0_0_0__35 [label = <>, weight = 100]
+P__36 -> P__37 [label = <>, weight = 100]
+{rank = same; P__37 P0_0_0__35 P0_1__35 P0_2__30}
+P0_2__30 -> P0_2__31 [label = <>, weight = 100]
+P__37 -> P__38 [label = <>, weight = 100]
+{rank = same; P__38 P0_2__31}
+P0_2__31 -> P__38 [label = <~M_13 = challenge_4>, arrowhead = normal]
+P0_2__31 -> P0_2__32 [label = <>, weight = 100]
+P0_1__35 -> P0_1__36 [label = <>, weight = 100]
+P0_0_0__35 -> P0_0_0__36 [label = <>, weight = 100]
+P__38 -> P__39 [label = <>, weight = 100]
+{rank = same; P__39 P0_0_0__36 P0_1__36 P0_2__32}
+P0_0_0__36 -> P0_0_0__37 [label = <>, weight = 100]
+P__39 -> P__40 [label = <>, weight = 100]
+{rank = same; P__40 P0_0_0__37}
+P0_0_0__37 -> P0_0_0__38 [label = <>, weight = 100]
+P__40 -> P__41 [label = <>, weight = 100]
+{rank = same; P__41 P0_0_0__38}
+P0_0_0__38 -> P__41 [label = <~M_13 = challenge_4>, dir = back, arrowhead = normal]
+P0_0_0__38 -> P0_0_0__39 [label = <>, weight = 100]
+P__41 -> P__42 [label = <>, weight = 100]
+{rank = same; P__42 P0_0_0__39}
+P0_0_0__39 -> P0_0_0__40 [label = <>, weight = 100]
+P0_0_0__40 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD><FONT COLOR="darkgreen">{168}</FONT><FONT COLOR="blue">event</FONT> QuoteProduced(pk(skE_2),challenge_4,<br/>
+Identity(mE1,s1,prodA,V1),Good)</TD></TR></TABLE>>]
+P0_0_0__40 -> P0_0_0__41 [label = <>, weight = 100]
+P0_0_0__41 -> P0_0_0__42 [label = <>, weight = 100]
+P__42 -> P__43 [label = <>, weight = 100]
+{rank = same; P__43 P0_0_0__42}
+P0_0_0__42 -> P0_0_0__43 [label = <>, weight = 100]
+P__43 -> P__44 [label = <>, weight = 100]
+{rank = same; P__44 P0_0_0__43}
+P0_0_0__43 -> P__44 [label = <~M_14 = sign(teeQuote(Identity(mE1,s1,prodA,V1),<br/>
+Good,hchal(challenge_4,pk(skE_2))),akTEE_1)>, arrowhead = normal]
+P0_0_0__43 -> P0_0_0__44 [label = <>, weight = 100]
+P__44 -> P__45 [label = <>, weight = 100]
+{rank = same; P__45 P0_0_0__44}
+P0_0_0__45 [label = "", width = 0.3, height = 0.3]
+P0_0_0__44 -> P0_0_0__45 [label = <>, weight = 100]
+P0_2__32 -> P0_2__33 [label = <>, weight = 100]
+P0_1__36 -> P0_1__37 [label = <>, weight = 100]
+P0_0_0__46 [label = "", style = invisible]
+P0_0_0__45 -> P0_0_0__46 [label = <>, weight = 100, style = invisible]
+P__45 -> P__46 [label = <>, weight = 100]
+{rank = same; P__46 P0_0_0__46 P0_1__37 P0_2__33}
+P0_2__33 -> P0_2__34 [label = <>, weight = 100]
+P__46 -> P__47 [label = <>, weight = 100]
+{rank = same; P__47 P0_2__34}
+P0_2__34 -> P__47 [label = <~M_14 = sign(teeQuote(Identity(mE1,s1,prodA,V1),<br/>
+Good,hchal(challenge_4,pk(skE_2))),akTEE_1)>, dir = back, arrowhead = normal]
+P0_2__34 -> P0_2__35 [label = <>, weight = 100]
+P0_1__37 -> P0_1__38 [label = <>, weight = 100]
+P0_0_0__47 [label = "", style = invisible]
+P0_0_0__46 -> P0_0_0__47 [label = <>, weight = 100, style = invisible]
+P__47 -> P__48 [label = <>, weight = 100]
+{rank = same; P__48 P0_0_0__47 P0_1__38 P0_2__35}
+P0_2__35 -> P0_2__36 [label = <>, weight = 100]
+P0_2__36 [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD><FONT COLOR="darkgreen">{45}</FONT><FONT COLOR="blue">event</FONT> QuoteReceived(P1,E1,pk(skE_2),challenge_4)<br/>
+</TD></TR><TR><TD><FONT COLOR="darkgreen">{47}</FONT><FONT COLOR="blue">event</FONT> QuoteSignatureChecked(P1,E1,pk(skE_2),<br/>
+challenge_4,Identity(mE1,s1,prodA,V1),Good)</TD></TR><TR><TD><FONT COLOR="darkgreen">{49}</FONT><FONT COLOR="blue">event</FONT> QuoteVerified(P1,E1,pk(skE_2),challenge_4,<br/>
+Identity(mE1,s1,prodA,V1),Good)</TD></TR><TR><TD><FONT COLOR="darkgreen">{78}</FONT><FONT COLOR="blue">event</FONT> QuoteSatisfied(P1,E1,pk(sk1_1),pk(skE_2),<br/>
+challenge_4,Identity(mE1,s1,prodA,V1),Good,mkstar(<br/>
+OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(<br/>
+prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),<br/>
+exact(s2),exact(prodA),V1,OnlyGood,Assign(P2))))<br/>
+</TD></TR></TABLE>>]
+P0_2__36 -> P0_2__37 [label = <>, weight = 100]
+P0_2__37 -> P0_2__38 [label = <>, weight = 100]
+P0_2__38 [color = red, shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"> <TR><TD><FONT COLOR="darkgreen">{81}</FONT><FONT COLOR="blue">event</FONT> CertIssued(P1,E1,pk(sk1_1),pk(skE_2),<br/>
+challenge_4,Identity(mE1,s1,prodA,V1),Good,mkstar(<br/>
+OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(<br/>
+prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),<br/>
+exact(s2),exact(prodA),V1,OnlyGood,Assign(P2))),<br/>
+hcert(pk(skE_2),pk(sk1_1),hstar(mkstar(OnlyGood,<br/>
+OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),<br/>
+V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),<br/>
+exact(prodA),V1,OnlyGood,Assign(P2))))))</TD></TR></TABLE>>]
+P0_2__38 -> P0_2__39 [label = <>, weight = 100]
+Abbrev [shape = plaintext, label = <<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="4"><TR> <TD> Abbreviations </TD></TR><TR><TD>~M_4 = sign(rpeQuote(mRPE,Good,hbind(pk(sk1_1),hpol(<br/>
+pol(P1,Members2,OnlyGood,OnlyGood,Req(exact(mE1),<br/>
+exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),<br/>
+Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,<br/>
+Assign(P2)))))),akRPE_1)</TD></TR><TR><TD>~M_5 = pk(sk1_1)</TD></TR><TR><TD>~M_6 = hpol(pol(P1,Members2,OnlyGood,OnlyGood,Req(<br/>
+exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,<br/>
+Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),<br/>
+V1,OnlyGood,Assign(P2))))</TD></TR><TR><TD>~M_7 = sign(rpeQuote(mRPE,Good,hbind(pk(sk2_2),hpol(<br/>
+pol(P2,Members2,Both,Both,Req(exact(mE1),exact(<br/>
+s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(<br/>
+mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(<br/>
+P2)))))),akRPE_1)</TD></TR><TR><TD>~M_8 = pk(sk2_2)</TD></TR><TR><TD>~M_9 = hpol(pol(P2,Members2,Both,Both,Req(exact(mE1),<br/>
+exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),<br/>
+Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,<br/>
+Assign(P2))))</TD></TR><TR><TD>~X_1 = (P2,~M_7,~M_8,hpol(pol(P2,Members2,Both,Both,Req(<br/>
+exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,<br/>
+Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),<br/>
+V1,OnlyGood,Assign(P2)))))<br/>
+= (P2,sign(rpeQuote(<br/>
+mRPE,Good,hbind(pk(sk2_2),hpol(pol(P2,Members2,<br/>
+Both,Both,Req(exact(mE1),exact(s1),exact(prodA),<br/>
+V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),<br/>
+exact(prodA),V1,OnlyGood,Assign(P2)))))),akRPE_1),<br/>
+pk(sk2_2),hpol(pol(P2,Members2,Both,Both,Req(exact(<br/>
+mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(<br/>
+P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,<br/>
+OnlyGood,Assign(P2)))))</TD></TR><TR><TD>~M_10 = sign(policyMsg(pk(sk2_2),pol(P1,Members2,<br/>
+OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(<br/>
+prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),<br/>
+exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)))),<br/>
+sk1_1)</TD></TR><TR><TD>~X_2 = (P1,~M_4,~M_5,hpol(pol(P1,Members2,OnlyGood,OnlyGood,<br/>
+Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,<br/>
+Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),<br/>
+V1,OnlyGood,Assign(P2)))))<br/>
+= (P1,sign(rpeQuote(<br/>
+mRPE,Good,hbind(pk(sk1_1),hpol(pol(P1,Members2,<br/>
+OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(<br/>
+prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),<br/>
+exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)))))),<br/>
+akRPE_1),pk(sk1_1),hpol(pol(P1,Members2,OnlyGood,<br/>
+OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),<br/>
+V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),<br/>
+exact(prodA),V1,OnlyGood,Assign(P2)))))</TD></TR><TR><TD>~M_11 = sign(policyMsg(pk(sk1_1),pol(P2,Members2,<br/>
+Both,Both,Req(exact(mE1),exact(s1),exact(prodA),<br/>
+V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),<br/>
+exact(prodA),V1,OnlyGood,Assign(P2)))),sk2_2)</TD></TR></TABLE>>]Abbrev -> P__0 [style = invisible, weight =100]}

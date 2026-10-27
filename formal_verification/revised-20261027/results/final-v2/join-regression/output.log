@@ -1,0 +1,3028 @@
+Process 0 (that is, the initial process):
+(
+    {1}let got: ident = joinid(Any,Any) in
+    (
+        {2}if (got = Any) then
+            0
+        else
+            {3}event WrongJoinIdentity
+    )
+    else
+        {4}event WrongJoinIdentity
+) | (
+    {5}let got_1: ident = joinid(Any,exact(mE1)) in
+    (
+        {6}if (got_1 = exact(mE1)) then
+            0
+        else
+            {7}event WrongJoinIdentity
+    )
+    else
+        {8}event WrongJoinIdentity
+) | (
+    {9}let got_2: ident = joinid(Any,exact(mE2)) in
+    (
+        {10}if (got_2 = exact(mE2)) then
+            0
+        else
+            {11}event WrongJoinIdentity
+    )
+    else
+        {12}event WrongJoinIdentity
+) | (
+    {13}let got_3: ident = joinid(Any,exact(mBad)) in
+    (
+        {14}if (got_3 = exact(mBad)) then
+            0
+        else
+            {15}event WrongJoinIdentity
+    )
+    else
+        {16}event WrongJoinIdentity
+) | (
+    {17}let got_4: ident = joinid(exact(mE1),Any) in
+    (
+        {18}if (got_4 = exact(mE1)) then
+            0
+        else
+            {19}event WrongJoinIdentity
+    )
+    else
+        {20}event WrongJoinIdentity
+) | (
+    {21}let got_5: ident = joinid(exact(mE1),exact(mE1)) in
+    (
+        {22}if (got_5 = exact(mE1)) then
+            0
+        else
+            {23}event WrongJoinIdentity
+    )
+    else
+        {24}event WrongJoinIdentity
+) | (
+    {25}let got_6: ident = joinid(exact(mE1),exact(mE2)) in
+    {26}event WrongJoinIdentity
+) | (
+    {27}let got_7: ident = joinid(exact(mE1),exact(mBad)) in
+    {28}event WrongJoinIdentity
+) | (
+    {29}let got_8: ident = joinid(exact(mE2),Any) in
+    (
+        {30}if (got_8 = exact(mE2)) then
+            0
+        else
+            {31}event WrongJoinIdentity
+    )
+    else
+        {32}event WrongJoinIdentity
+) | (
+    {33}let got_9: ident = joinid(exact(mE2),exact(mE1)) in
+    {34}event WrongJoinIdentity
+) | (
+    {35}let got_10: ident = joinid(exact(mE2),exact(mE2)) in
+    (
+        {36}if (got_10 = exact(mE2)) then
+            0
+        else
+            {37}event WrongJoinIdentity
+    )
+    else
+        {38}event WrongJoinIdentity
+) | (
+    {39}let got_11: ident = joinid(exact(mE2),exact(mBad)) in
+    {40}event WrongJoinIdentity
+) | (
+    {41}let got_12: ident = joinid(exact(mBad),Any) in
+    (
+        {42}if (got_12 = exact(mBad)) then
+            0
+        else
+            {43}event WrongJoinIdentity
+    )
+    else
+        {44}event WrongJoinIdentity
+) | (
+    {45}let got_13: ident = joinid(exact(mBad),exact(mE1)) in
+    {46}event WrongJoinIdentity
+) | (
+    {47}let got_14: ident = joinid(exact(mBad),exact(mE2)) in
+    {48}event WrongJoinIdentity
+) | (
+    {49}let got_15: ident = joinid(exact(mBad),exact(mBad)) in
+    (
+        {50}if (got_15 = exact(mBad)) then
+            0
+        else
+            {51}event WrongJoinIdentity
+    )
+    else
+        {52}event WrongJoinIdentity
+) | (
+    {53}let got_16: svn = joinv(V0,V0) in
+    (
+        {54}if (got_16 = V0) then
+            0
+        else
+            {55}event WrongJoinSVN
+    )
+    else
+        {56}event WrongJoinSVN
+) | (
+    {57}let got_17: svn = joinv(V0,V1) in
+    (
+        {58}if (got_17 = V1) then
+            0
+        else
+            {59}event WrongJoinSVN
+    )
+    else
+        {60}event WrongJoinSVN
+) | (
+    {61}let got_18: svn = joinv(V0,V2) in
+    (
+        {62}if (got_18 = V2) then
+            0
+        else
+            {63}event WrongJoinSVN
+    )
+    else
+        {64}event WrongJoinSVN
+) | (
+    {65}let got_19: svn = joinv(V1,V0) in
+    (
+        {66}if (got_19 = V1) then
+            0
+        else
+            {67}event WrongJoinSVN
+    )
+    else
+        {68}event WrongJoinSVN
+) | (
+    {69}let got_20: svn = joinv(V1,V1) in
+    (
+        {70}if (got_20 = V1) then
+            0
+        else
+            {71}event WrongJoinSVN
+    )
+    else
+        {72}event WrongJoinSVN
+) | (
+    {73}let got_21: svn = joinv(V1,V2) in
+    (
+        {74}if (got_21 = V2) then
+            0
+        else
+            {75}event WrongJoinSVN
+    )
+    else
+        {76}event WrongJoinSVN
+) | (
+    {77}let got_22: svn = joinv(V2,V0) in
+    (
+        {78}if (got_22 = V2) then
+            0
+        else
+            {79}event WrongJoinSVN
+    )
+    else
+        {80}event WrongJoinSVN
+) | (
+    {81}let got_23: svn = joinv(V2,V1) in
+    (
+        {82}if (got_23 = V2) then
+            0
+        else
+            {83}event WrongJoinSVN
+    )
+    else
+        {84}event WrongJoinSVN
+) | (
+    {85}let got_24: svn = joinv(V2,V2) in
+    (
+        {86}if (got_24 = V2) then
+            0
+        else
+            {87}event WrongJoinSVN
+    )
+    else
+        {88}event WrongJoinSVN
+) | (
+    {89}let got_25: tcbreq = jointcb(Both,Both) in
+    (
+        {90}if (got_25 = Both) then
+            0
+        else
+            {91}event WrongJoinTCB
+    )
+    else
+        {92}event WrongJoinTCB
+) | (
+    {93}let got_26: tcbreq = jointcb(Both,OnlyGood) in
+    (
+        {94}if (got_26 = OnlyGood) then
+            0
+        else
+            {95}event WrongJoinTCB
+    )
+    else
+        {96}event WrongJoinTCB
+) | (
+    {97}let got_27: tcbreq = jointcb(Both,OnlyOutdated) in
+    (
+        {98}if (got_27 = OnlyOutdated) then
+            0
+        else
+            {99}event WrongJoinTCB
+    )
+    else
+        {100}event WrongJoinTCB
+) | (
+    {101}let got_28: tcbreq = jointcb(OnlyGood,Both) in
+    (
+        {102}if (got_28 = OnlyGood) then
+            0
+        else
+            {103}event WrongJoinTCB
+    )
+    else
+        {104}event WrongJoinTCB
+) | (
+    {105}let got_29: tcbreq = jointcb(OnlyGood,OnlyGood) in
+    (
+        {106}if (got_29 = OnlyGood) then
+            0
+        else
+            {107}event WrongJoinTCB
+    )
+    else
+        {108}event WrongJoinTCB
+) | (
+    {109}let got_30: tcbreq = jointcb(OnlyGood,OnlyOutdated) in
+    {110}event WrongJoinTCB
+) | (
+    {111}let got_31: tcbreq = jointcb(OnlyOutdated,Both) in
+    (
+        {112}if (got_31 = OnlyOutdated) then
+            0
+        else
+            {113}event WrongJoinTCB
+    )
+    else
+        {114}event WrongJoinTCB
+) | (
+    {115}let got_32: tcbreq = jointcb(OnlyOutdated,OnlyGood) in
+    {116}event WrongJoinTCB
+) | (
+    {117}let got_33: tcbreq = jointcb(OnlyOutdated,OnlyOutdated) in
+    (
+        {118}if (got_33 = OnlyOutdated) then
+            0
+        else
+            {119}event WrongJoinTCB
+    )
+    else
+        {120}event WrongJoinTCB
+) | (
+    {121}let got_34: attreq = joinatt(NoAtt,NoAtt) in
+    (
+        {122}if (got_34 = NoAtt) then
+            0
+        else
+            {123}event WrongJoinAttester
+    )
+    else
+        {124}event WrongJoinAttester
+) | (
+    {125}let got_35: attreq = joinatt(NoAtt,Assign(P1)) in
+    (
+        {126}if (got_35 = Assign(P1)) then
+            0
+        else
+            {127}event WrongJoinAttester
+    )
+    else
+        {128}event WrongJoinAttester
+) | (
+    {129}let got_36: attreq = joinatt(NoAtt,Assign(P2)) in
+    (
+        {130}if (got_36 = Assign(P2)) then
+            0
+        else
+            {131}event WrongJoinAttester
+    )
+    else
+        {132}event WrongJoinAttester
+) | (
+    {133}let got_37: attreq = joinatt(NoAtt,Assign(P3)) in
+    (
+        {134}if (got_37 = Assign(P3)) then
+            0
+        else
+            {135}event WrongJoinAttester
+    )
+    else
+        {136}event WrongJoinAttester
+) | (
+    {137}let got_38: attreq = joinatt(Assign(P1),NoAtt) in
+    (
+        {138}if (got_38 = Assign(P1)) then
+            0
+        else
+            {139}event WrongJoinAttester
+    )
+    else
+        {140}event WrongJoinAttester
+) | (
+    {141}let got_39: attreq = joinatt(Assign(P1),Assign(P1)) in
+    (
+        {142}if (got_39 = Assign(P1)) then
+            0
+        else
+            {143}event WrongJoinAttester
+    )
+    else
+        {144}event WrongJoinAttester
+) | (
+    {145}let got_40: attreq = joinatt(Assign(P1),Assign(P2)) in
+    {146}event WrongJoinAttester
+) | (
+    {147}let got_41: attreq = joinatt(Assign(P1),Assign(P3)) in
+    {148}event WrongJoinAttester
+) | (
+    {149}let got_42: attreq = joinatt(Assign(P2),NoAtt) in
+    (
+        {150}if (got_42 = Assign(P2)) then
+            0
+        else
+            {151}event WrongJoinAttester
+    )
+    else
+        {152}event WrongJoinAttester
+) | (
+    {153}let got_43: attreq = joinatt(Assign(P2),Assign(P1)) in
+    {154}event WrongJoinAttester
+) | (
+    {155}let got_44: attreq = joinatt(Assign(P2),Assign(P2)) in
+    (
+        {156}if (got_44 = Assign(P2)) then
+            0
+        else
+            {157}event WrongJoinAttester
+    )
+    else
+        {158}event WrongJoinAttester
+) | (
+    {159}let got_45: attreq = joinatt(Assign(P2),Assign(P3)) in
+    {160}event WrongJoinAttester
+) | (
+    {161}let got_46: attreq = joinatt(Assign(P3),NoAtt) in
+    (
+        {162}if (got_46 = Assign(P3)) then
+            0
+        else
+            {163}event WrongJoinAttester
+    )
+    else
+        {164}event WrongJoinAttester
+) | (
+    {165}let got_47: attreq = joinatt(Assign(P3),Assign(P1)) in
+    {166}event WrongJoinAttester
+) | (
+    {167}let got_48: attreq = joinatt(Assign(P3),Assign(P2)) in
+    {168}event WrongJoinAttester
+) | (
+    {169}let got_49: attreq = joinatt(Assign(P3),Assign(P3)) in
+    (
+        {170}if (got_49 = Assign(P3)) then
+            0
+        else
+            {171}event WrongJoinAttester
+    )
+    else
+        {172}event WrongJoinAttester
+) | (
+    {173}let got_50: bool = matchid(Any,mE1) in
+    (
+        {174}if (got_50 = true) then
+            0
+        else
+            {175}event WrongMatchIdentity
+    )
+    else
+        {176}event WrongMatchIdentity
+) | (
+    {177}let got_51: bool = matchid(Any,mE2) in
+    (
+        {178}if (got_51 = true) then
+            0
+        else
+            {179}event WrongMatchIdentity
+    )
+    else
+        {180}event WrongMatchIdentity
+) | (
+    {181}let got_52: bool = matchid(Any,mBad) in
+    (
+        {182}if (got_52 = true) then
+            0
+        else
+            {183}event WrongMatchIdentity
+    )
+    else
+        {184}event WrongMatchIdentity
+) | (
+    {185}let got_53: bool = matchid(exact(mE1),mE1) in
+    (
+        {186}if (got_53 = true) then
+            0
+        else
+            {187}event WrongMatchIdentity
+    )
+    else
+        {188}event WrongMatchIdentity
+) | (
+    {189}let got_54: bool = matchid(exact(mE1),mE2) in
+    {190}event WrongMatchIdentity
+) | (
+    {191}let got_55: bool = matchid(exact(mE1),mBad) in
+    {192}event WrongMatchIdentity
+) | (
+    {193}let got_56: bool = matchid(exact(mE2),mE1) in
+    {194}event WrongMatchIdentity
+) | (
+    {195}let got_57: bool = matchid(exact(mE2),mE2) in
+    (
+        {196}if (got_57 = true) then
+            0
+        else
+            {197}event WrongMatchIdentity
+    )
+    else
+        {198}event WrongMatchIdentity
+) | (
+    {199}let got_58: bool = matchid(exact(mE2),mBad) in
+    {200}event WrongMatchIdentity
+) | (
+    {201}let got_59: bool = matchid(exact(mBad),mE1) in
+    {202}event WrongMatchIdentity
+) | (
+    {203}let got_60: bool = matchid(exact(mBad),mE2) in
+    {204}event WrongMatchIdentity
+) | (
+    {205}let got_61: bool = matchid(exact(mBad),mBad) in
+    (
+        {206}if (got_61 = true) then
+            0
+        else
+            {207}event WrongMatchIdentity
+    )
+    else
+        {208}event WrongMatchIdentity
+) | (
+    {209}let got_62: bool = matchv(V0,V0) in
+    (
+        {210}if (got_62 = true) then
+            0
+        else
+            {211}event WrongMatchSVN
+    )
+    else
+        {212}event WrongMatchSVN
+) | (
+    {213}let got_63: bool = matchv(V0,V1) in
+    (
+        {214}if (got_63 = true) then
+            0
+        else
+            {215}event WrongMatchSVN
+    )
+    else
+        {216}event WrongMatchSVN
+) | (
+    {217}let got_64: bool = matchv(V0,V2) in
+    (
+        {218}if (got_64 = true) then
+            0
+        else
+            {219}event WrongMatchSVN
+    )
+    else
+        {220}event WrongMatchSVN
+) | (
+    {221}let got_65: bool = matchv(V1,V0) in
+    {222}event WrongMatchSVN
+) | (
+    {223}let got_66: bool = matchv(V1,V1) in
+    (
+        {224}if (got_66 = true) then
+            0
+        else
+            {225}event WrongMatchSVN
+    )
+    else
+        {226}event WrongMatchSVN
+) | (
+    {227}let got_67: bool = matchv(V1,V2) in
+    (
+        {228}if (got_67 = true) then
+            0
+        else
+            {229}event WrongMatchSVN
+    )
+    else
+        {230}event WrongMatchSVN
+) | (
+    {231}let got_68: bool = matchv(V2,V0) in
+    {232}event WrongMatchSVN
+) | (
+    {233}let got_69: bool = matchv(V2,V1) in
+    {234}event WrongMatchSVN
+) | (
+    {235}let got_70: bool = matchv(V2,V2) in
+    (
+        {236}if (got_70 = true) then
+            0
+        else
+            {237}event WrongMatchSVN
+    )
+    else
+        {238}event WrongMatchSVN
+) | (
+    {239}let got_71: bool = matchtcb(Both,Good) in
+    (
+        {240}if (got_71 = true) then
+            0
+        else
+            {241}event WrongMatchTCB
+    )
+    else
+        {242}event WrongMatchTCB
+) | (
+    {243}let got_72: bool = matchtcb(Both,Outdated) in
+    (
+        {244}if (got_72 = true) then
+            0
+        else
+            {245}event WrongMatchTCB
+    )
+    else
+        {246}event WrongMatchTCB
+) | (
+    {247}let got_73: bool = matchtcb(Both,Revoked) in
+    {248}event WrongMatchTCB
+) | (
+    {249}let got_74: bool = matchtcb(Both,Invalid) in
+    {250}event WrongMatchTCB
+) | (
+    {251}let got_75: bool = matchtcb(OnlyGood,Good) in
+    (
+        {252}if (got_75 = true) then
+            0
+        else
+            {253}event WrongMatchTCB
+    )
+    else
+        {254}event WrongMatchTCB
+) | (
+    {255}let got_76: bool = matchtcb(OnlyGood,Outdated) in
+    {256}event WrongMatchTCB
+) | (
+    {257}let got_77: bool = matchtcb(OnlyGood,Revoked) in
+    {258}event WrongMatchTCB
+) | (
+    {259}let got_78: bool = matchtcb(OnlyGood,Invalid) in
+    {260}event WrongMatchTCB
+) | (
+    {261}let got_79: bool = matchtcb(OnlyOutdated,Good) in
+    {262}event WrongMatchTCB
+) | (
+    {263}let got_80: bool = matchtcb(OnlyOutdated,Outdated) in
+    (
+        {264}if (got_80 = true) then
+            0
+        else
+            {265}event WrongMatchTCB
+    )
+    else
+        {266}event WrongMatchTCB
+) | (
+    {267}let got_81: bool = matchtcb(OnlyOutdated,Revoked) in
+    {268}event WrongMatchTCB
+) | (
+    {269}let got_82: bool = matchtcb(OnlyOutdated,Invalid) in
+    {270}event WrongMatchTCB
+) | (
+    {271}let got_83: bool = matchatt(NoAtt,P1) in
+    {272}event WrongMatchAttester
+) | (
+    {273}let got_84: bool = matchatt(NoAtt,P2) in
+    {274}event WrongMatchAttester
+) | (
+    {275}let got_85: bool = matchatt(NoAtt,P3) in
+    {276}event WrongMatchAttester
+) | (
+    {277}let got_86: bool = matchatt(Assign(P1),P1) in
+    (
+        {278}if (got_86 = true) then
+            0
+        else
+            {279}event WrongMatchAttester
+    )
+    else
+        {280}event WrongMatchAttester
+) | (
+    {281}let got_87: bool = matchatt(Assign(P1),P2) in
+    {282}event WrongMatchAttester
+) | (
+    {283}let got_88: bool = matchatt(Assign(P1),P3) in
+    {284}event WrongMatchAttester
+) | (
+    {285}let got_89: bool = matchatt(Assign(P2),P1) in
+    {286}event WrongMatchAttester
+) | (
+    {287}let got_90: bool = matchatt(Assign(P2),P2) in
+    (
+        {288}if (got_90 = true) then
+            0
+        else
+            {289}event WrongMatchAttester
+    )
+    else
+        {290}event WrongMatchAttester
+) | (
+    {291}let got_91: bool = matchatt(Assign(P2),P3) in
+    {292}event WrongMatchAttester
+) | (
+    {293}let got_92: bool = matchatt(Assign(P3),P1) in
+    {294}event WrongMatchAttester
+) | (
+    {295}let got_93: bool = matchatt(Assign(P3),P2) in
+    {296}event WrongMatchAttester
+) | (
+    {297}let got_94: bool = matchatt(Assign(P3),P3) in
+    (
+        {298}if (got_94 = true) then
+            0
+        else
+            {299}event WrongMatchAttester
+    )
+    else
+        {300}event WrongMatchAttester
+) | (
+    {301}let neutral: entry = Req(Any,Any,Any,V0,Both,NoAtt) in
+    {302}let c: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {303}let v: entry = neutral in
+    {304}let v_1: bool = success?(1-proj-Req(v)) in
+    {305}let xa: attreq = (if v_1 then 6-proj-Req(v) else caught-fail) in
+    {306}let xt: tcbreq = (if v_1 then 5-proj-Req(v) else caught-fail) in
+    {307}let xv: svn = (if v_1 then 4-proj-Req(v) else caught-fail) in
+    {308}let xp: ident = (if v_1 then 3-proj-Req(v) else caught-fail) in
+    {309}let xs: ident = (if v_1 then 2-proj-Req(v) else caught-fail) in
+    {310}let xm: ident = (if v_1 then 1-proj-Req(v) else caught-fail) in
+    {311}let v_2: entry = (if v_1 then catch-fail(c) else caught-fail) in
+    {312}let v_3: bool = (not-caught-fail(v_2) && success?(1-proj-Req(v_2))) in
+    {313}let ya: attreq = (if v_3 then 6-proj-Req(v_2) else caught-fail) in
+    {314}let yt: tcbreq = (if v_3 then 5-proj-Req(v_2) else caught-fail) in
+    {315}let yv: svn = (if v_3 then 4-proj-Req(v_2) else caught-fail) in
+    {316}let yp: ident = (if v_3 then 3-proj-Req(v_2) else caught-fail) in
+    {317}let ys: ident = (if v_3 then 2-proj-Req(v_2) else caught-fail) in
+    {318}let ym: ident = (if v_3 then 1-proj-Req(v_2) else caught-fail) in
+    {319}let jm: ident = (if v_3 then catch-fail(joinid(xm,ym)) else caught-fail) in
+    {320}let v_4: bool = not-caught-fail(jm) in
+    {321}let js: ident = (if v_4 then catch-fail(joinid(xs,ys)) else caught-fail) in
+    {322}let v_5: bool = not-caught-fail(js) in
+    {323}let jp: ident = (if v_5 then catch-fail(joinid(xp,yp)) else caught-fail) in
+    {324}let v_6: bool = not-caught-fail(jp) in
+    {325}let jv: svn = (if v_6 then catch-fail(joinv(xv,yv)) else caught-fail) in
+    {326}let v_7: bool = not-caught-fail(jv) in
+    {327}let jt: tcbreq = (if v_7 then catch-fail(jointcb(xt,yt)) else caught-fail) in
+    {328}let v_8: bool = not-caught-fail(jt) in
+    {329}let ja: attreq = (if v_8 then catch-fail(joinatt(xa,ya)) else caught-fail) in
+    {330}let v_9: bool = not-caught-fail(ja) in
+    {331}let left: entry = (if v_1 then (if v_3 then (if v_4 then (if v_5 then (if v_6 then (if v_7 then (if v_8 then (if v_9 then Req(jm,js,jp,jv,jt,ja) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {332}let v_10: entry = c in
+    {333}let v_11: bool = success?(1-proj-Req(v_10)) in
+    {334}let xa_1: attreq = (if v_11 then 6-proj-Req(v_10) else caught-fail) in
+    {335}let xt_1: tcbreq = (if v_11 then 5-proj-Req(v_10) else caught-fail) in
+    {336}let xv_1: svn = (if v_11 then 4-proj-Req(v_10) else caught-fail) in
+    {337}let xp_1: ident = (if v_11 then 3-proj-Req(v_10) else caught-fail) in
+    {338}let xs_1: ident = (if v_11 then 2-proj-Req(v_10) else caught-fail) in
+    {339}let xm_1: ident = (if v_11 then 1-proj-Req(v_10) else caught-fail) in
+    {340}let v_12: entry = (if v_11 then catch-fail(neutral) else caught-fail) in
+    {341}let v_13: bool = (not-caught-fail(v_12) && success?(1-proj-Req(v_12))) in
+    {342}let ya_1: attreq = (if v_13 then 6-proj-Req(v_12) else caught-fail) in
+    {343}let yt_1: tcbreq = (if v_13 then 5-proj-Req(v_12) else caught-fail) in
+    {344}let yv_1: svn = (if v_13 then 4-proj-Req(v_12) else caught-fail) in
+    {345}let yp_1: ident = (if v_13 then 3-proj-Req(v_12) else caught-fail) in
+    {346}let ys_1: ident = (if v_13 then 2-proj-Req(v_12) else caught-fail) in
+    {347}let ym_1: ident = (if v_13 then 1-proj-Req(v_12) else caught-fail) in
+    {348}let jm_1: ident = (if v_13 then catch-fail(joinid(xm_1,ym_1)) else caught-fail) in
+    {349}let v_14: bool = not-caught-fail(jm_1) in
+    {350}let js_1: ident = (if v_14 then catch-fail(joinid(xs_1,ys_1)) else caught-fail) in
+    {351}let v_15: bool = not-caught-fail(js_1) in
+    {352}let jp_1: ident = (if v_15 then catch-fail(joinid(xp_1,yp_1)) else caught-fail) in
+    {353}let v_16: bool = not-caught-fail(jp_1) in
+    {354}let jv_1: svn = (if v_16 then catch-fail(joinv(xv_1,yv_1)) else caught-fail) in
+    {355}let v_17: bool = not-caught-fail(jv_1) in
+    {356}let jt_1: tcbreq = (if v_17 then catch-fail(jointcb(xt_1,yt_1)) else caught-fail) in
+    {357}let v_18: bool = not-caught-fail(jt_1) in
+    {358}let ja_1: attreq = (if v_18 then catch-fail(joinatt(xa_1,ya_1)) else caught-fail) in
+    {359}let v_19: bool = not-caught-fail(ja_1) in
+    {360}let right: entry = (if v_11 then (if v_13 then (if v_14 then (if v_15 then (if v_16 then (if v_17 then (if v_18 then (if v_19 then Req(jm_1,js_1,jp_1,jv_1,jt_1,ja_1) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {361}let v_20: entry = c in
+    {362}let v_21: bool = success?(1-proj-Req(v_20)) in
+    {363}let xa_2: attreq = (if v_21 then 6-proj-Req(v_20) else caught-fail) in
+    {364}let xt_2: tcbreq = (if v_21 then 5-proj-Req(v_20) else caught-fail) in
+    {365}let xv_2: svn = (if v_21 then 4-proj-Req(v_20) else caught-fail) in
+    {366}let xp_2: ident = (if v_21 then 3-proj-Req(v_20) else caught-fail) in
+    {367}let xs_2: ident = (if v_21 then 2-proj-Req(v_20) else caught-fail) in
+    {368}let xm_2: ident = (if v_21 then 1-proj-Req(v_20) else caught-fail) in
+    {369}let v_22: entry = (if v_21 then catch-fail(c) else caught-fail) in
+    {370}let v_23: bool = (not-caught-fail(v_22) && success?(1-proj-Req(v_22))) in
+    {371}let ya_2: attreq = (if v_23 then 6-proj-Req(v_22) else caught-fail) in
+    {372}let yt_2: tcbreq = (if v_23 then 5-proj-Req(v_22) else caught-fail) in
+    {373}let yv_2: svn = (if v_23 then 4-proj-Req(v_22) else caught-fail) in
+    {374}let yp_2: ident = (if v_23 then 3-proj-Req(v_22) else caught-fail) in
+    {375}let ys_2: ident = (if v_23 then 2-proj-Req(v_22) else caught-fail) in
+    {376}let ym_2: ident = (if v_23 then 1-proj-Req(v_22) else caught-fail) in
+    {377}let jm_2: ident = (if v_23 then catch-fail(joinid(xm_2,ym_2)) else caught-fail) in
+    {378}let v_24: bool = not-caught-fail(jm_2) in
+    {379}let js_2: ident = (if v_24 then catch-fail(joinid(xs_2,ys_2)) else caught-fail) in
+    {380}let v_25: bool = not-caught-fail(js_2) in
+    {381}let jp_2: ident = (if v_25 then catch-fail(joinid(xp_2,yp_2)) else caught-fail) in
+    {382}let v_26: bool = not-caught-fail(jp_2) in
+    {383}let jv_2: svn = (if v_26 then catch-fail(joinv(xv_2,yv_2)) else caught-fail) in
+    {384}let v_27: bool = not-caught-fail(jv_2) in
+    {385}let jt_2: tcbreq = (if v_27 then catch-fail(jointcb(xt_2,yt_2)) else caught-fail) in
+    {386}let v_28: bool = not-caught-fail(jt_2) in
+    {387}let ja_2: attreq = (if v_28 then catch-fail(joinatt(xa_2,ya_2)) else caught-fail) in
+    {388}let v_29: bool = not-caught-fail(ja_2) in
+    {389}let idem: entry = (if v_21 then (if v_23 then (if v_24 then (if v_25 then (if v_26 then (if v_27 then (if v_28 then (if v_29 then Req(jm_2,js_2,jp_2,jv_2,jt_2,ja_2) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {390}if ((left = c) && ((right = c) && (idem = c))) then
+    {391}event WildcardAndIdempotence
+) | (
+    {392}let cA: entry = Req(Any,exact(s1),Any,V0,Both,Assign(P1)) in
+    {393}let cB: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {394}let cC: entry = Req(exact(mE1),exact(s1),Any,V1,Both,Assign(P1)) in
+    {395}let v_30: entry = cA in
+    {396}let v_31: bool = success?(1-proj-Req(v_30)) in
+    {397}let xa_3: attreq = (if v_31 then 6-proj-Req(v_30) else caught-fail) in
+    {398}let xt_3: tcbreq = (if v_31 then 5-proj-Req(v_30) else caught-fail) in
+    {399}let xv_3: svn = (if v_31 then 4-proj-Req(v_30) else caught-fail) in
+    {400}let xp_3: ident = (if v_31 then 3-proj-Req(v_30) else caught-fail) in
+    {401}let xs_3: ident = (if v_31 then 2-proj-Req(v_30) else caught-fail) in
+    {402}let xm_3: ident = (if v_31 then 1-proj-Req(v_30) else caught-fail) in
+    {403}let v_32: entry = (if v_31 then catch-fail(cB) else caught-fail) in
+    {404}let v_33: bool = (not-caught-fail(v_32) && success?(1-proj-Req(v_32))) in
+    {405}let ya_3: attreq = (if v_33 then 6-proj-Req(v_32) else caught-fail) in
+    {406}let yt_3: tcbreq = (if v_33 then 5-proj-Req(v_32) else caught-fail) in
+    {407}let yv_3: svn = (if v_33 then 4-proj-Req(v_32) else caught-fail) in
+    {408}let yp_3: ident = (if v_33 then 3-proj-Req(v_32) else caught-fail) in
+    {409}let ys_3: ident = (if v_33 then 2-proj-Req(v_32) else caught-fail) in
+    {410}let ym_3: ident = (if v_33 then 1-proj-Req(v_32) else caught-fail) in
+    {411}let jm_3: ident = (if v_33 then catch-fail(joinid(xm_3,ym_3)) else caught-fail) in
+    {412}let v_34: bool = not-caught-fail(jm_3) in
+    {413}let js_3: ident = (if v_34 then catch-fail(joinid(xs_3,ys_3)) else caught-fail) in
+    {414}let v_35: bool = not-caught-fail(js_3) in
+    {415}let jp_3: ident = (if v_35 then catch-fail(joinid(xp_3,yp_3)) else caught-fail) in
+    {416}let v_36: bool = not-caught-fail(jp_3) in
+    {417}let jv_3: svn = (if v_36 then catch-fail(joinv(xv_3,yv_3)) else caught-fail) in
+    {418}let v_37: bool = not-caught-fail(jv_3) in
+    {419}let jt_3: tcbreq = (if v_37 then catch-fail(jointcb(xt_3,yt_3)) else caught-fail) in
+    {420}let v_38: bool = not-caught-fail(jt_3) in
+    {421}let ja_3: attreq = (if v_38 then catch-fail(joinatt(xa_3,ya_3)) else caught-fail) in
+    {422}let v_39: bool = not-caught-fail(ja_3) in
+    {423}let twoInputs: entry = (if v_31 then (if v_33 then (if v_34 then (if v_35 then (if v_36 then (if v_37 then (if v_38 then (if v_39 then Req(jm_3,js_3,jp_3,jv_3,jt_3,ja_3) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {424}let v_40: entry = twoInputs in
+    {425}let v_41: bool = success?(1-proj-Req(v_40)) in
+    {426}let xa_4: attreq = (if v_41 then 6-proj-Req(v_40) else caught-fail) in
+    {427}let xt_4: tcbreq = (if v_41 then 5-proj-Req(v_40) else caught-fail) in
+    {428}let xv_4: svn = (if v_41 then 4-proj-Req(v_40) else caught-fail) in
+    {429}let xp_4: ident = (if v_41 then 3-proj-Req(v_40) else caught-fail) in
+    {430}let xs_4: ident = (if v_41 then 2-proj-Req(v_40) else caught-fail) in
+    {431}let xm_4: ident = (if v_41 then 1-proj-Req(v_40) else caught-fail) in
+    {432}let v_42: entry = (if v_41 then catch-fail(cC) else caught-fail) in
+    {433}let v_43: bool = (not-caught-fail(v_42) && success?(1-proj-Req(v_42))) in
+    {434}let ya_4: attreq = (if v_43 then 6-proj-Req(v_42) else caught-fail) in
+    {435}let yt_4: tcbreq = (if v_43 then 5-proj-Req(v_42) else caught-fail) in
+    {436}let yv_4: svn = (if v_43 then 4-proj-Req(v_42) else caught-fail) in
+    {437}let yp_4: ident = (if v_43 then 3-proj-Req(v_42) else caught-fail) in
+    {438}let ys_4: ident = (if v_43 then 2-proj-Req(v_42) else caught-fail) in
+    {439}let ym_4: ident = (if v_43 then 1-proj-Req(v_42) else caught-fail) in
+    {440}let jm_4: ident = (if v_43 then catch-fail(joinid(xm_4,ym_4)) else caught-fail) in
+    {441}let v_44: bool = not-caught-fail(jm_4) in
+    {442}let js_4: ident = (if v_44 then catch-fail(joinid(xs_4,ys_4)) else caught-fail) in
+    {443}let v_45: bool = not-caught-fail(js_4) in
+    {444}let jp_4: ident = (if v_45 then catch-fail(joinid(xp_4,yp_4)) else caught-fail) in
+    {445}let v_46: bool = not-caught-fail(jp_4) in
+    {446}let jv_4: svn = (if v_46 then catch-fail(joinv(xv_4,yv_4)) else caught-fail) in
+    {447}let v_47: bool = not-caught-fail(jv_4) in
+    {448}let jt_4: tcbreq = (if v_47 then catch-fail(jointcb(xt_4,yt_4)) else caught-fail) in
+    {449}let v_48: bool = not-caught-fail(jt_4) in
+    {450}let ja_4: attreq = (if v_48 then catch-fail(joinatt(xa_4,ya_4)) else caught-fail) in
+    {451}let v_49: bool = not-caught-fail(ja_4) in
+    {452}let threeInputs: entry = (if v_41 then (if v_43 then (if v_44 then (if v_45 then (if v_46 then (if v_47 then (if v_48 then (if v_49 then Req(jm_4,js_4,jp_4,jv_4,jt_4,ja_4) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {453}if ((cA ≠ cB) && ((cA ≠ cC) && ((cB ≠ cC) && (twoInputs = threeInputs)))) then
+    {454}event RedundantInputsEqual
+) | (
+    {455}let cA_1: entry = Req(Any,exact(s1),Any,V0,Both,Assign(P1)) in
+    {456}let cB_1: entry = Req(exact(mE1),exact(s1),Any,V1,Both,Assign(P1)) in
+    {457}let v_50: entry = cA_1 in
+    {458}let v_51: bool = success?(1-proj-Req(v_50)) in
+    {459}let xa_5: attreq = (if v_51 then 6-proj-Req(v_50) else caught-fail) in
+    {460}let xt_5: tcbreq = (if v_51 then 5-proj-Req(v_50) else caught-fail) in
+    {461}let xv_5: svn = (if v_51 then 4-proj-Req(v_50) else caught-fail) in
+    {462}let xp_5: ident = (if v_51 then 3-proj-Req(v_50) else caught-fail) in
+    {463}let xs_5: ident = (if v_51 then 2-proj-Req(v_50) else caught-fail) in
+    {464}let xm_5: ident = (if v_51 then 1-proj-Req(v_50) else caught-fail) in
+    {465}let v_52: entry = (if v_51 then catch-fail(cB_1) else caught-fail) in
+    {466}let v_53: bool = (not-caught-fail(v_52) && success?(1-proj-Req(v_52))) in
+    {467}let ya_5: attreq = (if v_53 then 6-proj-Req(v_52) else caught-fail) in
+    {468}let yt_5: tcbreq = (if v_53 then 5-proj-Req(v_52) else caught-fail) in
+    {469}let yv_5: svn = (if v_53 then 4-proj-Req(v_52) else caught-fail) in
+    {470}let yp_5: ident = (if v_53 then 3-proj-Req(v_52) else caught-fail) in
+    {471}let ys_5: ident = (if v_53 then 2-proj-Req(v_52) else caught-fail) in
+    {472}let ym_5: ident = (if v_53 then 1-proj-Req(v_52) else caught-fail) in
+    {473}let jm_5: ident = (if v_53 then catch-fail(joinid(xm_5,ym_5)) else caught-fail) in
+    {474}let v_54: bool = not-caught-fail(jm_5) in
+    {475}let js_5: ident = (if v_54 then catch-fail(joinid(xs_5,ys_5)) else caught-fail) in
+    {476}let v_55: bool = not-caught-fail(js_5) in
+    {477}let jp_5: ident = (if v_55 then catch-fail(joinid(xp_5,yp_5)) else caught-fail) in
+    {478}let v_56: bool = not-caught-fail(jp_5) in
+    {479}let jv_5: svn = (if v_56 then catch-fail(joinv(xv_5,yv_5)) else caught-fail) in
+    {480}let v_57: bool = not-caught-fail(jv_5) in
+    {481}let jt_5: tcbreq = (if v_57 then catch-fail(jointcb(xt_5,yt_5)) else caught-fail) in
+    {482}let v_58: bool = not-caught-fail(jt_5) in
+    {483}let ja_5: attreq = (if v_58 then catch-fail(joinatt(xa_5,ya_5)) else caught-fail) in
+    {484}let v_59: bool = not-caught-fail(ja_5) in
+    {485}let ab: entry = (if v_51 then (if v_53 then (if v_54 then (if v_55 then (if v_56 then (if v_57 then (if v_58 then (if v_59 then Req(jm_5,js_5,jp_5,jv_5,jt_5,ja_5) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {486}let v_60: entry = cB_1 in
+    {487}let v_61: bool = success?(1-proj-Req(v_60)) in
+    {488}let xa_6: attreq = (if v_61 then 6-proj-Req(v_60) else caught-fail) in
+    {489}let xt_6: tcbreq = (if v_61 then 5-proj-Req(v_60) else caught-fail) in
+    {490}let xv_6: svn = (if v_61 then 4-proj-Req(v_60) else caught-fail) in
+    {491}let xp_6: ident = (if v_61 then 3-proj-Req(v_60) else caught-fail) in
+    {492}let xs_6: ident = (if v_61 then 2-proj-Req(v_60) else caught-fail) in
+    {493}let xm_6: ident = (if v_61 then 1-proj-Req(v_60) else caught-fail) in
+    {494}let v_62: entry = (if v_61 then catch-fail(cA_1) else caught-fail) in
+    {495}let v_63: bool = (not-caught-fail(v_62) && success?(1-proj-Req(v_62))) in
+    {496}let ya_6: attreq = (if v_63 then 6-proj-Req(v_62) else caught-fail) in
+    {497}let yt_6: tcbreq = (if v_63 then 5-proj-Req(v_62) else caught-fail) in
+    {498}let yv_6: svn = (if v_63 then 4-proj-Req(v_62) else caught-fail) in
+    {499}let yp_6: ident = (if v_63 then 3-proj-Req(v_62) else caught-fail) in
+    {500}let ys_6: ident = (if v_63 then 2-proj-Req(v_62) else caught-fail) in
+    {501}let ym_6: ident = (if v_63 then 1-proj-Req(v_62) else caught-fail) in
+    {502}let jm_6: ident = (if v_63 then catch-fail(joinid(xm_6,ym_6)) else caught-fail) in
+    {503}let v_64: bool = not-caught-fail(jm_6) in
+    {504}let js_6: ident = (if v_64 then catch-fail(joinid(xs_6,ys_6)) else caught-fail) in
+    {505}let v_65: bool = not-caught-fail(js_6) in
+    {506}let jp_6: ident = (if v_65 then catch-fail(joinid(xp_6,yp_6)) else caught-fail) in
+    {507}let v_66: bool = not-caught-fail(jp_6) in
+    {508}let jv_6: svn = (if v_66 then catch-fail(joinv(xv_6,yv_6)) else caught-fail) in
+    {509}let v_67: bool = not-caught-fail(jv_6) in
+    {510}let jt_6: tcbreq = (if v_67 then catch-fail(jointcb(xt_6,yt_6)) else caught-fail) in
+    {511}let v_68: bool = not-caught-fail(jt_6) in
+    {512}let ja_6: attreq = (if v_68 then catch-fail(joinatt(xa_6,ya_6)) else caught-fail) in
+    {513}let v_69: bool = not-caught-fail(ja_6) in
+    {514}let ba: entry = (if v_61 then (if v_63 then (if v_64 then (if v_65 then (if v_66 then (if v_67 then (if v_68 then (if v_69 then Req(jm_6,js_6,jp_6,jv_6,jt_6,ja_6) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {515}if (ab = ba) then
+    {516}event OrderNormalization
+) | (
+    {517}let c_1: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {518}let who: party = P1 in
+    {519}let actual: identity = Identity(mE1,s1,prodA,V2) in
+    {520}let ts: tcbstatus = Good in
+    {521}let v_70: entry = c_1 in
+    {522}let v_71: bool = success?(1-proj-Req(v_70)) in
+    {523}let ca: attreq = (if v_71 then 6-proj-Req(v_70) else caught-fail) in
+    {524}let ct: tcbreq = (if v_71 then 5-proj-Req(v_70) else caught-fail) in
+    {525}let cv: svn = (if v_71 then 4-proj-Req(v_70) else caught-fail) in
+    {526}let cp: ident = (if v_71 then 3-proj-Req(v_70) else caught-fail) in
+    {527}let cs: ident = (if v_71 then 2-proj-Req(v_70) else caught-fail) in
+    {528}let cm: ident = (if v_71 then 1-proj-Req(v_70) else caught-fail) in
+    {529}let v_72: identity = (if v_71 then catch-fail(actual) else caught-fail) in
+    {530}let v_73: bool = (not-caught-fail(v_72) && success?(1-proj-Identity(v_72))) in
+    {531}let av: svn = (if v_73 then 4-proj-Identity(v_72) else caught-fail) in
+    {532}let ap: attr = (if v_73 then 3-proj-Identity(v_72) else caught-fail) in
+    {533}let asigner: attr = (if v_73 then 2-proj-Identity(v_72) else caught-fail) in
+    {534}let am: attr = (if v_73 then 1-proj-Identity(v_72) else caught-fail) in
+    {535}let vm: bool = (if v_73 then catch-fail(matchid(cm,am)) else caught-fail) in
+    {536}let v_74: bool = not-caught-fail(vm) in
+    {537}let vs: bool = (if v_74 then catch-fail(matchid(cs,asigner)) else caught-fail) in
+    {538}let v_75: bool = not-caught-fail(vs) in
+    {539}let vp: bool = (if v_75 then catch-fail(matchid(cp,ap)) else caught-fail) in
+    {540}let v_76: bool = not-caught-fail(vp) in
+    {541}let vv: bool = (if v_76 then catch-fail(matchv(cv,av)) else caught-fail) in
+    {542}let v_77: bool = not-caught-fail(vv) in
+    {543}let vt: bool = (if v_77 then catch-fail(matchtcb(ct,ts)) else caught-fail) in
+    {544}let v_78: bool = not-caught-fail(vt) in
+    {545}let va: bool = (if v_78 then catch-fail(matchatt(ca,who)) else caught-fail) in
+    {546}let v_79: bool = not-caught-fail(va) in
+    {547}let ok: bool = (if v_71 then (if v_73 then (if v_74 then (if v_75 then (if v_76 then (if v_77 then (if v_78 then (if v_79 then (vm && (vs && (vp && (vv && (vt && va))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {548}if (ok = true) then
+    {549}event CompatibleEntryAccepted
+) | (
+    {550}let x: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {551}let y: entry = Req(exact(mBad),Any,Any,V0,Both,NoAtt) in
+    {552}let v_80: entry = x in
+    {553}let v_81: bool = success?(1-proj-Req(v_80)) in
+    {554}let xa_7: attreq = (if v_81 then 6-proj-Req(v_80) else caught-fail) in
+    {555}let xt_7: tcbreq = (if v_81 then 5-proj-Req(v_80) else caught-fail) in
+    {556}let xv_7: svn = (if v_81 then 4-proj-Req(v_80) else caught-fail) in
+    {557}let xp_7: ident = (if v_81 then 3-proj-Req(v_80) else caught-fail) in
+    {558}let xs_7: ident = (if v_81 then 2-proj-Req(v_80) else caught-fail) in
+    {559}let xm_7: ident = (if v_81 then 1-proj-Req(v_80) else caught-fail) in
+    {560}let v_82: entry = (if v_81 then catch-fail(y) else caught-fail) in
+    {561}let v_83: bool = (not-caught-fail(v_82) && success?(1-proj-Req(v_82))) in
+    {562}let ya_7: attreq = (if v_83 then 6-proj-Req(v_82) else caught-fail) in
+    {563}let yt_7: tcbreq = (if v_83 then 5-proj-Req(v_82) else caught-fail) in
+    {564}let yv_7: svn = (if v_83 then 4-proj-Req(v_82) else caught-fail) in
+    {565}let yp_7: ident = (if v_83 then 3-proj-Req(v_82) else caught-fail) in
+    {566}let ys_7: ident = (if v_83 then 2-proj-Req(v_82) else caught-fail) in
+    {567}let ym_7: ident = (if v_83 then 1-proj-Req(v_82) else caught-fail) in
+    {568}let jm_7: ident = (if v_83 then catch-fail(joinid(xm_7,ym_7)) else caught-fail) in
+    {569}let v_84: bool = not-caught-fail(jm_7) in
+    {570}let js_7: ident = (if v_84 then catch-fail(joinid(xs_7,ys_7)) else caught-fail) in
+    {571}let v_85: bool = not-caught-fail(js_7) in
+    {572}let jp_7: ident = (if v_85 then catch-fail(joinid(xp_7,yp_7)) else caught-fail) in
+    {573}let v_86: bool = not-caught-fail(jp_7) in
+    {574}let jv_7: svn = (if v_86 then catch-fail(joinv(xv_7,yv_7)) else caught-fail) in
+    {575}let v_87: bool = not-caught-fail(jv_7) in
+    {576}let jt_7: tcbreq = (if v_87 then catch-fail(jointcb(xt_7,yt_7)) else caught-fail) in
+    {577}let v_88: bool = not-caught-fail(jt_7) in
+    {578}let ja_7: attreq = (if v_88 then catch-fail(joinatt(xa_7,ya_7)) else caught-fail) in
+    {579}let v_89: bool = not-caught-fail(ja_7) in
+    {580}let impossible: entry = (if v_81 then (if v_83 then (if v_84 then (if v_85 then (if v_86 then (if v_87 then (if v_88 then (if v_89 then Req(jm_7,js_7,jp_7,jv_7,jt_7,ja_7) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {581}event MeasurementConflictAccepted
+) | (
+    {582}let x_1: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {583}let y_1: entry = Req(Any,exact(sBad),Any,V0,Both,NoAtt) in
+    {584}let v_90: entry = x_1 in
+    {585}let v_91: bool = success?(1-proj-Req(v_90)) in
+    {586}let xa_8: attreq = (if v_91 then 6-proj-Req(v_90) else caught-fail) in
+    {587}let xt_8: tcbreq = (if v_91 then 5-proj-Req(v_90) else caught-fail) in
+    {588}let xv_8: svn = (if v_91 then 4-proj-Req(v_90) else caught-fail) in
+    {589}let xp_8: ident = (if v_91 then 3-proj-Req(v_90) else caught-fail) in
+    {590}let xs_8: ident = (if v_91 then 2-proj-Req(v_90) else caught-fail) in
+    {591}let xm_8: ident = (if v_91 then 1-proj-Req(v_90) else caught-fail) in
+    {592}let v_92: entry = (if v_91 then catch-fail(y_1) else caught-fail) in
+    {593}let v_93: bool = (not-caught-fail(v_92) && success?(1-proj-Req(v_92))) in
+    {594}let ya_8: attreq = (if v_93 then 6-proj-Req(v_92) else caught-fail) in
+    {595}let yt_8: tcbreq = (if v_93 then 5-proj-Req(v_92) else caught-fail) in
+    {596}let yv_8: svn = (if v_93 then 4-proj-Req(v_92) else caught-fail) in
+    {597}let yp_8: ident = (if v_93 then 3-proj-Req(v_92) else caught-fail) in
+    {598}let ys_8: ident = (if v_93 then 2-proj-Req(v_92) else caught-fail) in
+    {599}let ym_8: ident = (if v_93 then 1-proj-Req(v_92) else caught-fail) in
+    {600}let jm_8: ident = (if v_93 then catch-fail(joinid(xm_8,ym_8)) else caught-fail) in
+    {601}let v_94: bool = not-caught-fail(jm_8) in
+    {602}let js_8: ident = (if v_94 then catch-fail(joinid(xs_8,ys_8)) else caught-fail) in
+    {603}let v_95: bool = not-caught-fail(js_8) in
+    {604}let jp_8: ident = (if v_95 then catch-fail(joinid(xp_8,yp_8)) else caught-fail) in
+    {605}let v_96: bool = not-caught-fail(jp_8) in
+    {606}let jv_8: svn = (if v_96 then catch-fail(joinv(xv_8,yv_8)) else caught-fail) in
+    {607}let v_97: bool = not-caught-fail(jv_8) in
+    {608}let jt_8: tcbreq = (if v_97 then catch-fail(jointcb(xt_8,yt_8)) else caught-fail) in
+    {609}let v_98: bool = not-caught-fail(jt_8) in
+    {610}let ja_8: attreq = (if v_98 then catch-fail(joinatt(xa_8,ya_8)) else caught-fail) in
+    {611}let v_99: bool = not-caught-fail(ja_8) in
+    {612}let impossible_1: entry = (if v_91 then (if v_93 then (if v_94 then (if v_95 then (if v_96 then (if v_97 then (if v_98 then (if v_99 then Req(jm_8,js_8,jp_8,jv_8,jt_8,ja_8) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {613}event SignerConflictAccepted
+) | (
+    {614}let x_2: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {615}let y_2: entry = Req(Any,Any,exact(prodB),V0,Both,NoAtt) in
+    {616}let v_100: entry = x_2 in
+    {617}let v_101: bool = success?(1-proj-Req(v_100)) in
+    {618}let xa_9: attreq = (if v_101 then 6-proj-Req(v_100) else caught-fail) in
+    {619}let xt_9: tcbreq = (if v_101 then 5-proj-Req(v_100) else caught-fail) in
+    {620}let xv_9: svn = (if v_101 then 4-proj-Req(v_100) else caught-fail) in
+    {621}let xp_9: ident = (if v_101 then 3-proj-Req(v_100) else caught-fail) in
+    {622}let xs_9: ident = (if v_101 then 2-proj-Req(v_100) else caught-fail) in
+    {623}let xm_9: ident = (if v_101 then 1-proj-Req(v_100) else caught-fail) in
+    {624}let v_102: entry = (if v_101 then catch-fail(y_2) else caught-fail) in
+    {625}let v_103: bool = (not-caught-fail(v_102) && success?(1-proj-Req(v_102))) in
+    {626}let ya_9: attreq = (if v_103 then 6-proj-Req(v_102) else caught-fail) in
+    {627}let yt_9: tcbreq = (if v_103 then 5-proj-Req(v_102) else caught-fail) in
+    {628}let yv_9: svn = (if v_103 then 4-proj-Req(v_102) else caught-fail) in
+    {629}let yp_9: ident = (if v_103 then 3-proj-Req(v_102) else caught-fail) in
+    {630}let ys_9: ident = (if v_103 then 2-proj-Req(v_102) else caught-fail) in
+    {631}let ym_9: ident = (if v_103 then 1-proj-Req(v_102) else caught-fail) in
+    {632}let jm_9: ident = (if v_103 then catch-fail(joinid(xm_9,ym_9)) else caught-fail) in
+    {633}let v_104: bool = not-caught-fail(jm_9) in
+    {634}let js_9: ident = (if v_104 then catch-fail(joinid(xs_9,ys_9)) else caught-fail) in
+    {635}let v_105: bool = not-caught-fail(js_9) in
+    {636}let jp_9: ident = (if v_105 then catch-fail(joinid(xp_9,yp_9)) else caught-fail) in
+    {637}let v_106: bool = not-caught-fail(jp_9) in
+    {638}let jv_9: svn = (if v_106 then catch-fail(joinv(xv_9,yv_9)) else caught-fail) in
+    {639}let v_107: bool = not-caught-fail(jv_9) in
+    {640}let jt_9: tcbreq = (if v_107 then catch-fail(jointcb(xt_9,yt_9)) else caught-fail) in
+    {641}let v_108: bool = not-caught-fail(jt_9) in
+    {642}let ja_9: attreq = (if v_108 then catch-fail(joinatt(xa_9,ya_9)) else caught-fail) in
+    {643}let v_109: bool = not-caught-fail(ja_9) in
+    {644}let impossible_2: entry = (if v_101 then (if v_103 then (if v_104 then (if v_105 then (if v_106 then (if v_107 then (if v_108 then (if v_109 then Req(jm_9,js_9,jp_9,jv_9,jt_9,ja_9) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {645}event ProductConflictAccepted
+) | (
+    {646}let x_3: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {647}let y_3: entry = Req(Any,Any,Any,V0,OnlyOutdated,NoAtt) in
+    {648}let v_110: entry = x_3 in
+    {649}let v_111: bool = success?(1-proj-Req(v_110)) in
+    {650}let xa_10: attreq = (if v_111 then 6-proj-Req(v_110) else caught-fail) in
+    {651}let xt_10: tcbreq = (if v_111 then 5-proj-Req(v_110) else caught-fail) in
+    {652}let xv_10: svn = (if v_111 then 4-proj-Req(v_110) else caught-fail) in
+    {653}let xp_10: ident = (if v_111 then 3-proj-Req(v_110) else caught-fail) in
+    {654}let xs_10: ident = (if v_111 then 2-proj-Req(v_110) else caught-fail) in
+    {655}let xm_10: ident = (if v_111 then 1-proj-Req(v_110) else caught-fail) in
+    {656}let v_112: entry = (if v_111 then catch-fail(y_3) else caught-fail) in
+    {657}let v_113: bool = (not-caught-fail(v_112) && success?(1-proj-Req(v_112))) in
+    {658}let ya_10: attreq = (if v_113 then 6-proj-Req(v_112) else caught-fail) in
+    {659}let yt_10: tcbreq = (if v_113 then 5-proj-Req(v_112) else caught-fail) in
+    {660}let yv_10: svn = (if v_113 then 4-proj-Req(v_112) else caught-fail) in
+    {661}let yp_10: ident = (if v_113 then 3-proj-Req(v_112) else caught-fail) in
+    {662}let ys_10: ident = (if v_113 then 2-proj-Req(v_112) else caught-fail) in
+    {663}let ym_10: ident = (if v_113 then 1-proj-Req(v_112) else caught-fail) in
+    {664}let jm_10: ident = (if v_113 then catch-fail(joinid(xm_10,ym_10)) else caught-fail) in
+    {665}let v_114: bool = not-caught-fail(jm_10) in
+    {666}let js_10: ident = (if v_114 then catch-fail(joinid(xs_10,ys_10)) else caught-fail) in
+    {667}let v_115: bool = not-caught-fail(js_10) in
+    {668}let jp_10: ident = (if v_115 then catch-fail(joinid(xp_10,yp_10)) else caught-fail) in
+    {669}let v_116: bool = not-caught-fail(jp_10) in
+    {670}let jv_10: svn = (if v_116 then catch-fail(joinv(xv_10,yv_10)) else caught-fail) in
+    {671}let v_117: bool = not-caught-fail(jv_10) in
+    {672}let jt_10: tcbreq = (if v_117 then catch-fail(jointcb(xt_10,yt_10)) else caught-fail) in
+    {673}let v_118: bool = not-caught-fail(jt_10) in
+    {674}let ja_10: attreq = (if v_118 then catch-fail(joinatt(xa_10,ya_10)) else caught-fail) in
+    {675}let v_119: bool = not-caught-fail(ja_10) in
+    {676}let impossible_3: entry = (if v_111 then (if v_113 then (if v_114 then (if v_115 then (if v_116 then (if v_117 then (if v_118 then (if v_119 then Req(jm_10,js_10,jp_10,jv_10,jt_10,ja_10) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {677}event TCBConflictAccepted
+) | (
+    {678}let x_4: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {679}let y_4: entry = Req(Any,Any,Any,V0,Both,Assign(P2)) in
+    {680}let v_120: entry = x_4 in
+    {681}let v_121: bool = success?(1-proj-Req(v_120)) in
+    {682}let xa_11: attreq = (if v_121 then 6-proj-Req(v_120) else caught-fail) in
+    {683}let xt_11: tcbreq = (if v_121 then 5-proj-Req(v_120) else caught-fail) in
+    {684}let xv_11: svn = (if v_121 then 4-proj-Req(v_120) else caught-fail) in
+    {685}let xp_11: ident = (if v_121 then 3-proj-Req(v_120) else caught-fail) in
+    {686}let xs_11: ident = (if v_121 then 2-proj-Req(v_120) else caught-fail) in
+    {687}let xm_11: ident = (if v_121 then 1-proj-Req(v_120) else caught-fail) in
+    {688}let v_122: entry = (if v_121 then catch-fail(y_4) else caught-fail) in
+    {689}let v_123: bool = (not-caught-fail(v_122) && success?(1-proj-Req(v_122))) in
+    {690}let ya_11: attreq = (if v_123 then 6-proj-Req(v_122) else caught-fail) in
+    {691}let yt_11: tcbreq = (if v_123 then 5-proj-Req(v_122) else caught-fail) in
+    {692}let yv_11: svn = (if v_123 then 4-proj-Req(v_122) else caught-fail) in
+    {693}let yp_11: ident = (if v_123 then 3-proj-Req(v_122) else caught-fail) in
+    {694}let ys_11: ident = (if v_123 then 2-proj-Req(v_122) else caught-fail) in
+    {695}let ym_11: ident = (if v_123 then 1-proj-Req(v_122) else caught-fail) in
+    {696}let jm_11: ident = (if v_123 then catch-fail(joinid(xm_11,ym_11)) else caught-fail) in
+    {697}let v_124: bool = not-caught-fail(jm_11) in
+    {698}let js_11: ident = (if v_124 then catch-fail(joinid(xs_11,ys_11)) else caught-fail) in
+    {699}let v_125: bool = not-caught-fail(js_11) in
+    {700}let jp_11: ident = (if v_125 then catch-fail(joinid(xp_11,yp_11)) else caught-fail) in
+    {701}let v_126: bool = not-caught-fail(jp_11) in
+    {702}let jv_11: svn = (if v_126 then catch-fail(joinv(xv_11,yv_11)) else caught-fail) in
+    {703}let v_127: bool = not-caught-fail(jv_11) in
+    {704}let jt_11: tcbreq = (if v_127 then catch-fail(jointcb(xt_11,yt_11)) else caught-fail) in
+    {705}let v_128: bool = not-caught-fail(jt_11) in
+    {706}let ja_11: attreq = (if v_128 then catch-fail(joinatt(xa_11,ya_11)) else caught-fail) in
+    {707}let v_129: bool = not-caught-fail(ja_11) in
+    {708}let impossible_4: entry = (if v_121 then (if v_123 then (if v_124 then (if v_125 then (if v_126 then (if v_127 then (if v_128 then (if v_129 then Req(jm_11,js_11,jp_11,jv_11,jt_11,ja_11) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {709}event AttesterConflictAccepted
+) | (
+    {710}let c_2: entry = Req(Any,Any,Any,V0,Both,Assign(P1)) in
+    {711}let who_1: party = P1 in
+    {712}let actual_1: identity = Identity(mE1,s1,prodA,V2) in
+    {713}let ts_1: tcbstatus = Revoked in
+    {714}let v_130: entry = c_2 in
+    {715}let v_131: bool = success?(1-proj-Req(v_130)) in
+    {716}let ca_1: attreq = (if v_131 then 6-proj-Req(v_130) else caught-fail) in
+    {717}let ct_1: tcbreq = (if v_131 then 5-proj-Req(v_130) else caught-fail) in
+    {718}let cv_1: svn = (if v_131 then 4-proj-Req(v_130) else caught-fail) in
+    {719}let cp_1: ident = (if v_131 then 3-proj-Req(v_130) else caught-fail) in
+    {720}let cs_1: ident = (if v_131 then 2-proj-Req(v_130) else caught-fail) in
+    {721}let cm_1: ident = (if v_131 then 1-proj-Req(v_130) else caught-fail) in
+    {722}let v_132: identity = (if v_131 then catch-fail(actual_1) else caught-fail) in
+    {723}let v_133: bool = (not-caught-fail(v_132) && success?(1-proj-Identity(v_132))) in
+    {724}let av_1: svn = (if v_133 then 4-proj-Identity(v_132) else caught-fail) in
+    {725}let ap_1: attr = (if v_133 then 3-proj-Identity(v_132) else caught-fail) in
+    {726}let asigner_1: attr = (if v_133 then 2-proj-Identity(v_132) else caught-fail) in
+    {727}let am_1: attr = (if v_133 then 1-proj-Identity(v_132) else caught-fail) in
+    {728}let vm_1: bool = (if v_133 then catch-fail(matchid(cm_1,am_1)) else caught-fail) in
+    {729}let v_134: bool = not-caught-fail(vm_1) in
+    {730}let vs_1: bool = (if v_134 then catch-fail(matchid(cs_1,asigner_1)) else caught-fail) in
+    {731}let v_135: bool = not-caught-fail(vs_1) in
+    {732}let vp_1: bool = (if v_135 then catch-fail(matchid(cp_1,ap_1)) else caught-fail) in
+    {733}let v_136: bool = not-caught-fail(vp_1) in
+    {734}let vv_1: bool = (if v_136 then catch-fail(matchv(cv_1,av_1)) else caught-fail) in
+    {735}let v_137: bool = not-caught-fail(vv_1) in
+    {736}let vt_1: bool = (if v_137 then catch-fail(matchtcb(ct_1,ts_1)) else caught-fail) in
+    {737}let v_138: bool = not-caught-fail(vt_1) in
+    {738}let va_1: bool = (if v_138 then catch-fail(matchatt(ca_1,who_1)) else caught-fail) in
+    {739}let v_139: bool = not-caught-fail(va_1) in
+    {740}let accepted: bool = (if v_131 then (if v_133 then (if v_134 then (if v_135 then (if v_136 then (if v_137 then (if v_138 then (if v_139 then (vm_1 && (vs_1 && (vp_1 && (vv_1 && (vt_1 && va_1))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {741}if (accepted = true) then
+    {742}event RevokedAccepted
+) | (
+    {743}let c_3: entry = Req(Any,Any,Any,V0,Both,Assign(P1)) in
+    {744}let who_2: party = P1 in
+    {745}let actual_2: identity = Identity(mE1,s1,prodA,V2) in
+    {746}let ts_2: tcbstatus = Invalid in
+    {747}let v_140: entry = c_3 in
+    {748}let v_141: bool = success?(1-proj-Req(v_140)) in
+    {749}let ca_2: attreq = (if v_141 then 6-proj-Req(v_140) else caught-fail) in
+    {750}let ct_2: tcbreq = (if v_141 then 5-proj-Req(v_140) else caught-fail) in
+    {751}let cv_2: svn = (if v_141 then 4-proj-Req(v_140) else caught-fail) in
+    {752}let cp_2: ident = (if v_141 then 3-proj-Req(v_140) else caught-fail) in
+    {753}let cs_2: ident = (if v_141 then 2-proj-Req(v_140) else caught-fail) in
+    {754}let cm_2: ident = (if v_141 then 1-proj-Req(v_140) else caught-fail) in
+    {755}let v_142: identity = (if v_141 then catch-fail(actual_2) else caught-fail) in
+    {756}let v_143: bool = (not-caught-fail(v_142) && success?(1-proj-Identity(v_142))) in
+    {757}let av_2: svn = (if v_143 then 4-proj-Identity(v_142) else caught-fail) in
+    {758}let ap_2: attr = (if v_143 then 3-proj-Identity(v_142) else caught-fail) in
+    {759}let asigner_2: attr = (if v_143 then 2-proj-Identity(v_142) else caught-fail) in
+    {760}let am_2: attr = (if v_143 then 1-proj-Identity(v_142) else caught-fail) in
+    {761}let vm_2: bool = (if v_143 then catch-fail(matchid(cm_2,am_2)) else caught-fail) in
+    {762}let v_144: bool = not-caught-fail(vm_2) in
+    {763}let vs_2: bool = (if v_144 then catch-fail(matchid(cs_2,asigner_2)) else caught-fail) in
+    {764}let v_145: bool = not-caught-fail(vs_2) in
+    {765}let vp_2: bool = (if v_145 then catch-fail(matchid(cp_2,ap_2)) else caught-fail) in
+    {766}let v_146: bool = not-caught-fail(vp_2) in
+    {767}let vv_2: bool = (if v_146 then catch-fail(matchv(cv_2,av_2)) else caught-fail) in
+    {768}let v_147: bool = not-caught-fail(vv_2) in
+    {769}let vt_2: bool = (if v_147 then catch-fail(matchtcb(ct_2,ts_2)) else caught-fail) in
+    {770}let v_148: bool = not-caught-fail(vt_2) in
+    {771}let va_2: bool = (if v_148 then catch-fail(matchatt(ca_2,who_2)) else caught-fail) in
+    {772}let v_149: bool = not-caught-fail(va_2) in
+    {773}let accepted_1: bool = (if v_141 then (if v_143 then (if v_144 then (if v_145 then (if v_146 then (if v_147 then (if v_148 then (if v_149 then (vm_2 && (vs_2 && (vp_2 && (vv_2 && (vt_2 && va_2))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {774}if (accepted_1 = true) then
+    {775}event InvalidAccepted
+) | (
+    {776}let c_4: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {777}let who_3: party = P1 in
+    {778}let actual_3: identity = Identity(mBad,s1,prodA,V2) in
+    {779}let ts_3: tcbstatus = Good in
+    {780}let v_150: entry = c_4 in
+    {781}let v_151: bool = success?(1-proj-Req(v_150)) in
+    {782}let ca_3: attreq = (if v_151 then 6-proj-Req(v_150) else caught-fail) in
+    {783}let ct_3: tcbreq = (if v_151 then 5-proj-Req(v_150) else caught-fail) in
+    {784}let cv_3: svn = (if v_151 then 4-proj-Req(v_150) else caught-fail) in
+    {785}let cp_3: ident = (if v_151 then 3-proj-Req(v_150) else caught-fail) in
+    {786}let cs_3: ident = (if v_151 then 2-proj-Req(v_150) else caught-fail) in
+    {787}let cm_3: ident = (if v_151 then 1-proj-Req(v_150) else caught-fail) in
+    {788}let v_152: identity = (if v_151 then catch-fail(actual_3) else caught-fail) in
+    {789}let v_153: bool = (not-caught-fail(v_152) && success?(1-proj-Identity(v_152))) in
+    {790}let av_3: svn = (if v_153 then 4-proj-Identity(v_152) else caught-fail) in
+    {791}let ap_3: attr = (if v_153 then 3-proj-Identity(v_152) else caught-fail) in
+    {792}let asigner_3: attr = (if v_153 then 2-proj-Identity(v_152) else caught-fail) in
+    {793}let am_3: attr = (if v_153 then 1-proj-Identity(v_152) else caught-fail) in
+    {794}let vm_3: bool = (if v_153 then catch-fail(matchid(cm_3,am_3)) else caught-fail) in
+    {795}let v_154: bool = not-caught-fail(vm_3) in
+    {796}let vs_3: bool = (if v_154 then catch-fail(matchid(cs_3,asigner_3)) else caught-fail) in
+    {797}let v_155: bool = not-caught-fail(vs_3) in
+    {798}let vp_3: bool = (if v_155 then catch-fail(matchid(cp_3,ap_3)) else caught-fail) in
+    {799}let v_156: bool = not-caught-fail(vp_3) in
+    {800}let vv_3: bool = (if v_156 then catch-fail(matchv(cv_3,av_3)) else caught-fail) in
+    {801}let v_157: bool = not-caught-fail(vv_3) in
+    {802}let vt_3: bool = (if v_157 then catch-fail(matchtcb(ct_3,ts_3)) else caught-fail) in
+    {803}let v_158: bool = not-caught-fail(vt_3) in
+    {804}let va_3: bool = (if v_158 then catch-fail(matchatt(ca_3,who_3)) else caught-fail) in
+    {805}let v_159: bool = not-caught-fail(va_3) in
+    {806}let accepted_2: bool = (if v_151 then (if v_153 then (if v_154 then (if v_155 then (if v_156 then (if v_157 then (if v_158 then (if v_159 then (vm_3 && (vs_3 && (vp_3 && (vv_3 && (vt_3 && va_3))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {807}if (accepted_2 = true) then
+    {808}event UnexpectedEntryAcceptance
+) | (
+    {809}let c_5: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {810}let who_4: party = P1 in
+    {811}let actual_4: identity = Identity(mE1,sBad,prodA,V2) in
+    {812}let ts_4: tcbstatus = Good in
+    {813}let v_160: entry = c_5 in
+    {814}let v_161: bool = success?(1-proj-Req(v_160)) in
+    {815}let ca_4: attreq = (if v_161 then 6-proj-Req(v_160) else caught-fail) in
+    {816}let ct_4: tcbreq = (if v_161 then 5-proj-Req(v_160) else caught-fail) in
+    {817}let cv_4: svn = (if v_161 then 4-proj-Req(v_160) else caught-fail) in
+    {818}let cp_4: ident = (if v_161 then 3-proj-Req(v_160) else caught-fail) in
+    {819}let cs_4: ident = (if v_161 then 2-proj-Req(v_160) else caught-fail) in
+    {820}let cm_4: ident = (if v_161 then 1-proj-Req(v_160) else caught-fail) in
+    {821}let v_162: identity = (if v_161 then catch-fail(actual_4) else caught-fail) in
+    {822}let v_163: bool = (not-caught-fail(v_162) && success?(1-proj-Identity(v_162))) in
+    {823}let av_4: svn = (if v_163 then 4-proj-Identity(v_162) else caught-fail) in
+    {824}let ap_4: attr = (if v_163 then 3-proj-Identity(v_162) else caught-fail) in
+    {825}let asigner_4: attr = (if v_163 then 2-proj-Identity(v_162) else caught-fail) in
+    {826}let am_4: attr = (if v_163 then 1-proj-Identity(v_162) else caught-fail) in
+    {827}let vm_4: bool = (if v_163 then catch-fail(matchid(cm_4,am_4)) else caught-fail) in
+    {828}let v_164: bool = not-caught-fail(vm_4) in
+    {829}let vs_4: bool = (if v_164 then catch-fail(matchid(cs_4,asigner_4)) else caught-fail) in
+    {830}let v_165: bool = not-caught-fail(vs_4) in
+    {831}let vp_4: bool = (if v_165 then catch-fail(matchid(cp_4,ap_4)) else caught-fail) in
+    {832}let v_166: bool = not-caught-fail(vp_4) in
+    {833}let vv_4: bool = (if v_166 then catch-fail(matchv(cv_4,av_4)) else caught-fail) in
+    {834}let v_167: bool = not-caught-fail(vv_4) in
+    {835}let vt_4: bool = (if v_167 then catch-fail(matchtcb(ct_4,ts_4)) else caught-fail) in
+    {836}let v_168: bool = not-caught-fail(vt_4) in
+    {837}let va_4: bool = (if v_168 then catch-fail(matchatt(ca_4,who_4)) else caught-fail) in
+    {838}let v_169: bool = not-caught-fail(va_4) in
+    {839}let accepted_3: bool = (if v_161 then (if v_163 then (if v_164 then (if v_165 then (if v_166 then (if v_167 then (if v_168 then (if v_169 then (vm_4 && (vs_4 && (vp_4 && (vv_4 && (vt_4 && va_4))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {840}if (accepted_3 = true) then
+    {841}event UnexpectedEntryAcceptance
+) | (
+    {842}let c_6: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {843}let who_5: party = P1 in
+    {844}let actual_5: identity = Identity(mE1,s1,prodB,V2) in
+    {845}let ts_5: tcbstatus = Good in
+    {846}let v_170: entry = c_6 in
+    {847}let v_171: bool = success?(1-proj-Req(v_170)) in
+    {848}let ca_5: attreq = (if v_171 then 6-proj-Req(v_170) else caught-fail) in
+    {849}let ct_5: tcbreq = (if v_171 then 5-proj-Req(v_170) else caught-fail) in
+    {850}let cv_5: svn = (if v_171 then 4-proj-Req(v_170) else caught-fail) in
+    {851}let cp_5: ident = (if v_171 then 3-proj-Req(v_170) else caught-fail) in
+    {852}let cs_5: ident = (if v_171 then 2-proj-Req(v_170) else caught-fail) in
+    {853}let cm_5: ident = (if v_171 then 1-proj-Req(v_170) else caught-fail) in
+    {854}let v_172: identity = (if v_171 then catch-fail(actual_5) else caught-fail) in
+    {855}let v_173: bool = (not-caught-fail(v_172) && success?(1-proj-Identity(v_172))) in
+    {856}let av_5: svn = (if v_173 then 4-proj-Identity(v_172) else caught-fail) in
+    {857}let ap_5: attr = (if v_173 then 3-proj-Identity(v_172) else caught-fail) in
+    {858}let asigner_5: attr = (if v_173 then 2-proj-Identity(v_172) else caught-fail) in
+    {859}let am_5: attr = (if v_173 then 1-proj-Identity(v_172) else caught-fail) in
+    {860}let vm_5: bool = (if v_173 then catch-fail(matchid(cm_5,am_5)) else caught-fail) in
+    {861}let v_174: bool = not-caught-fail(vm_5) in
+    {862}let vs_5: bool = (if v_174 then catch-fail(matchid(cs_5,asigner_5)) else caught-fail) in
+    {863}let v_175: bool = not-caught-fail(vs_5) in
+    {864}let vp_5: bool = (if v_175 then catch-fail(matchid(cp_5,ap_5)) else caught-fail) in
+    {865}let v_176: bool = not-caught-fail(vp_5) in
+    {866}let vv_5: bool = (if v_176 then catch-fail(matchv(cv_5,av_5)) else caught-fail) in
+    {867}let v_177: bool = not-caught-fail(vv_5) in
+    {868}let vt_5: bool = (if v_177 then catch-fail(matchtcb(ct_5,ts_5)) else caught-fail) in
+    {869}let v_178: bool = not-caught-fail(vt_5) in
+    {870}let va_5: bool = (if v_178 then catch-fail(matchatt(ca_5,who_5)) else caught-fail) in
+    {871}let v_179: bool = not-caught-fail(va_5) in
+    {872}let accepted_4: bool = (if v_171 then (if v_173 then (if v_174 then (if v_175 then (if v_176 then (if v_177 then (if v_178 then (if v_179 then (vm_5 && (vs_5 && (vp_5 && (vv_5 && (vt_5 && va_5))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {873}if (accepted_4 = true) then
+    {874}event UnexpectedEntryAcceptance
+) | (
+    {875}let c_7: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {876}let who_6: party = P1 in
+    {877}let actual_6: identity = Identity(mE1,s1,prodA,V1) in
+    {878}let ts_6: tcbstatus = Good in
+    {879}let v_180: entry = c_7 in
+    {880}let v_181: bool = success?(1-proj-Req(v_180)) in
+    {881}let ca_6: attreq = (if v_181 then 6-proj-Req(v_180) else caught-fail) in
+    {882}let ct_6: tcbreq = (if v_181 then 5-proj-Req(v_180) else caught-fail) in
+    {883}let cv_6: svn = (if v_181 then 4-proj-Req(v_180) else caught-fail) in
+    {884}let cp_6: ident = (if v_181 then 3-proj-Req(v_180) else caught-fail) in
+    {885}let cs_6: ident = (if v_181 then 2-proj-Req(v_180) else caught-fail) in
+    {886}let cm_6: ident = (if v_181 then 1-proj-Req(v_180) else caught-fail) in
+    {887}let v_182: identity = (if v_181 then catch-fail(actual_6) else caught-fail) in
+    {888}let v_183: bool = (not-caught-fail(v_182) && success?(1-proj-Identity(v_182))) in
+    {889}let av_6: svn = (if v_183 then 4-proj-Identity(v_182) else caught-fail) in
+    {890}let ap_6: attr = (if v_183 then 3-proj-Identity(v_182) else caught-fail) in
+    {891}let asigner_6: attr = (if v_183 then 2-proj-Identity(v_182) else caught-fail) in
+    {892}let am_6: attr = (if v_183 then 1-proj-Identity(v_182) else caught-fail) in
+    {893}let vm_6: bool = (if v_183 then catch-fail(matchid(cm_6,am_6)) else caught-fail) in
+    {894}let v_184: bool = not-caught-fail(vm_6) in
+    {895}let vs_6: bool = (if v_184 then catch-fail(matchid(cs_6,asigner_6)) else caught-fail) in
+    {896}let v_185: bool = not-caught-fail(vs_6) in
+    {897}let vp_6: bool = (if v_185 then catch-fail(matchid(cp_6,ap_6)) else caught-fail) in
+    {898}let v_186: bool = not-caught-fail(vp_6) in
+    {899}let vv_6: bool = (if v_186 then catch-fail(matchv(cv_6,av_6)) else caught-fail) in
+    {900}let v_187: bool = not-caught-fail(vv_6) in
+    {901}let vt_6: bool = (if v_187 then catch-fail(matchtcb(ct_6,ts_6)) else caught-fail) in
+    {902}let v_188: bool = not-caught-fail(vt_6) in
+    {903}let va_6: bool = (if v_188 then catch-fail(matchatt(ca_6,who_6)) else caught-fail) in
+    {904}let v_189: bool = not-caught-fail(va_6) in
+    {905}let accepted_5: bool = (if v_181 then (if v_183 then (if v_184 then (if v_185 then (if v_186 then (if v_187 then (if v_188 then (if v_189 then (vm_6 && (vs_6 && (vp_6 && (vv_6 && (vt_6 && va_6))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {906}if (accepted_5 = true) then
+    {907}event UnexpectedEntryAcceptance
+) | (
+    {908}let c_8: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {909}let who_7: party = P1 in
+    {910}let actual_7: identity = Identity(mE1,s1,prodA,V2) in
+    {911}let ts_7: tcbstatus = Outdated in
+    {912}let v_190: entry = c_8 in
+    {913}let v_191: bool = success?(1-proj-Req(v_190)) in
+    {914}let ca_7: attreq = (if v_191 then 6-proj-Req(v_190) else caught-fail) in
+    {915}let ct_7: tcbreq = (if v_191 then 5-proj-Req(v_190) else caught-fail) in
+    {916}let cv_7: svn = (if v_191 then 4-proj-Req(v_190) else caught-fail) in
+    {917}let cp_7: ident = (if v_191 then 3-proj-Req(v_190) else caught-fail) in
+    {918}let cs_7: ident = (if v_191 then 2-proj-Req(v_190) else caught-fail) in
+    {919}let cm_7: ident = (if v_191 then 1-proj-Req(v_190) else caught-fail) in
+    {920}let v_192: identity = (if v_191 then catch-fail(actual_7) else caught-fail) in
+    {921}let v_193: bool = (not-caught-fail(v_192) && success?(1-proj-Identity(v_192))) in
+    {922}let av_7: svn = (if v_193 then 4-proj-Identity(v_192) else caught-fail) in
+    {923}let ap_7: attr = (if v_193 then 3-proj-Identity(v_192) else caught-fail) in
+    {924}let asigner_7: attr = (if v_193 then 2-proj-Identity(v_192) else caught-fail) in
+    {925}let am_7: attr = (if v_193 then 1-proj-Identity(v_192) else caught-fail) in
+    {926}let vm_7: bool = (if v_193 then catch-fail(matchid(cm_7,am_7)) else caught-fail) in
+    {927}let v_194: bool = not-caught-fail(vm_7) in
+    {928}let vs_7: bool = (if v_194 then catch-fail(matchid(cs_7,asigner_7)) else caught-fail) in
+    {929}let v_195: bool = not-caught-fail(vs_7) in
+    {930}let vp_7: bool = (if v_195 then catch-fail(matchid(cp_7,ap_7)) else caught-fail) in
+    {931}let v_196: bool = not-caught-fail(vp_7) in
+    {932}let vv_7: bool = (if v_196 then catch-fail(matchv(cv_7,av_7)) else caught-fail) in
+    {933}let v_197: bool = not-caught-fail(vv_7) in
+    {934}let vt_7: bool = (if v_197 then catch-fail(matchtcb(ct_7,ts_7)) else caught-fail) in
+    {935}let v_198: bool = not-caught-fail(vt_7) in
+    {936}let va_7: bool = (if v_198 then catch-fail(matchatt(ca_7,who_7)) else caught-fail) in
+    {937}let v_199: bool = not-caught-fail(va_7) in
+    {938}let accepted_6: bool = (if v_191 then (if v_193 then (if v_194 then (if v_195 then (if v_196 then (if v_197 then (if v_198 then (if v_199 then (vm_7 && (vs_7 && (vp_7 && (vv_7 && (vt_7 && va_7))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {939}if (accepted_6 = true) then
+    {940}event UnexpectedEntryAcceptance
+) | (
+    {941}let c_9: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {942}let who_8: party = P2 in
+    {943}let actual_8: identity = Identity(mE1,s1,prodA,V2) in
+    {944}let ts_8: tcbstatus = Good in
+    {945}let v_200: entry = c_9 in
+    {946}let v_201: bool = success?(1-proj-Req(v_200)) in
+    {947}let ca_8: attreq = (if v_201 then 6-proj-Req(v_200) else caught-fail) in
+    {948}let ct_8: tcbreq = (if v_201 then 5-proj-Req(v_200) else caught-fail) in
+    {949}let cv_8: svn = (if v_201 then 4-proj-Req(v_200) else caught-fail) in
+    {950}let cp_8: ident = (if v_201 then 3-proj-Req(v_200) else caught-fail) in
+    {951}let cs_8: ident = (if v_201 then 2-proj-Req(v_200) else caught-fail) in
+    {952}let cm_8: ident = (if v_201 then 1-proj-Req(v_200) else caught-fail) in
+    {953}let v_202: identity = (if v_201 then catch-fail(actual_8) else caught-fail) in
+    {954}let v_203: bool = (not-caught-fail(v_202) && success?(1-proj-Identity(v_202))) in
+    {955}let av_8: svn = (if v_203 then 4-proj-Identity(v_202) else caught-fail) in
+    {956}let ap_8: attr = (if v_203 then 3-proj-Identity(v_202) else caught-fail) in
+    {957}let asigner_8: attr = (if v_203 then 2-proj-Identity(v_202) else caught-fail) in
+    {958}let am_8: attr = (if v_203 then 1-proj-Identity(v_202) else caught-fail) in
+    {959}let vm_8: bool = (if v_203 then catch-fail(matchid(cm_8,am_8)) else caught-fail) in
+    {960}let v_204: bool = not-caught-fail(vm_8) in
+    {961}let vs_8: bool = (if v_204 then catch-fail(matchid(cs_8,asigner_8)) else caught-fail) in
+    {962}let v_205: bool = not-caught-fail(vs_8) in
+    {963}let vp_8: bool = (if v_205 then catch-fail(matchid(cp_8,ap_8)) else caught-fail) in
+    {964}let v_206: bool = not-caught-fail(vp_8) in
+    {965}let vv_8: bool = (if v_206 then catch-fail(matchv(cv_8,av_8)) else caught-fail) in
+    {966}let v_207: bool = not-caught-fail(vv_8) in
+    {967}let vt_8: bool = (if v_207 then catch-fail(matchtcb(ct_8,ts_8)) else caught-fail) in
+    {968}let v_208: bool = not-caught-fail(vt_8) in
+    {969}let va_8: bool = (if v_208 then catch-fail(matchatt(ca_8,who_8)) else caught-fail) in
+    {970}let v_209: bool = not-caught-fail(va_8) in
+    {971}let accepted_7: bool = (if v_201 then (if v_203 then (if v_204 then (if v_205 then (if v_206 then (if v_207 then (if v_208 then (if v_209 then (vm_8 && (vs_8 && (vp_8 && (vv_8 && (vt_8 && va_8))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {972}if (accepted_7 = true) then
+    {973}event UnexpectedEntryAcceptance
+) | (
+    {974}let c_10: entry = Req(Any,Any,Any,V0,Both,NoAtt) in
+    {975}let who_9: party = P1 in
+    {976}let actual_9: identity = Identity(mE1,s1,prodA,V2) in
+    {977}let ts_9: tcbstatus = Good in
+    {978}let v_210: entry = c_10 in
+    {979}let v_211: bool = success?(1-proj-Req(v_210)) in
+    {980}let ca_9: attreq = (if v_211 then 6-proj-Req(v_210) else caught-fail) in
+    {981}let ct_9: tcbreq = (if v_211 then 5-proj-Req(v_210) else caught-fail) in
+    {982}let cv_9: svn = (if v_211 then 4-proj-Req(v_210) else caught-fail) in
+    {983}let cp_9: ident = (if v_211 then 3-proj-Req(v_210) else caught-fail) in
+    {984}let cs_9: ident = (if v_211 then 2-proj-Req(v_210) else caught-fail) in
+    {985}let cm_9: ident = (if v_211 then 1-proj-Req(v_210) else caught-fail) in
+    {986}let v_212: identity = (if v_211 then catch-fail(actual_9) else caught-fail) in
+    {987}let v_213: bool = (not-caught-fail(v_212) && success?(1-proj-Identity(v_212))) in
+    {988}let av_9: svn = (if v_213 then 4-proj-Identity(v_212) else caught-fail) in
+    {989}let ap_9: attr = (if v_213 then 3-proj-Identity(v_212) else caught-fail) in
+    {990}let asigner_9: attr = (if v_213 then 2-proj-Identity(v_212) else caught-fail) in
+    {991}let am_9: attr = (if v_213 then 1-proj-Identity(v_212) else caught-fail) in
+    {992}let vm_9: bool = (if v_213 then catch-fail(matchid(cm_9,am_9)) else caught-fail) in
+    {993}let v_214: bool = not-caught-fail(vm_9) in
+    {994}let vs_9: bool = (if v_214 then catch-fail(matchid(cs_9,asigner_9)) else caught-fail) in
+    {995}let v_215: bool = not-caught-fail(vs_9) in
+    {996}let vp_9: bool = (if v_215 then catch-fail(matchid(cp_9,ap_9)) else caught-fail) in
+    {997}let v_216: bool = not-caught-fail(vp_9) in
+    {998}let vv_9: bool = (if v_216 then catch-fail(matchv(cv_9,av_9)) else caught-fail) in
+    {999}let v_217: bool = not-caught-fail(vv_9) in
+    {1000}let vt_9: bool = (if v_217 then catch-fail(matchtcb(ct_9,ts_9)) else caught-fail) in
+    {1001}let v_218: bool = not-caught-fail(vt_9) in
+    {1002}let va_9: bool = (if v_218 then catch-fail(matchatt(ca_9,who_9)) else caught-fail) in
+    {1003}let v_219: bool = not-caught-fail(va_9) in
+    {1004}let accepted_8: bool = (if v_211 then (if v_213 then (if v_214 then (if v_215 then (if v_216 then (if v_217 then (if v_218 then (if v_219 then (vm_9 && (vs_9 && (vp_9 && (vv_9 && (vt_9 && va_9))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {1005}if (accepted_8 = true) then
+    {1006}event UnexpectedEntryAcceptance
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+(
+    {1}let got: ident = joinid(Any,Any) in
+    (
+        {2}if (got = Any) then
+            0
+        else
+            {3}event WrongJoinIdentity
+    )
+    else
+        {4}event WrongJoinIdentity
+) | (
+    {5}let got_1: ident = joinid(Any,exact(mE1)) in
+    (
+        {6}if (got_1 = exact(mE1)) then
+            0
+        else
+            {7}event WrongJoinIdentity
+    )
+    else
+        {8}event WrongJoinIdentity
+) | (
+    {9}let got_2: ident = joinid(Any,exact(mE2)) in
+    (
+        {10}if (got_2 = exact(mE2)) then
+            0
+        else
+            {11}event WrongJoinIdentity
+    )
+    else
+        {12}event WrongJoinIdentity
+) | (
+    {13}let got_3: ident = joinid(Any,exact(mBad)) in
+    (
+        {14}if (got_3 = exact(mBad)) then
+            0
+        else
+            {15}event WrongJoinIdentity
+    )
+    else
+        {16}event WrongJoinIdentity
+) | (
+    {17}let got_4: ident = joinid(exact(mE1),Any) in
+    (
+        {18}if (got_4 = exact(mE1)) then
+            0
+        else
+            {19}event WrongJoinIdentity
+    )
+    else
+        {20}event WrongJoinIdentity
+) | (
+    {21}let got_5: ident = joinid(exact(mE1),exact(mE1)) in
+    (
+        {22}if (got_5 = exact(mE1)) then
+            0
+        else
+            {23}event WrongJoinIdentity
+    )
+    else
+        {24}event WrongJoinIdentity
+) | (
+    {25}let got_6: ident = joinid(exact(mE1),exact(mE2)) in
+    {26}event WrongJoinIdentity
+) | (
+    {27}let got_7: ident = joinid(exact(mE1),exact(mBad)) in
+    {28}event WrongJoinIdentity
+) | (
+    {29}let got_8: ident = joinid(exact(mE2),Any) in
+    (
+        {30}if (got_8 = exact(mE2)) then
+            0
+        else
+            {31}event WrongJoinIdentity
+    )
+    else
+        {32}event WrongJoinIdentity
+) | (
+    {33}let got_9: ident = joinid(exact(mE2),exact(mE1)) in
+    {34}event WrongJoinIdentity
+) | (
+    {35}let got_10: ident = joinid(exact(mE2),exact(mE2)) in
+    (
+        {36}if (got_10 = exact(mE2)) then
+            0
+        else
+            {37}event WrongJoinIdentity
+    )
+    else
+        {38}event WrongJoinIdentity
+) | (
+    {39}let got_11: ident = joinid(exact(mE2),exact(mBad)) in
+    {40}event WrongJoinIdentity
+) | (
+    {41}let got_12: ident = joinid(exact(mBad),Any) in
+    (
+        {42}if (got_12 = exact(mBad)) then
+            0
+        else
+            {43}event WrongJoinIdentity
+    )
+    else
+        {44}event WrongJoinIdentity
+) | (
+    {45}let got_13: ident = joinid(exact(mBad),exact(mE1)) in
+    {46}event WrongJoinIdentity
+) | (
+    {47}let got_14: ident = joinid(exact(mBad),exact(mE2)) in
+    {48}event WrongJoinIdentity
+) | (
+    {49}let got_15: ident = joinid(exact(mBad),exact(mBad)) in
+    (
+        {50}if (got_15 = exact(mBad)) then
+            0
+        else
+            {51}event WrongJoinIdentity
+    )
+    else
+        {52}event WrongJoinIdentity
+) | (
+    {53}let got_16: svn = joinv(V0,V0) in
+    (
+        {54}if (got_16 = V0) then
+            0
+        else
+            {55}event WrongJoinSVN
+    )
+    else
+        {56}event WrongJoinSVN
+) | (
+    {57}let got_17: svn = joinv(V0,V1) in
+    (
+        {58}if (got_17 = V1) then
+            0
+        else
+            {59}event WrongJoinSVN
+    )
+    else
+        {60}event WrongJoinSVN
+) | (
+    {61}let got_18: svn = joinv(V0,V2) in
+    (
+        {62}if (got_18 = V2) then
+            0
+        else
+            {63}event WrongJoinSVN
+    )
+    else
+        {64}event WrongJoinSVN
+) | (
+    {65}let got_19: svn = joinv(V1,V0) in
+    (
+        {66}if (got_19 = V1) then
+            0
+        else
+            {67}event WrongJoinSVN
+    )
+    else
+        {68}event WrongJoinSVN
+) | (
+    {69}let got_20: svn = joinv(V1,V1) in
+    (
+        {70}if (got_20 = V1) then
+            0
+        else
+            {71}event WrongJoinSVN
+    )
+    else
+        {72}event WrongJoinSVN
+) | (
+    {73}let got_21: svn = joinv(V1,V2) in
+    (
+        {74}if (got_21 = V2) then
+            0
+        else
+            {75}event WrongJoinSVN
+    )
+    else
+        {76}event WrongJoinSVN
+) | (
+    {77}let got_22: svn = joinv(V2,V0) in
+    (
+        {78}if (got_22 = V2) then
+            0
+        else
+            {79}event WrongJoinSVN
+    )
+    else
+        {80}event WrongJoinSVN
+) | (
+    {81}let got_23: svn = joinv(V2,V1) in
+    (
+        {82}if (got_23 = V2) then
+            0
+        else
+            {83}event WrongJoinSVN
+    )
+    else
+        {84}event WrongJoinSVN
+) | (
+    {85}let got_24: svn = joinv(V2,V2) in
+    (
+        {86}if (got_24 = V2) then
+            0
+        else
+            {87}event WrongJoinSVN
+    )
+    else
+        {88}event WrongJoinSVN
+) | (
+    {89}let got_25: tcbreq = jointcb(Both,Both) in
+    (
+        {90}if (got_25 = Both) then
+            0
+        else
+            {91}event WrongJoinTCB
+    )
+    else
+        {92}event WrongJoinTCB
+) | (
+    {93}let got_26: tcbreq = jointcb(Both,OnlyGood) in
+    (
+        {94}if (got_26 = OnlyGood) then
+            0
+        else
+            {95}event WrongJoinTCB
+    )
+    else
+        {96}event WrongJoinTCB
+) | (
+    {97}let got_27: tcbreq = jointcb(Both,OnlyOutdated) in
+    (
+        {98}if (got_27 = OnlyOutdated) then
+            0
+        else
+            {99}event WrongJoinTCB
+    )
+    else
+        {100}event WrongJoinTCB
+) | (
+    {101}let got_28: tcbreq = jointcb(OnlyGood,Both) in
+    (
+        {102}if (got_28 = OnlyGood) then
+            0
+        else
+            {103}event WrongJoinTCB
+    )
+    else
+        {104}event WrongJoinTCB
+) | (
+    {105}let got_29: tcbreq = jointcb(OnlyGood,OnlyGood) in
+    (
+        {106}if (got_29 = OnlyGood) then
+            0
+        else
+            {107}event WrongJoinTCB
+    )
+    else
+        {108}event WrongJoinTCB
+) | (
+    {109}let got_30: tcbreq = jointcb(OnlyGood,OnlyOutdated) in
+    {110}event WrongJoinTCB
+) | (
+    {111}let got_31: tcbreq = jointcb(OnlyOutdated,Both) in
+    (
+        {112}if (got_31 = OnlyOutdated) then
+            0
+        else
+            {113}event WrongJoinTCB
+    )
+    else
+        {114}event WrongJoinTCB
+) | (
+    {115}let got_32: tcbreq = jointcb(OnlyOutdated,OnlyGood) in
+    {116}event WrongJoinTCB
+) | (
+    {117}let got_33: tcbreq = jointcb(OnlyOutdated,OnlyOutdated) in
+    (
+        {118}if (got_33 = OnlyOutdated) then
+            0
+        else
+            {119}event WrongJoinTCB
+    )
+    else
+        {120}event WrongJoinTCB
+) | (
+    {121}let got_34: attreq = joinatt(NoAtt,NoAtt) in
+    (
+        {122}if (got_34 = NoAtt) then
+            0
+        else
+            {123}event WrongJoinAttester
+    )
+    else
+        {124}event WrongJoinAttester
+) | (
+    {125}let got_35: attreq = joinatt(NoAtt,Assign(P1)) in
+    (
+        {126}if (got_35 = Assign(P1)) then
+            0
+        else
+            {127}event WrongJoinAttester
+    )
+    else
+        {128}event WrongJoinAttester
+) | (
+    {129}let got_36: attreq = joinatt(NoAtt,Assign(P2)) in
+    (
+        {130}if (got_36 = Assign(P2)) then
+            0
+        else
+            {131}event WrongJoinAttester
+    )
+    else
+        {132}event WrongJoinAttester
+) | (
+    {133}let got_37: attreq = joinatt(NoAtt,Assign(P3)) in
+    (
+        {134}if (got_37 = Assign(P3)) then
+            0
+        else
+            {135}event WrongJoinAttester
+    )
+    else
+        {136}event WrongJoinAttester
+) | (
+    {137}let got_38: attreq = joinatt(Assign(P1),NoAtt) in
+    (
+        {138}if (got_38 = Assign(P1)) then
+            0
+        else
+            {139}event WrongJoinAttester
+    )
+    else
+        {140}event WrongJoinAttester
+) | (
+    {141}let got_39: attreq = joinatt(Assign(P1),Assign(P1)) in
+    (
+        {142}if (got_39 = Assign(P1)) then
+            0
+        else
+            {143}event WrongJoinAttester
+    )
+    else
+        {144}event WrongJoinAttester
+) | (
+    {145}let got_40: attreq = joinatt(Assign(P1),Assign(P2)) in
+    {146}event WrongJoinAttester
+) | (
+    {147}let got_41: attreq = joinatt(Assign(P1),Assign(P3)) in
+    {148}event WrongJoinAttester
+) | (
+    {149}let got_42: attreq = joinatt(Assign(P2),NoAtt) in
+    (
+        {150}if (got_42 = Assign(P2)) then
+            0
+        else
+            {151}event WrongJoinAttester
+    )
+    else
+        {152}event WrongJoinAttester
+) | (
+    {153}let got_43: attreq = joinatt(Assign(P2),Assign(P1)) in
+    {154}event WrongJoinAttester
+) | (
+    {155}let got_44: attreq = joinatt(Assign(P2),Assign(P2)) in
+    (
+        {156}if (got_44 = Assign(P2)) then
+            0
+        else
+            {157}event WrongJoinAttester
+    )
+    else
+        {158}event WrongJoinAttester
+) | (
+    {159}let got_45: attreq = joinatt(Assign(P2),Assign(P3)) in
+    {160}event WrongJoinAttester
+) | (
+    {161}let got_46: attreq = joinatt(Assign(P3),NoAtt) in
+    (
+        {162}if (got_46 = Assign(P3)) then
+            0
+        else
+            {163}event WrongJoinAttester
+    )
+    else
+        {164}event WrongJoinAttester
+) | (
+    {165}let got_47: attreq = joinatt(Assign(P3),Assign(P1)) in
+    {166}event WrongJoinAttester
+) | (
+    {167}let got_48: attreq = joinatt(Assign(P3),Assign(P2)) in
+    {168}event WrongJoinAttester
+) | (
+    {169}let got_49: attreq = joinatt(Assign(P3),Assign(P3)) in
+    (
+        {170}if (got_49 = Assign(P3)) then
+            0
+        else
+            {171}event WrongJoinAttester
+    )
+    else
+        {172}event WrongJoinAttester
+) | (
+    {173}let got_50: bool = matchid(Any,mE1) in
+    (
+        {174}if (got_50 = true) then
+            0
+        else
+            {175}event WrongMatchIdentity
+    )
+    else
+        {176}event WrongMatchIdentity
+) | (
+    {177}let got_51: bool = matchid(Any,mE2) in
+    (
+        {178}if (got_51 = true) then
+            0
+        else
+            {179}event WrongMatchIdentity
+    )
+    else
+        {180}event WrongMatchIdentity
+) | (
+    {181}let got_52: bool = matchid(Any,mBad) in
+    (
+        {182}if (got_52 = true) then
+            0
+        else
+            {183}event WrongMatchIdentity
+    )
+    else
+        {184}event WrongMatchIdentity
+) | (
+    {185}let got_53: bool = matchid(exact(mE1),mE1) in
+    (
+        {186}if (got_53 = true) then
+            0
+        else
+            {187}event WrongMatchIdentity
+    )
+    else
+        {188}event WrongMatchIdentity
+) | (
+    {189}let got_54: bool = matchid(exact(mE1),mE2) in
+    {190}event WrongMatchIdentity
+) | (
+    {191}let got_55: bool = matchid(exact(mE1),mBad) in
+    {192}event WrongMatchIdentity
+) | (
+    {193}let got_56: bool = matchid(exact(mE2),mE1) in
+    {194}event WrongMatchIdentity
+) | (
+    {195}let got_57: bool = matchid(exact(mE2),mE2) in
+    (
+        {196}if (got_57 = true) then
+            0
+        else
+            {197}event WrongMatchIdentity
+    )
+    else
+        {198}event WrongMatchIdentity
+) | (
+    {199}let got_58: bool = matchid(exact(mE2),mBad) in
+    {200}event WrongMatchIdentity
+) | (
+    {201}let got_59: bool = matchid(exact(mBad),mE1) in
+    {202}event WrongMatchIdentity
+) | (
+    {203}let got_60: bool = matchid(exact(mBad),mE2) in
+    {204}event WrongMatchIdentity
+) | (
+    {205}let got_61: bool = matchid(exact(mBad),mBad) in
+    (
+        {206}if (got_61 = true) then
+            0
+        else
+            {207}event WrongMatchIdentity
+    )
+    else
+        {208}event WrongMatchIdentity
+) | (
+    {209}let got_62: bool = matchv(V0,V0) in
+    (
+        {210}if (got_62 = true) then
+            0
+        else
+            {211}event WrongMatchSVN
+    )
+    else
+        {212}event WrongMatchSVN
+) | (
+    {213}let got_63: bool = matchv(V0,V1) in
+    (
+        {214}if (got_63 = true) then
+            0
+        else
+            {215}event WrongMatchSVN
+    )
+    else
+        {216}event WrongMatchSVN
+) | (
+    {217}let got_64: bool = matchv(V0,V2) in
+    (
+        {218}if (got_64 = true) then
+            0
+        else
+            {219}event WrongMatchSVN
+    )
+    else
+        {220}event WrongMatchSVN
+) | (
+    {221}let got_65: bool = matchv(V1,V0) in
+    {222}event WrongMatchSVN
+) | (
+    {223}let got_66: bool = matchv(V1,V1) in
+    (
+        {224}if (got_66 = true) then
+            0
+        else
+            {225}event WrongMatchSVN
+    )
+    else
+        {226}event WrongMatchSVN
+) | (
+    {227}let got_67: bool = matchv(V1,V2) in
+    (
+        {228}if (got_67 = true) then
+            0
+        else
+            {229}event WrongMatchSVN
+    )
+    else
+        {230}event WrongMatchSVN
+) | (
+    {231}let got_68: bool = matchv(V2,V0) in
+    {232}event WrongMatchSVN
+) | (
+    {233}let got_69: bool = matchv(V2,V1) in
+    {234}event WrongMatchSVN
+) | (
+    {235}let got_70: bool = matchv(V2,V2) in
+    (
+        {236}if (got_70 = true) then
+            0
+        else
+            {237}event WrongMatchSVN
+    )
+    else
+        {238}event WrongMatchSVN
+) | (
+    {239}let got_71: bool = matchtcb(Both,Good) in
+    (
+        {240}if (got_71 = true) then
+            0
+        else
+            {241}event WrongMatchTCB
+    )
+    else
+        {242}event WrongMatchTCB
+) | (
+    {243}let got_72: bool = matchtcb(Both,Outdated) in
+    (
+        {244}if (got_72 = true) then
+            0
+        else
+            {245}event WrongMatchTCB
+    )
+    else
+        {246}event WrongMatchTCB
+) | (
+    {247}let got_73: bool = matchtcb(Both,Revoked) in
+    {248}event WrongMatchTCB
+) | (
+    {249}let got_74: bool = matchtcb(Both,Invalid) in
+    {250}event WrongMatchTCB
+) | (
+    {251}let got_75: bool = matchtcb(OnlyGood,Good) in
+    (
+        {252}if (got_75 = true) then
+            0
+        else
+            {253}event WrongMatchTCB
+    )
+    else
+        {254}event WrongMatchTCB
+) | (
+    {255}let got_76: bool = matchtcb(OnlyGood,Outdated) in
+    {256}event WrongMatchTCB
+) | (
+    {257}let got_77: bool = matchtcb(OnlyGood,Revoked) in
+    {258}event WrongMatchTCB
+) | (
+    {259}let got_78: bool = matchtcb(OnlyGood,Invalid) in
+    {260}event WrongMatchTCB
+) | (
+    {261}let got_79: bool = matchtcb(OnlyOutdated,Good) in
+    {262}event WrongMatchTCB
+) | (
+    {263}let got_80: bool = matchtcb(OnlyOutdated,Outdated) in
+    (
+        {264}if (got_80 = true) then
+            0
+        else
+            {265}event WrongMatchTCB
+    )
+    else
+        {266}event WrongMatchTCB
+) | (
+    {267}let got_81: bool = matchtcb(OnlyOutdated,Revoked) in
+    {268}event WrongMatchTCB
+) | (
+    {269}let got_82: bool = matchtcb(OnlyOutdated,Invalid) in
+    {270}event WrongMatchTCB
+) | (
+    {271}let got_83: bool = matchatt(NoAtt,P1) in
+    {272}event WrongMatchAttester
+) | (
+    {273}let got_84: bool = matchatt(NoAtt,P2) in
+    {274}event WrongMatchAttester
+) | (
+    {275}let got_85: bool = matchatt(NoAtt,P3) in
+    {276}event WrongMatchAttester
+) | (
+    {277}let got_86: bool = matchatt(Assign(P1),P1) in
+    (
+        {278}if (got_86 = true) then
+            0
+        else
+            {279}event WrongMatchAttester
+    )
+    else
+        {280}event WrongMatchAttester
+) | (
+    {281}let got_87: bool = matchatt(Assign(P1),P2) in
+    {282}event WrongMatchAttester
+) | (
+    {283}let got_88: bool = matchatt(Assign(P1),P3) in
+    {284}event WrongMatchAttester
+) | (
+    {285}let got_89: bool = matchatt(Assign(P2),P1) in
+    {286}event WrongMatchAttester
+) | (
+    {287}let got_90: bool = matchatt(Assign(P2),P2) in
+    (
+        {288}if (got_90 = true) then
+            0
+        else
+            {289}event WrongMatchAttester
+    )
+    else
+        {290}event WrongMatchAttester
+) | (
+    {291}let got_91: bool = matchatt(Assign(P2),P3) in
+    {292}event WrongMatchAttester
+) | (
+    {293}let got_92: bool = matchatt(Assign(P3),P1) in
+    {294}event WrongMatchAttester
+) | (
+    {295}let got_93: bool = matchatt(Assign(P3),P2) in
+    {296}event WrongMatchAttester
+) | (
+    {297}let got_94: bool = matchatt(Assign(P3),P3) in
+    (
+        {298}if (got_94 = true) then
+            0
+        else
+            {299}event WrongMatchAttester
+    )
+    else
+        {300}event WrongMatchAttester
+) | (
+    {301}let neutral: entry = Req(Any,Any,Any,V0,Both,NoAtt) in
+    {303}let v: entry = neutral in
+    {304}let v_1: bool = success?(1-proj-Req(v)) in
+    {305}let xa: attreq = (if v_1 then 6-proj-Req(v) else caught-fail) in
+    {306}let xt: tcbreq = (if v_1 then 5-proj-Req(v) else caught-fail) in
+    {307}let xv: svn = (if v_1 then 4-proj-Req(v) else caught-fail) in
+    {308}let xp: ident = (if v_1 then 3-proj-Req(v) else caught-fail) in
+    {309}let xs: ident = (if v_1 then 2-proj-Req(v) else caught-fail) in
+    {310}let xm: ident = (if v_1 then 1-proj-Req(v) else caught-fail) in
+    {302}let c: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {311}let v_2: entry = (if v_1 then catch-fail(c) else caught-fail) in
+    {312}let v_3: bool = (not-caught-fail(v_2) && success?(1-proj-Req(v_2))) in
+    {313}let ya: attreq = (if v_3 then 6-proj-Req(v_2) else caught-fail) in
+    {314}let yt: tcbreq = (if v_3 then 5-proj-Req(v_2) else caught-fail) in
+    {315}let yv: svn = (if v_3 then 4-proj-Req(v_2) else caught-fail) in
+    {316}let yp: ident = (if v_3 then 3-proj-Req(v_2) else caught-fail) in
+    {317}let ys: ident = (if v_3 then 2-proj-Req(v_2) else caught-fail) in
+    {318}let ym: ident = (if v_3 then 1-proj-Req(v_2) else caught-fail) in
+    {319}let jm: ident = (if v_3 then catch-fail(joinid(xm,ym)) else caught-fail) in
+    {320}let v_4: bool = not-caught-fail(jm) in
+    {321}let js: ident = (if v_4 then catch-fail(joinid(xs,ys)) else caught-fail) in
+    {322}let v_5: bool = not-caught-fail(js) in
+    {323}let jp: ident = (if v_5 then catch-fail(joinid(xp,yp)) else caught-fail) in
+    {324}let v_6: bool = not-caught-fail(jp) in
+    {325}let jv: svn = (if v_6 then catch-fail(joinv(xv,yv)) else caught-fail) in
+    {326}let v_7: bool = not-caught-fail(jv) in
+    {327}let jt: tcbreq = (if v_7 then catch-fail(jointcb(xt,yt)) else caught-fail) in
+    {328}let v_8: bool = not-caught-fail(jt) in
+    {329}let ja: attreq = (if v_8 then catch-fail(joinatt(xa,ya)) else caught-fail) in
+    {330}let v_9: bool = not-caught-fail(ja) in
+    {331}let left: entry = (if v_1 then (if v_3 then (if v_4 then (if v_5 then (if v_6 then (if v_7 then (if v_8 then (if v_9 then Req(jm,js,jp,jv,jt,ja) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {332}let v_10: entry = c in
+    {333}let v_11: bool = success?(1-proj-Req(v_10)) in
+    {334}let xa_1: attreq = (if v_11 then 6-proj-Req(v_10) else caught-fail) in
+    {335}let xt_1: tcbreq = (if v_11 then 5-proj-Req(v_10) else caught-fail) in
+    {336}let xv_1: svn = (if v_11 then 4-proj-Req(v_10) else caught-fail) in
+    {337}let xp_1: ident = (if v_11 then 3-proj-Req(v_10) else caught-fail) in
+    {338}let xs_1: ident = (if v_11 then 2-proj-Req(v_10) else caught-fail) in
+    {339}let xm_1: ident = (if v_11 then 1-proj-Req(v_10) else caught-fail) in
+    {340}let v_12: entry = (if v_11 then catch-fail(neutral) else caught-fail) in
+    {341}let v_13: bool = (not-caught-fail(v_12) && success?(1-proj-Req(v_12))) in
+    {342}let ya_1: attreq = (if v_13 then 6-proj-Req(v_12) else caught-fail) in
+    {343}let yt_1: tcbreq = (if v_13 then 5-proj-Req(v_12) else caught-fail) in
+    {344}let yv_1: svn = (if v_13 then 4-proj-Req(v_12) else caught-fail) in
+    {345}let yp_1: ident = (if v_13 then 3-proj-Req(v_12) else caught-fail) in
+    {346}let ys_1: ident = (if v_13 then 2-proj-Req(v_12) else caught-fail) in
+    {347}let ym_1: ident = (if v_13 then 1-proj-Req(v_12) else caught-fail) in
+    {348}let jm_1: ident = (if v_13 then catch-fail(joinid(xm_1,ym_1)) else caught-fail) in
+    {349}let v_14: bool = not-caught-fail(jm_1) in
+    {350}let js_1: ident = (if v_14 then catch-fail(joinid(xs_1,ys_1)) else caught-fail) in
+    {351}let v_15: bool = not-caught-fail(js_1) in
+    {352}let jp_1: ident = (if v_15 then catch-fail(joinid(xp_1,yp_1)) else caught-fail) in
+    {353}let v_16: bool = not-caught-fail(jp_1) in
+    {354}let jv_1: svn = (if v_16 then catch-fail(joinv(xv_1,yv_1)) else caught-fail) in
+    {355}let v_17: bool = not-caught-fail(jv_1) in
+    {356}let jt_1: tcbreq = (if v_17 then catch-fail(jointcb(xt_1,yt_1)) else caught-fail) in
+    {357}let v_18: bool = not-caught-fail(jt_1) in
+    {358}let ja_1: attreq = (if v_18 then catch-fail(joinatt(xa_1,ya_1)) else caught-fail) in
+    {359}let v_19: bool = not-caught-fail(ja_1) in
+    {360}let right: entry = (if v_11 then (if v_13 then (if v_14 then (if v_15 then (if v_16 then (if v_17 then (if v_18 then (if v_19 then Req(jm_1,js_1,jp_1,jv_1,jt_1,ja_1) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {361}let v_20: entry = c in
+    {362}let v_21: bool = success?(1-proj-Req(v_20)) in
+    {363}let xa_2: attreq = (if v_21 then 6-proj-Req(v_20) else caught-fail) in
+    {364}let xt_2: tcbreq = (if v_21 then 5-proj-Req(v_20) else caught-fail) in
+    {365}let xv_2: svn = (if v_21 then 4-proj-Req(v_20) else caught-fail) in
+    {366}let xp_2: ident = (if v_21 then 3-proj-Req(v_20) else caught-fail) in
+    {367}let xs_2: ident = (if v_21 then 2-proj-Req(v_20) else caught-fail) in
+    {368}let xm_2: ident = (if v_21 then 1-proj-Req(v_20) else caught-fail) in
+    {369}let v_22: entry = (if v_21 then catch-fail(c) else caught-fail) in
+    {370}let v_23: bool = (not-caught-fail(v_22) && success?(1-proj-Req(v_22))) in
+    {371}let ya_2: attreq = (if v_23 then 6-proj-Req(v_22) else caught-fail) in
+    {372}let yt_2: tcbreq = (if v_23 then 5-proj-Req(v_22) else caught-fail) in
+    {373}let yv_2: svn = (if v_23 then 4-proj-Req(v_22) else caught-fail) in
+    {374}let yp_2: ident = (if v_23 then 3-proj-Req(v_22) else caught-fail) in
+    {375}let ys_2: ident = (if v_23 then 2-proj-Req(v_22) else caught-fail) in
+    {376}let ym_2: ident = (if v_23 then 1-proj-Req(v_22) else caught-fail) in
+    {377}let jm_2: ident = (if v_23 then catch-fail(joinid(xm_2,ym_2)) else caught-fail) in
+    {378}let v_24: bool = not-caught-fail(jm_2) in
+    {379}let js_2: ident = (if v_24 then catch-fail(joinid(xs_2,ys_2)) else caught-fail) in
+    {380}let v_25: bool = not-caught-fail(js_2) in
+    {381}let jp_2: ident = (if v_25 then catch-fail(joinid(xp_2,yp_2)) else caught-fail) in
+    {382}let v_26: bool = not-caught-fail(jp_2) in
+    {383}let jv_2: svn = (if v_26 then catch-fail(joinv(xv_2,yv_2)) else caught-fail) in
+    {384}let v_27: bool = not-caught-fail(jv_2) in
+    {385}let jt_2: tcbreq = (if v_27 then catch-fail(jointcb(xt_2,yt_2)) else caught-fail) in
+    {386}let v_28: bool = not-caught-fail(jt_2) in
+    {387}let ja_2: attreq = (if v_28 then catch-fail(joinatt(xa_2,ya_2)) else caught-fail) in
+    {388}let v_29: bool = not-caught-fail(ja_2) in
+    {389}let idem: entry = (if v_21 then (if v_23 then (if v_24 then (if v_25 then (if v_26 then (if v_27 then (if v_28 then (if v_29 then Req(jm_2,js_2,jp_2,jv_2,jt_2,ja_2) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {390}if ((left = c) && ((right = c) && (idem = c))) then
+    {391}event WildcardAndIdempotence
+) | (
+    {392}let cA: entry = Req(Any,exact(s1),Any,V0,Both,Assign(P1)) in
+    {395}let v_30: entry = cA in
+    {396}let v_31: bool = success?(1-proj-Req(v_30)) in
+    {397}let xa_3: attreq = (if v_31 then 6-proj-Req(v_30) else caught-fail) in
+    {398}let xt_3: tcbreq = (if v_31 then 5-proj-Req(v_30) else caught-fail) in
+    {399}let xv_3: svn = (if v_31 then 4-proj-Req(v_30) else caught-fail) in
+    {400}let xp_3: ident = (if v_31 then 3-proj-Req(v_30) else caught-fail) in
+    {401}let xs_3: ident = (if v_31 then 2-proj-Req(v_30) else caught-fail) in
+    {402}let xm_3: ident = (if v_31 then 1-proj-Req(v_30) else caught-fail) in
+    {393}let cB: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {403}let v_32: entry = (if v_31 then catch-fail(cB) else caught-fail) in
+    {404}let v_33: bool = (not-caught-fail(v_32) && success?(1-proj-Req(v_32))) in
+    {405}let ya_3: attreq = (if v_33 then 6-proj-Req(v_32) else caught-fail) in
+    {406}let yt_3: tcbreq = (if v_33 then 5-proj-Req(v_32) else caught-fail) in
+    {407}let yv_3: svn = (if v_33 then 4-proj-Req(v_32) else caught-fail) in
+    {408}let yp_3: ident = (if v_33 then 3-proj-Req(v_32) else caught-fail) in
+    {409}let ys_3: ident = (if v_33 then 2-proj-Req(v_32) else caught-fail) in
+    {410}let ym_3: ident = (if v_33 then 1-proj-Req(v_32) else caught-fail) in
+    {411}let jm_3: ident = (if v_33 then catch-fail(joinid(xm_3,ym_3)) else caught-fail) in
+    {412}let v_34: bool = not-caught-fail(jm_3) in
+    {413}let js_3: ident = (if v_34 then catch-fail(joinid(xs_3,ys_3)) else caught-fail) in
+    {414}let v_35: bool = not-caught-fail(js_3) in
+    {415}let jp_3: ident = (if v_35 then catch-fail(joinid(xp_3,yp_3)) else caught-fail) in
+    {416}let v_36: bool = not-caught-fail(jp_3) in
+    {417}let jv_3: svn = (if v_36 then catch-fail(joinv(xv_3,yv_3)) else caught-fail) in
+    {418}let v_37: bool = not-caught-fail(jv_3) in
+    {419}let jt_3: tcbreq = (if v_37 then catch-fail(jointcb(xt_3,yt_3)) else caught-fail) in
+    {420}let v_38: bool = not-caught-fail(jt_3) in
+    {421}let ja_3: attreq = (if v_38 then catch-fail(joinatt(xa_3,ya_3)) else caught-fail) in
+    {422}let v_39: bool = not-caught-fail(ja_3) in
+    {423}let twoInputs: entry = (if v_31 then (if v_33 then (if v_34 then (if v_35 then (if v_36 then (if v_37 then (if v_38 then (if v_39 then Req(jm_3,js_3,jp_3,jv_3,jt_3,ja_3) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {424}let v_40: entry = twoInputs in
+    {425}let v_41: bool = success?(1-proj-Req(v_40)) in
+    {426}let xa_4: attreq = (if v_41 then 6-proj-Req(v_40) else caught-fail) in
+    {427}let xt_4: tcbreq = (if v_41 then 5-proj-Req(v_40) else caught-fail) in
+    {428}let xv_4: svn = (if v_41 then 4-proj-Req(v_40) else caught-fail) in
+    {429}let xp_4: ident = (if v_41 then 3-proj-Req(v_40) else caught-fail) in
+    {430}let xs_4: ident = (if v_41 then 2-proj-Req(v_40) else caught-fail) in
+    {431}let xm_4: ident = (if v_41 then 1-proj-Req(v_40) else caught-fail) in
+    {394}let cC: entry = Req(exact(mE1),exact(s1),Any,V1,Both,Assign(P1)) in
+    {432}let v_42: entry = (if v_41 then catch-fail(cC) else caught-fail) in
+    {433}let v_43: bool = (not-caught-fail(v_42) && success?(1-proj-Req(v_42))) in
+    {434}let ya_4: attreq = (if v_43 then 6-proj-Req(v_42) else caught-fail) in
+    {435}let yt_4: tcbreq = (if v_43 then 5-proj-Req(v_42) else caught-fail) in
+    {436}let yv_4: svn = (if v_43 then 4-proj-Req(v_42) else caught-fail) in
+    {437}let yp_4: ident = (if v_43 then 3-proj-Req(v_42) else caught-fail) in
+    {438}let ys_4: ident = (if v_43 then 2-proj-Req(v_42) else caught-fail) in
+    {439}let ym_4: ident = (if v_43 then 1-proj-Req(v_42) else caught-fail) in
+    {440}let jm_4: ident = (if v_43 then catch-fail(joinid(xm_4,ym_4)) else caught-fail) in
+    {441}let v_44: bool = not-caught-fail(jm_4) in
+    {442}let js_4: ident = (if v_44 then catch-fail(joinid(xs_4,ys_4)) else caught-fail) in
+    {443}let v_45: bool = not-caught-fail(js_4) in
+    {444}let jp_4: ident = (if v_45 then catch-fail(joinid(xp_4,yp_4)) else caught-fail) in
+    {445}let v_46: bool = not-caught-fail(jp_4) in
+    {446}let jv_4: svn = (if v_46 then catch-fail(joinv(xv_4,yv_4)) else caught-fail) in
+    {447}let v_47: bool = not-caught-fail(jv_4) in
+    {448}let jt_4: tcbreq = (if v_47 then catch-fail(jointcb(xt_4,yt_4)) else caught-fail) in
+    {449}let v_48: bool = not-caught-fail(jt_4) in
+    {450}let ja_4: attreq = (if v_48 then catch-fail(joinatt(xa_4,ya_4)) else caught-fail) in
+    {451}let v_49: bool = not-caught-fail(ja_4) in
+    {452}let threeInputs: entry = (if v_41 then (if v_43 then (if v_44 then (if v_45 then (if v_46 then (if v_47 then (if v_48 then (if v_49 then Req(jm_4,js_4,jp_4,jv_4,jt_4,ja_4) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {453}if ((cA ≠ cB) && ((cA ≠ cC) && ((cB ≠ cC) && (twoInputs = threeInputs)))) then
+    {454}event RedundantInputsEqual
+) | (
+    {455}let cA_1: entry = Req(Any,exact(s1),Any,V0,Both,Assign(P1)) in
+    {457}let v_50: entry = cA_1 in
+    {458}let v_51: bool = success?(1-proj-Req(v_50)) in
+    {459}let xa_5: attreq = (if v_51 then 6-proj-Req(v_50) else caught-fail) in
+    {460}let xt_5: tcbreq = (if v_51 then 5-proj-Req(v_50) else caught-fail) in
+    {461}let xv_5: svn = (if v_51 then 4-proj-Req(v_50) else caught-fail) in
+    {462}let xp_5: ident = (if v_51 then 3-proj-Req(v_50) else caught-fail) in
+    {463}let xs_5: ident = (if v_51 then 2-proj-Req(v_50) else caught-fail) in
+    {464}let xm_5: ident = (if v_51 then 1-proj-Req(v_50) else caught-fail) in
+    {456}let cB_1: entry = Req(exact(mE1),exact(s1),Any,V1,Both,Assign(P1)) in
+    {465}let v_52: entry = (if v_51 then catch-fail(cB_1) else caught-fail) in
+    {466}let v_53: bool = (not-caught-fail(v_52) && success?(1-proj-Req(v_52))) in
+    {467}let ya_5: attreq = (if v_53 then 6-proj-Req(v_52) else caught-fail) in
+    {468}let yt_5: tcbreq = (if v_53 then 5-proj-Req(v_52) else caught-fail) in
+    {469}let yv_5: svn = (if v_53 then 4-proj-Req(v_52) else caught-fail) in
+    {470}let yp_5: ident = (if v_53 then 3-proj-Req(v_52) else caught-fail) in
+    {471}let ys_5: ident = (if v_53 then 2-proj-Req(v_52) else caught-fail) in
+    {472}let ym_5: ident = (if v_53 then 1-proj-Req(v_52) else caught-fail) in
+    {473}let jm_5: ident = (if v_53 then catch-fail(joinid(xm_5,ym_5)) else caught-fail) in
+    {474}let v_54: bool = not-caught-fail(jm_5) in
+    {475}let js_5: ident = (if v_54 then catch-fail(joinid(xs_5,ys_5)) else caught-fail) in
+    {476}let v_55: bool = not-caught-fail(js_5) in
+    {477}let jp_5: ident = (if v_55 then catch-fail(joinid(xp_5,yp_5)) else caught-fail) in
+    {478}let v_56: bool = not-caught-fail(jp_5) in
+    {479}let jv_5: svn = (if v_56 then catch-fail(joinv(xv_5,yv_5)) else caught-fail) in
+    {480}let v_57: bool = not-caught-fail(jv_5) in
+    {481}let jt_5: tcbreq = (if v_57 then catch-fail(jointcb(xt_5,yt_5)) else caught-fail) in
+    {482}let v_58: bool = not-caught-fail(jt_5) in
+    {483}let ja_5: attreq = (if v_58 then catch-fail(joinatt(xa_5,ya_5)) else caught-fail) in
+    {484}let v_59: bool = not-caught-fail(ja_5) in
+    {485}let ab: entry = (if v_51 then (if v_53 then (if v_54 then (if v_55 then (if v_56 then (if v_57 then (if v_58 then (if v_59 then Req(jm_5,js_5,jp_5,jv_5,jt_5,ja_5) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {486}let v_60: entry = cB_1 in
+    {487}let v_61: bool = success?(1-proj-Req(v_60)) in
+    {488}let xa_6: attreq = (if v_61 then 6-proj-Req(v_60) else caught-fail) in
+    {489}let xt_6: tcbreq = (if v_61 then 5-proj-Req(v_60) else caught-fail) in
+    {490}let xv_6: svn = (if v_61 then 4-proj-Req(v_60) else caught-fail) in
+    {491}let xp_6: ident = (if v_61 then 3-proj-Req(v_60) else caught-fail) in
+    {492}let xs_6: ident = (if v_61 then 2-proj-Req(v_60) else caught-fail) in
+    {493}let xm_6: ident = (if v_61 then 1-proj-Req(v_60) else caught-fail) in
+    {494}let v_62: entry = (if v_61 then catch-fail(cA_1) else caught-fail) in
+    {495}let v_63: bool = (not-caught-fail(v_62) && success?(1-proj-Req(v_62))) in
+    {496}let ya_6: attreq = (if v_63 then 6-proj-Req(v_62) else caught-fail) in
+    {497}let yt_6: tcbreq = (if v_63 then 5-proj-Req(v_62) else caught-fail) in
+    {498}let yv_6: svn = (if v_63 then 4-proj-Req(v_62) else caught-fail) in
+    {499}let yp_6: ident = (if v_63 then 3-proj-Req(v_62) else caught-fail) in
+    {500}let ys_6: ident = (if v_63 then 2-proj-Req(v_62) else caught-fail) in
+    {501}let ym_6: ident = (if v_63 then 1-proj-Req(v_62) else caught-fail) in
+    {502}let jm_6: ident = (if v_63 then catch-fail(joinid(xm_6,ym_6)) else caught-fail) in
+    {503}let v_64: bool = not-caught-fail(jm_6) in
+    {504}let js_6: ident = (if v_64 then catch-fail(joinid(xs_6,ys_6)) else caught-fail) in
+    {505}let v_65: bool = not-caught-fail(js_6) in
+    {506}let jp_6: ident = (if v_65 then catch-fail(joinid(xp_6,yp_6)) else caught-fail) in
+    {507}let v_66: bool = not-caught-fail(jp_6) in
+    {508}let jv_6: svn = (if v_66 then catch-fail(joinv(xv_6,yv_6)) else caught-fail) in
+    {509}let v_67: bool = not-caught-fail(jv_6) in
+    {510}let jt_6: tcbreq = (if v_67 then catch-fail(jointcb(xt_6,yt_6)) else caught-fail) in
+    {511}let v_68: bool = not-caught-fail(jt_6) in
+    {512}let ja_6: attreq = (if v_68 then catch-fail(joinatt(xa_6,ya_6)) else caught-fail) in
+    {513}let v_69: bool = not-caught-fail(ja_6) in
+    {514}let ba: entry = (if v_61 then (if v_63 then (if v_64 then (if v_65 then (if v_66 then (if v_67 then (if v_68 then (if v_69 then Req(jm_6,js_6,jp_6,jv_6,jt_6,ja_6) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {515}if (ab = ba) then
+    {516}event OrderNormalization
+) | (
+    {517}let c_1: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {521}let v_70: entry = c_1 in
+    {522}let v_71: bool = success?(1-proj-Req(v_70)) in
+    {523}let ca: attreq = (if v_71 then 6-proj-Req(v_70) else caught-fail) in
+    {524}let ct: tcbreq = (if v_71 then 5-proj-Req(v_70) else caught-fail) in
+    {525}let cv: svn = (if v_71 then 4-proj-Req(v_70) else caught-fail) in
+    {526}let cp: ident = (if v_71 then 3-proj-Req(v_70) else caught-fail) in
+    {527}let cs: ident = (if v_71 then 2-proj-Req(v_70) else caught-fail) in
+    {528}let cm: ident = (if v_71 then 1-proj-Req(v_70) else caught-fail) in
+    {519}let actual: identity = Identity(mE1,s1,prodA,V2) in
+    {529}let v_72: identity = (if v_71 then catch-fail(actual) else caught-fail) in
+    {530}let v_73: bool = (not-caught-fail(v_72) && success?(1-proj-Identity(v_72))) in
+    {531}let av: svn = (if v_73 then 4-proj-Identity(v_72) else caught-fail) in
+    {532}let ap: attr = (if v_73 then 3-proj-Identity(v_72) else caught-fail) in
+    {533}let asigner: attr = (if v_73 then 2-proj-Identity(v_72) else caught-fail) in
+    {534}let am: attr = (if v_73 then 1-proj-Identity(v_72) else caught-fail) in
+    {535}let vm: bool = (if v_73 then catch-fail(matchid(cm,am)) else caught-fail) in
+    {536}let v_74: bool = not-caught-fail(vm) in
+    {537}let vs: bool = (if v_74 then catch-fail(matchid(cs,asigner)) else caught-fail) in
+    {538}let v_75: bool = not-caught-fail(vs) in
+    {539}let vp: bool = (if v_75 then catch-fail(matchid(cp,ap)) else caught-fail) in
+    {540}let v_76: bool = not-caught-fail(vp) in
+    {541}let vv: bool = (if v_76 then catch-fail(matchv(cv,av)) else caught-fail) in
+    {542}let v_77: bool = not-caught-fail(vv) in
+    {520}let ts: tcbstatus = Good in
+    {543}let vt: bool = (if v_77 then catch-fail(matchtcb(ct,ts)) else caught-fail) in
+    {544}let v_78: bool = not-caught-fail(vt) in
+    {518}let who: party = P1 in
+    {545}let va: bool = (if v_78 then catch-fail(matchatt(ca,who)) else caught-fail) in
+    {546}let v_79: bool = not-caught-fail(va) in
+    {547}let ok: bool = (if v_71 then (if v_73 then (if v_74 then (if v_75 then (if v_76 then (if v_77 then (if v_78 then (if v_79 then (vm && (vs && (vp && (vv && (vt && va))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {548}if (ok = true) then
+    {549}event CompatibleEntryAccepted
+) | (
+    {550}let x: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {552}let v_80: entry = x in
+    {553}let v_81: bool = success?(1-proj-Req(v_80)) in
+    {554}let xa_7: attreq = (if v_81 then 6-proj-Req(v_80) else caught-fail) in
+    {555}let xt_7: tcbreq = (if v_81 then 5-proj-Req(v_80) else caught-fail) in
+    {556}let xv_7: svn = (if v_81 then 4-proj-Req(v_80) else caught-fail) in
+    {557}let xp_7: ident = (if v_81 then 3-proj-Req(v_80) else caught-fail) in
+    {558}let xs_7: ident = (if v_81 then 2-proj-Req(v_80) else caught-fail) in
+    {559}let xm_7: ident = (if v_81 then 1-proj-Req(v_80) else caught-fail) in
+    {551}let y: entry = Req(exact(mBad),Any,Any,V0,Both,NoAtt) in
+    {560}let v_82: entry = (if v_81 then catch-fail(y) else caught-fail) in
+    {561}let v_83: bool = (not-caught-fail(v_82) && success?(1-proj-Req(v_82))) in
+    {562}let ya_7: attreq = (if v_83 then 6-proj-Req(v_82) else caught-fail) in
+    {563}let yt_7: tcbreq = (if v_83 then 5-proj-Req(v_82) else caught-fail) in
+    {564}let yv_7: svn = (if v_83 then 4-proj-Req(v_82) else caught-fail) in
+    {565}let yp_7: ident = (if v_83 then 3-proj-Req(v_82) else caught-fail) in
+    {566}let ys_7: ident = (if v_83 then 2-proj-Req(v_82) else caught-fail) in
+    {567}let ym_7: ident = (if v_83 then 1-proj-Req(v_82) else caught-fail) in
+    {568}let jm_7: ident = (if v_83 then catch-fail(joinid(xm_7,ym_7)) else caught-fail) in
+    {569}let v_84: bool = not-caught-fail(jm_7) in
+    {570}let js_7: ident = (if v_84 then catch-fail(joinid(xs_7,ys_7)) else caught-fail) in
+    {571}let v_85: bool = not-caught-fail(js_7) in
+    {572}let jp_7: ident = (if v_85 then catch-fail(joinid(xp_7,yp_7)) else caught-fail) in
+    {573}let v_86: bool = not-caught-fail(jp_7) in
+    {574}let jv_7: svn = (if v_86 then catch-fail(joinv(xv_7,yv_7)) else caught-fail) in
+    {575}let v_87: bool = not-caught-fail(jv_7) in
+    {576}let jt_7: tcbreq = (if v_87 then catch-fail(jointcb(xt_7,yt_7)) else caught-fail) in
+    {577}let v_88: bool = not-caught-fail(jt_7) in
+    {578}let ja_7: attreq = (if v_88 then catch-fail(joinatt(xa_7,ya_7)) else caught-fail) in
+    {579}let v_89: bool = not-caught-fail(ja_7) in
+    {580}let impossible: entry = (if v_81 then (if v_83 then (if v_84 then (if v_85 then (if v_86 then (if v_87 then (if v_88 then (if v_89 then Req(jm_7,js_7,jp_7,jv_7,jt_7,ja_7) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {581}event MeasurementConflictAccepted
+) | (
+    {582}let x_1: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {584}let v_90: entry = x_1 in
+    {585}let v_91: bool = success?(1-proj-Req(v_90)) in
+    {586}let xa_8: attreq = (if v_91 then 6-proj-Req(v_90) else caught-fail) in
+    {587}let xt_8: tcbreq = (if v_91 then 5-proj-Req(v_90) else caught-fail) in
+    {588}let xv_8: svn = (if v_91 then 4-proj-Req(v_90) else caught-fail) in
+    {589}let xp_8: ident = (if v_91 then 3-proj-Req(v_90) else caught-fail) in
+    {590}let xs_8: ident = (if v_91 then 2-proj-Req(v_90) else caught-fail) in
+    {591}let xm_8: ident = (if v_91 then 1-proj-Req(v_90) else caught-fail) in
+    {583}let y_1: entry = Req(Any,exact(sBad),Any,V0,Both,NoAtt) in
+    {592}let v_92: entry = (if v_91 then catch-fail(y_1) else caught-fail) in
+    {593}let v_93: bool = (not-caught-fail(v_92) && success?(1-proj-Req(v_92))) in
+    {594}let ya_8: attreq = (if v_93 then 6-proj-Req(v_92) else caught-fail) in
+    {595}let yt_8: tcbreq = (if v_93 then 5-proj-Req(v_92) else caught-fail) in
+    {596}let yv_8: svn = (if v_93 then 4-proj-Req(v_92) else caught-fail) in
+    {597}let yp_8: ident = (if v_93 then 3-proj-Req(v_92) else caught-fail) in
+    {598}let ys_8: ident = (if v_93 then 2-proj-Req(v_92) else caught-fail) in
+    {599}let ym_8: ident = (if v_93 then 1-proj-Req(v_92) else caught-fail) in
+    {600}let jm_8: ident = (if v_93 then catch-fail(joinid(xm_8,ym_8)) else caught-fail) in
+    {601}let v_94: bool = not-caught-fail(jm_8) in
+    {602}let js_8: ident = (if v_94 then catch-fail(joinid(xs_8,ys_8)) else caught-fail) in
+    {603}let v_95: bool = not-caught-fail(js_8) in
+    {604}let jp_8: ident = (if v_95 then catch-fail(joinid(xp_8,yp_8)) else caught-fail) in
+    {605}let v_96: bool = not-caught-fail(jp_8) in
+    {606}let jv_8: svn = (if v_96 then catch-fail(joinv(xv_8,yv_8)) else caught-fail) in
+    {607}let v_97: bool = not-caught-fail(jv_8) in
+    {608}let jt_8: tcbreq = (if v_97 then catch-fail(jointcb(xt_8,yt_8)) else caught-fail) in
+    {609}let v_98: bool = not-caught-fail(jt_8) in
+    {610}let ja_8: attreq = (if v_98 then catch-fail(joinatt(xa_8,ya_8)) else caught-fail) in
+    {611}let v_99: bool = not-caught-fail(ja_8) in
+    {612}let impossible_1: entry = (if v_91 then (if v_93 then (if v_94 then (if v_95 then (if v_96 then (if v_97 then (if v_98 then (if v_99 then Req(jm_8,js_8,jp_8,jv_8,jt_8,ja_8) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {613}event SignerConflictAccepted
+) | (
+    {614}let x_2: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {616}let v_100: entry = x_2 in
+    {617}let v_101: bool = success?(1-proj-Req(v_100)) in
+    {618}let xa_9: attreq = (if v_101 then 6-proj-Req(v_100) else caught-fail) in
+    {619}let xt_9: tcbreq = (if v_101 then 5-proj-Req(v_100) else caught-fail) in
+    {620}let xv_9: svn = (if v_101 then 4-proj-Req(v_100) else caught-fail) in
+    {621}let xp_9: ident = (if v_101 then 3-proj-Req(v_100) else caught-fail) in
+    {622}let xs_9: ident = (if v_101 then 2-proj-Req(v_100) else caught-fail) in
+    {623}let xm_9: ident = (if v_101 then 1-proj-Req(v_100) else caught-fail) in
+    {615}let y_2: entry = Req(Any,Any,exact(prodB),V0,Both,NoAtt) in
+    {624}let v_102: entry = (if v_101 then catch-fail(y_2) else caught-fail) in
+    {625}let v_103: bool = (not-caught-fail(v_102) && success?(1-proj-Req(v_102))) in
+    {626}let ya_9: attreq = (if v_103 then 6-proj-Req(v_102) else caught-fail) in
+    {627}let yt_9: tcbreq = (if v_103 then 5-proj-Req(v_102) else caught-fail) in
+    {628}let yv_9: svn = (if v_103 then 4-proj-Req(v_102) else caught-fail) in
+    {629}let yp_9: ident = (if v_103 then 3-proj-Req(v_102) else caught-fail) in
+    {630}let ys_9: ident = (if v_103 then 2-proj-Req(v_102) else caught-fail) in
+    {631}let ym_9: ident = (if v_103 then 1-proj-Req(v_102) else caught-fail) in
+    {632}let jm_9: ident = (if v_103 then catch-fail(joinid(xm_9,ym_9)) else caught-fail) in
+    {633}let v_104: bool = not-caught-fail(jm_9) in
+    {634}let js_9: ident = (if v_104 then catch-fail(joinid(xs_9,ys_9)) else caught-fail) in
+    {635}let v_105: bool = not-caught-fail(js_9) in
+    {636}let jp_9: ident = (if v_105 then catch-fail(joinid(xp_9,yp_9)) else caught-fail) in
+    {637}let v_106: bool = not-caught-fail(jp_9) in
+    {638}let jv_9: svn = (if v_106 then catch-fail(joinv(xv_9,yv_9)) else caught-fail) in
+    {639}let v_107: bool = not-caught-fail(jv_9) in
+    {640}let jt_9: tcbreq = (if v_107 then catch-fail(jointcb(xt_9,yt_9)) else caught-fail) in
+    {641}let v_108: bool = not-caught-fail(jt_9) in
+    {642}let ja_9: attreq = (if v_108 then catch-fail(joinatt(xa_9,ya_9)) else caught-fail) in
+    {643}let v_109: bool = not-caught-fail(ja_9) in
+    {644}let impossible_2: entry = (if v_101 then (if v_103 then (if v_104 then (if v_105 then (if v_106 then (if v_107 then (if v_108 then (if v_109 then Req(jm_9,js_9,jp_9,jv_9,jt_9,ja_9) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {645}event ProductConflictAccepted
+) | (
+    {646}let x_3: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {648}let v_110: entry = x_3 in
+    {649}let v_111: bool = success?(1-proj-Req(v_110)) in
+    {650}let xa_10: attreq = (if v_111 then 6-proj-Req(v_110) else caught-fail) in
+    {651}let xt_10: tcbreq = (if v_111 then 5-proj-Req(v_110) else caught-fail) in
+    {652}let xv_10: svn = (if v_111 then 4-proj-Req(v_110) else caught-fail) in
+    {653}let xp_10: ident = (if v_111 then 3-proj-Req(v_110) else caught-fail) in
+    {654}let xs_10: ident = (if v_111 then 2-proj-Req(v_110) else caught-fail) in
+    {655}let xm_10: ident = (if v_111 then 1-proj-Req(v_110) else caught-fail) in
+    {647}let y_3: entry = Req(Any,Any,Any,V0,OnlyOutdated,NoAtt) in
+    {656}let v_112: entry = (if v_111 then catch-fail(y_3) else caught-fail) in
+    {657}let v_113: bool = (not-caught-fail(v_112) && success?(1-proj-Req(v_112))) in
+    {658}let ya_10: attreq = (if v_113 then 6-proj-Req(v_112) else caught-fail) in
+    {659}let yt_10: tcbreq = (if v_113 then 5-proj-Req(v_112) else caught-fail) in
+    {660}let yv_10: svn = (if v_113 then 4-proj-Req(v_112) else caught-fail) in
+    {661}let yp_10: ident = (if v_113 then 3-proj-Req(v_112) else caught-fail) in
+    {662}let ys_10: ident = (if v_113 then 2-proj-Req(v_112) else caught-fail) in
+    {663}let ym_10: ident = (if v_113 then 1-proj-Req(v_112) else caught-fail) in
+    {664}let jm_10: ident = (if v_113 then catch-fail(joinid(xm_10,ym_10)) else caught-fail) in
+    {665}let v_114: bool = not-caught-fail(jm_10) in
+    {666}let js_10: ident = (if v_114 then catch-fail(joinid(xs_10,ys_10)) else caught-fail) in
+    {667}let v_115: bool = not-caught-fail(js_10) in
+    {668}let jp_10: ident = (if v_115 then catch-fail(joinid(xp_10,yp_10)) else caught-fail) in
+    {669}let v_116: bool = not-caught-fail(jp_10) in
+    {670}let jv_10: svn = (if v_116 then catch-fail(joinv(xv_10,yv_10)) else caught-fail) in
+    {671}let v_117: bool = not-caught-fail(jv_10) in
+    {672}let jt_10: tcbreq = (if v_117 then catch-fail(jointcb(xt_10,yt_10)) else caught-fail) in
+    {673}let v_118: bool = not-caught-fail(jt_10) in
+    {674}let ja_10: attreq = (if v_118 then catch-fail(joinatt(xa_10,ya_10)) else caught-fail) in
+    {675}let v_119: bool = not-caught-fail(ja_10) in
+    {676}let impossible_3: entry = (if v_111 then (if v_113 then (if v_114 then (if v_115 then (if v_116 then (if v_117 then (if v_118 then (if v_119 then Req(jm_10,js_10,jp_10,jv_10,jt_10,ja_10) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {677}event TCBConflictAccepted
+) | (
+    {678}let x_4: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {680}let v_120: entry = x_4 in
+    {681}let v_121: bool = success?(1-proj-Req(v_120)) in
+    {682}let xa_11: attreq = (if v_121 then 6-proj-Req(v_120) else caught-fail) in
+    {683}let xt_11: tcbreq = (if v_121 then 5-proj-Req(v_120) else caught-fail) in
+    {684}let xv_11: svn = (if v_121 then 4-proj-Req(v_120) else caught-fail) in
+    {685}let xp_11: ident = (if v_121 then 3-proj-Req(v_120) else caught-fail) in
+    {686}let xs_11: ident = (if v_121 then 2-proj-Req(v_120) else caught-fail) in
+    {687}let xm_11: ident = (if v_121 then 1-proj-Req(v_120) else caught-fail) in
+    {679}let y_4: entry = Req(Any,Any,Any,V0,Both,Assign(P2)) in
+    {688}let v_122: entry = (if v_121 then catch-fail(y_4) else caught-fail) in
+    {689}let v_123: bool = (not-caught-fail(v_122) && success?(1-proj-Req(v_122))) in
+    {690}let ya_11: attreq = (if v_123 then 6-proj-Req(v_122) else caught-fail) in
+    {691}let yt_11: tcbreq = (if v_123 then 5-proj-Req(v_122) else caught-fail) in
+    {692}let yv_11: svn = (if v_123 then 4-proj-Req(v_122) else caught-fail) in
+    {693}let yp_11: ident = (if v_123 then 3-proj-Req(v_122) else caught-fail) in
+    {694}let ys_11: ident = (if v_123 then 2-proj-Req(v_122) else caught-fail) in
+    {695}let ym_11: ident = (if v_123 then 1-proj-Req(v_122) else caught-fail) in
+    {696}let jm_11: ident = (if v_123 then catch-fail(joinid(xm_11,ym_11)) else caught-fail) in
+    {697}let v_124: bool = not-caught-fail(jm_11) in
+    {698}let js_11: ident = (if v_124 then catch-fail(joinid(xs_11,ys_11)) else caught-fail) in
+    {699}let v_125: bool = not-caught-fail(js_11) in
+    {700}let jp_11: ident = (if v_125 then catch-fail(joinid(xp_11,yp_11)) else caught-fail) in
+    {701}let v_126: bool = not-caught-fail(jp_11) in
+    {702}let jv_11: svn = (if v_126 then catch-fail(joinv(xv_11,yv_11)) else caught-fail) in
+    {703}let v_127: bool = not-caught-fail(jv_11) in
+    {704}let jt_11: tcbreq = (if v_127 then catch-fail(jointcb(xt_11,yt_11)) else caught-fail) in
+    {705}let v_128: bool = not-caught-fail(jt_11) in
+    {706}let ja_11: attreq = (if v_128 then catch-fail(joinatt(xa_11,ya_11)) else caught-fail) in
+    {707}let v_129: bool = not-caught-fail(ja_11) in
+    {708}let impossible_4: entry = (if v_121 then (if v_123 then (if v_124 then (if v_125 then (if v_126 then (if v_127 then (if v_128 then (if v_129 then Req(jm_11,js_11,jp_11,jv_11,jt_11,ja_11) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {709}event AttesterConflictAccepted
+) | (
+    {710}let c_2: entry = Req(Any,Any,Any,V0,Both,Assign(P1)) in
+    {714}let v_130: entry = c_2 in
+    {715}let v_131: bool = success?(1-proj-Req(v_130)) in
+    {716}let ca_1: attreq = (if v_131 then 6-proj-Req(v_130) else caught-fail) in
+    {717}let ct_1: tcbreq = (if v_131 then 5-proj-Req(v_130) else caught-fail) in
+    {718}let cv_1: svn = (if v_131 then 4-proj-Req(v_130) else caught-fail) in
+    {719}let cp_1: ident = (if v_131 then 3-proj-Req(v_130) else caught-fail) in
+    {720}let cs_1: ident = (if v_131 then 2-proj-Req(v_130) else caught-fail) in
+    {721}let cm_1: ident = (if v_131 then 1-proj-Req(v_130) else caught-fail) in
+    {712}let actual_1: identity = Identity(mE1,s1,prodA,V2) in
+    {722}let v_132: identity = (if v_131 then catch-fail(actual_1) else caught-fail) in
+    {723}let v_133: bool = (not-caught-fail(v_132) && success?(1-proj-Identity(v_132))) in
+    {724}let av_1: svn = (if v_133 then 4-proj-Identity(v_132) else caught-fail) in
+    {725}let ap_1: attr = (if v_133 then 3-proj-Identity(v_132) else caught-fail) in
+    {726}let asigner_1: attr = (if v_133 then 2-proj-Identity(v_132) else caught-fail) in
+    {727}let am_1: attr = (if v_133 then 1-proj-Identity(v_132) else caught-fail) in
+    {728}let vm_1: bool = (if v_133 then catch-fail(matchid(cm_1,am_1)) else caught-fail) in
+    {729}let v_134: bool = not-caught-fail(vm_1) in
+    {730}let vs_1: bool = (if v_134 then catch-fail(matchid(cs_1,asigner_1)) else caught-fail) in
+    {731}let v_135: bool = not-caught-fail(vs_1) in
+    {732}let vp_1: bool = (if v_135 then catch-fail(matchid(cp_1,ap_1)) else caught-fail) in
+    {733}let v_136: bool = not-caught-fail(vp_1) in
+    {734}let vv_1: bool = (if v_136 then catch-fail(matchv(cv_1,av_1)) else caught-fail) in
+    {735}let v_137: bool = not-caught-fail(vv_1) in
+    {713}let ts_1: tcbstatus = Revoked in
+    {736}let vt_1: bool = (if v_137 then catch-fail(matchtcb(ct_1,ts_1)) else caught-fail) in
+    {737}let v_138: bool = not-caught-fail(vt_1) in
+    {711}let who_1: party = P1 in
+    {738}let va_1: bool = (if v_138 then catch-fail(matchatt(ca_1,who_1)) else caught-fail) in
+    {739}let v_139: bool = not-caught-fail(va_1) in
+    {740}let accepted: bool = (if v_131 then (if v_133 then (if v_134 then (if v_135 then (if v_136 then (if v_137 then (if v_138 then (if v_139 then (vm_1 && (vs_1 && (vp_1 && (vv_1 && (vt_1 && va_1))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {741}if (accepted = true) then
+    {742}event RevokedAccepted
+) | (
+    {743}let c_3: entry = Req(Any,Any,Any,V0,Both,Assign(P1)) in
+    {747}let v_140: entry = c_3 in
+    {748}let v_141: bool = success?(1-proj-Req(v_140)) in
+    {749}let ca_2: attreq = (if v_141 then 6-proj-Req(v_140) else caught-fail) in
+    {750}let ct_2: tcbreq = (if v_141 then 5-proj-Req(v_140) else caught-fail) in
+    {751}let cv_2: svn = (if v_141 then 4-proj-Req(v_140) else caught-fail) in
+    {752}let cp_2: ident = (if v_141 then 3-proj-Req(v_140) else caught-fail) in
+    {753}let cs_2: ident = (if v_141 then 2-proj-Req(v_140) else caught-fail) in
+    {754}let cm_2: ident = (if v_141 then 1-proj-Req(v_140) else caught-fail) in
+    {745}let actual_2: identity = Identity(mE1,s1,prodA,V2) in
+    {755}let v_142: identity = (if v_141 then catch-fail(actual_2) else caught-fail) in
+    {756}let v_143: bool = (not-caught-fail(v_142) && success?(1-proj-Identity(v_142))) in
+    {757}let av_2: svn = (if v_143 then 4-proj-Identity(v_142) else caught-fail) in
+    {758}let ap_2: attr = (if v_143 then 3-proj-Identity(v_142) else caught-fail) in
+    {759}let asigner_2: attr = (if v_143 then 2-proj-Identity(v_142) else caught-fail) in
+    {760}let am_2: attr = (if v_143 then 1-proj-Identity(v_142) else caught-fail) in
+    {761}let vm_2: bool = (if v_143 then catch-fail(matchid(cm_2,am_2)) else caught-fail) in
+    {762}let v_144: bool = not-caught-fail(vm_2) in
+    {763}let vs_2: bool = (if v_144 then catch-fail(matchid(cs_2,asigner_2)) else caught-fail) in
+    {764}let v_145: bool = not-caught-fail(vs_2) in
+    {765}let vp_2: bool = (if v_145 then catch-fail(matchid(cp_2,ap_2)) else caught-fail) in
+    {766}let v_146: bool = not-caught-fail(vp_2) in
+    {767}let vv_2: bool = (if v_146 then catch-fail(matchv(cv_2,av_2)) else caught-fail) in
+    {768}let v_147: bool = not-caught-fail(vv_2) in
+    {746}let ts_2: tcbstatus = Invalid in
+    {769}let vt_2: bool = (if v_147 then catch-fail(matchtcb(ct_2,ts_2)) else caught-fail) in
+    {770}let v_148: bool = not-caught-fail(vt_2) in
+    {744}let who_2: party = P1 in
+    {771}let va_2: bool = (if v_148 then catch-fail(matchatt(ca_2,who_2)) else caught-fail) in
+    {772}let v_149: bool = not-caught-fail(va_2) in
+    {773}let accepted_1: bool = (if v_141 then (if v_143 then (if v_144 then (if v_145 then (if v_146 then (if v_147 then (if v_148 then (if v_149 then (vm_2 && (vs_2 && (vp_2 && (vv_2 && (vt_2 && va_2))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {774}if (accepted_1 = true) then
+    {775}event InvalidAccepted
+) | (
+    {776}let c_4: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {780}let v_150: entry = c_4 in
+    {781}let v_151: bool = success?(1-proj-Req(v_150)) in
+    {782}let ca_3: attreq = (if v_151 then 6-proj-Req(v_150) else caught-fail) in
+    {783}let ct_3: tcbreq = (if v_151 then 5-proj-Req(v_150) else caught-fail) in
+    {784}let cv_3: svn = (if v_151 then 4-proj-Req(v_150) else caught-fail) in
+    {785}let cp_3: ident = (if v_151 then 3-proj-Req(v_150) else caught-fail) in
+    {786}let cs_3: ident = (if v_151 then 2-proj-Req(v_150) else caught-fail) in
+    {787}let cm_3: ident = (if v_151 then 1-proj-Req(v_150) else caught-fail) in
+    {778}let actual_3: identity = Identity(mBad,s1,prodA,V2) in
+    {788}let v_152: identity = (if v_151 then catch-fail(actual_3) else caught-fail) in
+    {789}let v_153: bool = (not-caught-fail(v_152) && success?(1-proj-Identity(v_152))) in
+    {790}let av_3: svn = (if v_153 then 4-proj-Identity(v_152) else caught-fail) in
+    {791}let ap_3: attr = (if v_153 then 3-proj-Identity(v_152) else caught-fail) in
+    {792}let asigner_3: attr = (if v_153 then 2-proj-Identity(v_152) else caught-fail) in
+    {793}let am_3: attr = (if v_153 then 1-proj-Identity(v_152) else caught-fail) in
+    {794}let vm_3: bool = (if v_153 then catch-fail(matchid(cm_3,am_3)) else caught-fail) in
+    {795}let v_154: bool = not-caught-fail(vm_3) in
+    {796}let vs_3: bool = (if v_154 then catch-fail(matchid(cs_3,asigner_3)) else caught-fail) in
+    {797}let v_155: bool = not-caught-fail(vs_3) in
+    {798}let vp_3: bool = (if v_155 then catch-fail(matchid(cp_3,ap_3)) else caught-fail) in
+    {799}let v_156: bool = not-caught-fail(vp_3) in
+    {800}let vv_3: bool = (if v_156 then catch-fail(matchv(cv_3,av_3)) else caught-fail) in
+    {801}let v_157: bool = not-caught-fail(vv_3) in
+    {779}let ts_3: tcbstatus = Good in
+    {802}let vt_3: bool = (if v_157 then catch-fail(matchtcb(ct_3,ts_3)) else caught-fail) in
+    {803}let v_158: bool = not-caught-fail(vt_3) in
+    {777}let who_3: party = P1 in
+    {804}let va_3: bool = (if v_158 then catch-fail(matchatt(ca_3,who_3)) else caught-fail) in
+    {805}let v_159: bool = not-caught-fail(va_3) in
+    {806}let accepted_2: bool = (if v_151 then (if v_153 then (if v_154 then (if v_155 then (if v_156 then (if v_157 then (if v_158 then (if v_159 then (vm_3 && (vs_3 && (vp_3 && (vv_3 && (vt_3 && va_3))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {807}if (accepted_2 = true) then
+    {808}event UnexpectedEntryAcceptance
+) | (
+    {809}let c_5: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {813}let v_160: entry = c_5 in
+    {814}let v_161: bool = success?(1-proj-Req(v_160)) in
+    {815}let ca_4: attreq = (if v_161 then 6-proj-Req(v_160) else caught-fail) in
+    {816}let ct_4: tcbreq = (if v_161 then 5-proj-Req(v_160) else caught-fail) in
+    {817}let cv_4: svn = (if v_161 then 4-proj-Req(v_160) else caught-fail) in
+    {818}let cp_4: ident = (if v_161 then 3-proj-Req(v_160) else caught-fail) in
+    {819}let cs_4: ident = (if v_161 then 2-proj-Req(v_160) else caught-fail) in
+    {820}let cm_4: ident = (if v_161 then 1-proj-Req(v_160) else caught-fail) in
+    {811}let actual_4: identity = Identity(mE1,sBad,prodA,V2) in
+    {821}let v_162: identity = (if v_161 then catch-fail(actual_4) else caught-fail) in
+    {822}let v_163: bool = (not-caught-fail(v_162) && success?(1-proj-Identity(v_162))) in
+    {823}let av_4: svn = (if v_163 then 4-proj-Identity(v_162) else caught-fail) in
+    {824}let ap_4: attr = (if v_163 then 3-proj-Identity(v_162) else caught-fail) in
+    {825}let asigner_4: attr = (if v_163 then 2-proj-Identity(v_162) else caught-fail) in
+    {826}let am_4: attr = (if v_163 then 1-proj-Identity(v_162) else caught-fail) in
+    {827}let vm_4: bool = (if v_163 then catch-fail(matchid(cm_4,am_4)) else caught-fail) in
+    {828}let v_164: bool = not-caught-fail(vm_4) in
+    {829}let vs_4: bool = (if v_164 then catch-fail(matchid(cs_4,asigner_4)) else caught-fail) in
+    {830}let v_165: bool = not-caught-fail(vs_4) in
+    {831}let vp_4: bool = (if v_165 then catch-fail(matchid(cp_4,ap_4)) else caught-fail) in
+    {832}let v_166: bool = not-caught-fail(vp_4) in
+    {833}let vv_4: bool = (if v_166 then catch-fail(matchv(cv_4,av_4)) else caught-fail) in
+    {834}let v_167: bool = not-caught-fail(vv_4) in
+    {812}let ts_4: tcbstatus = Good in
+    {835}let vt_4: bool = (if v_167 then catch-fail(matchtcb(ct_4,ts_4)) else caught-fail) in
+    {836}let v_168: bool = not-caught-fail(vt_4) in
+    {810}let who_4: party = P1 in
+    {837}let va_4: bool = (if v_168 then catch-fail(matchatt(ca_4,who_4)) else caught-fail) in
+    {838}let v_169: bool = not-caught-fail(va_4) in
+    {839}let accepted_3: bool = (if v_161 then (if v_163 then (if v_164 then (if v_165 then (if v_166 then (if v_167 then (if v_168 then (if v_169 then (vm_4 && (vs_4 && (vp_4 && (vv_4 && (vt_4 && va_4))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {840}if (accepted_3 = true) then
+    {841}event UnexpectedEntryAcceptance
+) | (
+    {842}let c_6: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {846}let v_170: entry = c_6 in
+    {847}let v_171: bool = success?(1-proj-Req(v_170)) in
+    {848}let ca_5: attreq = (if v_171 then 6-proj-Req(v_170) else caught-fail) in
+    {849}let ct_5: tcbreq = (if v_171 then 5-proj-Req(v_170) else caught-fail) in
+    {850}let cv_5: svn = (if v_171 then 4-proj-Req(v_170) else caught-fail) in
+    {851}let cp_5: ident = (if v_171 then 3-proj-Req(v_170) else caught-fail) in
+    {852}let cs_5: ident = (if v_171 then 2-proj-Req(v_170) else caught-fail) in
+    {853}let cm_5: ident = (if v_171 then 1-proj-Req(v_170) else caught-fail) in
+    {844}let actual_5: identity = Identity(mE1,s1,prodB,V2) in
+    {854}let v_172: identity = (if v_171 then catch-fail(actual_5) else caught-fail) in
+    {855}let v_173: bool = (not-caught-fail(v_172) && success?(1-proj-Identity(v_172))) in
+    {856}let av_5: svn = (if v_173 then 4-proj-Identity(v_172) else caught-fail) in
+    {857}let ap_5: attr = (if v_173 then 3-proj-Identity(v_172) else caught-fail) in
+    {858}let asigner_5: attr = (if v_173 then 2-proj-Identity(v_172) else caught-fail) in
+    {859}let am_5: attr = (if v_173 then 1-proj-Identity(v_172) else caught-fail) in
+    {860}let vm_5: bool = (if v_173 then catch-fail(matchid(cm_5,am_5)) else caught-fail) in
+    {861}let v_174: bool = not-caught-fail(vm_5) in
+    {862}let vs_5: bool = (if v_174 then catch-fail(matchid(cs_5,asigner_5)) else caught-fail) in
+    {863}let v_175: bool = not-caught-fail(vs_5) in
+    {864}let vp_5: bool = (if v_175 then catch-fail(matchid(cp_5,ap_5)) else caught-fail) in
+    {865}let v_176: bool = not-caught-fail(vp_5) in
+    {866}let vv_5: bool = (if v_176 then catch-fail(matchv(cv_5,av_5)) else caught-fail) in
+    {867}let v_177: bool = not-caught-fail(vv_5) in
+    {845}let ts_5: tcbstatus = Good in
+    {868}let vt_5: bool = (if v_177 then catch-fail(matchtcb(ct_5,ts_5)) else caught-fail) in
+    {869}let v_178: bool = not-caught-fail(vt_5) in
+    {843}let who_5: party = P1 in
+    {870}let va_5: bool = (if v_178 then catch-fail(matchatt(ca_5,who_5)) else caught-fail) in
+    {871}let v_179: bool = not-caught-fail(va_5) in
+    {872}let accepted_4: bool = (if v_171 then (if v_173 then (if v_174 then (if v_175 then (if v_176 then (if v_177 then (if v_178 then (if v_179 then (vm_5 && (vs_5 && (vp_5 && (vv_5 && (vt_5 && va_5))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {873}if (accepted_4 = true) then
+    {874}event UnexpectedEntryAcceptance
+) | (
+    {875}let c_7: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {879}let v_180: entry = c_7 in
+    {880}let v_181: bool = success?(1-proj-Req(v_180)) in
+    {881}let ca_6: attreq = (if v_181 then 6-proj-Req(v_180) else caught-fail) in
+    {882}let ct_6: tcbreq = (if v_181 then 5-proj-Req(v_180) else caught-fail) in
+    {883}let cv_6: svn = (if v_181 then 4-proj-Req(v_180) else caught-fail) in
+    {884}let cp_6: ident = (if v_181 then 3-proj-Req(v_180) else caught-fail) in
+    {885}let cs_6: ident = (if v_181 then 2-proj-Req(v_180) else caught-fail) in
+    {886}let cm_6: ident = (if v_181 then 1-proj-Req(v_180) else caught-fail) in
+    {877}let actual_6: identity = Identity(mE1,s1,prodA,V1) in
+    {887}let v_182: identity = (if v_181 then catch-fail(actual_6) else caught-fail) in
+    {888}let v_183: bool = (not-caught-fail(v_182) && success?(1-proj-Identity(v_182))) in
+    {889}let av_6: svn = (if v_183 then 4-proj-Identity(v_182) else caught-fail) in
+    {890}let ap_6: attr = (if v_183 then 3-proj-Identity(v_182) else caught-fail) in
+    {891}let asigner_6: attr = (if v_183 then 2-proj-Identity(v_182) else caught-fail) in
+    {892}let am_6: attr = (if v_183 then 1-proj-Identity(v_182) else caught-fail) in
+    {893}let vm_6: bool = (if v_183 then catch-fail(matchid(cm_6,am_6)) else caught-fail) in
+    {894}let v_184: bool = not-caught-fail(vm_6) in
+    {895}let vs_6: bool = (if v_184 then catch-fail(matchid(cs_6,asigner_6)) else caught-fail) in
+    {896}let v_185: bool = not-caught-fail(vs_6) in
+    {897}let vp_6: bool = (if v_185 then catch-fail(matchid(cp_6,ap_6)) else caught-fail) in
+    {898}let v_186: bool = not-caught-fail(vp_6) in
+    {899}let vv_6: bool = (if v_186 then catch-fail(matchv(cv_6,av_6)) else caught-fail) in
+    {900}let v_187: bool = not-caught-fail(vv_6) in
+    {878}let ts_6: tcbstatus = Good in
+    {901}let vt_6: bool = (if v_187 then catch-fail(matchtcb(ct_6,ts_6)) else caught-fail) in
+    {902}let v_188: bool = not-caught-fail(vt_6) in
+    {876}let who_6: party = P1 in
+    {903}let va_6: bool = (if v_188 then catch-fail(matchatt(ca_6,who_6)) else caught-fail) in
+    {904}let v_189: bool = not-caught-fail(va_6) in
+    {905}let accepted_5: bool = (if v_181 then (if v_183 then (if v_184 then (if v_185 then (if v_186 then (if v_187 then (if v_188 then (if v_189 then (vm_6 && (vs_6 && (vp_6 && (vv_6 && (vt_6 && va_6))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {906}if (accepted_5 = true) then
+    {907}event UnexpectedEntryAcceptance
+) | (
+    {908}let c_8: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {912}let v_190: entry = c_8 in
+    {913}let v_191: bool = success?(1-proj-Req(v_190)) in
+    {914}let ca_7: attreq = (if v_191 then 6-proj-Req(v_190) else caught-fail) in
+    {915}let ct_7: tcbreq = (if v_191 then 5-proj-Req(v_190) else caught-fail) in
+    {916}let cv_7: svn = (if v_191 then 4-proj-Req(v_190) else caught-fail) in
+    {917}let cp_7: ident = (if v_191 then 3-proj-Req(v_190) else caught-fail) in
+    {918}let cs_7: ident = (if v_191 then 2-proj-Req(v_190) else caught-fail) in
+    {919}let cm_7: ident = (if v_191 then 1-proj-Req(v_190) else caught-fail) in
+    {910}let actual_7: identity = Identity(mE1,s1,prodA,V2) in
+    {920}let v_192: identity = (if v_191 then catch-fail(actual_7) else caught-fail) in
+    {921}let v_193: bool = (not-caught-fail(v_192) && success?(1-proj-Identity(v_192))) in
+    {922}let av_7: svn = (if v_193 then 4-proj-Identity(v_192) else caught-fail) in
+    {923}let ap_7: attr = (if v_193 then 3-proj-Identity(v_192) else caught-fail) in
+    {924}let asigner_7: attr = (if v_193 then 2-proj-Identity(v_192) else caught-fail) in
+    {925}let am_7: attr = (if v_193 then 1-proj-Identity(v_192) else caught-fail) in
+    {926}let vm_7: bool = (if v_193 then catch-fail(matchid(cm_7,am_7)) else caught-fail) in
+    {927}let v_194: bool = not-caught-fail(vm_7) in
+    {928}let vs_7: bool = (if v_194 then catch-fail(matchid(cs_7,asigner_7)) else caught-fail) in
+    {929}let v_195: bool = not-caught-fail(vs_7) in
+    {930}let vp_7: bool = (if v_195 then catch-fail(matchid(cp_7,ap_7)) else caught-fail) in
+    {931}let v_196: bool = not-caught-fail(vp_7) in
+    {932}let vv_7: bool = (if v_196 then catch-fail(matchv(cv_7,av_7)) else caught-fail) in
+    {933}let v_197: bool = not-caught-fail(vv_7) in
+    {911}let ts_7: tcbstatus = Outdated in
+    {934}let vt_7: bool = (if v_197 then catch-fail(matchtcb(ct_7,ts_7)) else caught-fail) in
+    {935}let v_198: bool = not-caught-fail(vt_7) in
+    {909}let who_7: party = P1 in
+    {936}let va_7: bool = (if v_198 then catch-fail(matchatt(ca_7,who_7)) else caught-fail) in
+    {937}let v_199: bool = not-caught-fail(va_7) in
+    {938}let accepted_6: bool = (if v_191 then (if v_193 then (if v_194 then (if v_195 then (if v_196 then (if v_197 then (if v_198 then (if v_199 then (vm_7 && (vs_7 && (vp_7 && (vv_7 && (vt_7 && va_7))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {939}if (accepted_6 = true) then
+    {940}event UnexpectedEntryAcceptance
+) | (
+    {941}let c_9: entry = Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)) in
+    {945}let v_200: entry = c_9 in
+    {946}let v_201: bool = success?(1-proj-Req(v_200)) in
+    {947}let ca_8: attreq = (if v_201 then 6-proj-Req(v_200) else caught-fail) in
+    {948}let ct_8: tcbreq = (if v_201 then 5-proj-Req(v_200) else caught-fail) in
+    {949}let cv_8: svn = (if v_201 then 4-proj-Req(v_200) else caught-fail) in
+    {950}let cp_8: ident = (if v_201 then 3-proj-Req(v_200) else caught-fail) in
+    {951}let cs_8: ident = (if v_201 then 2-proj-Req(v_200) else caught-fail) in
+    {952}let cm_8: ident = (if v_201 then 1-proj-Req(v_200) else caught-fail) in
+    {943}let actual_8: identity = Identity(mE1,s1,prodA,V2) in
+    {953}let v_202: identity = (if v_201 then catch-fail(actual_8) else caught-fail) in
+    {954}let v_203: bool = (not-caught-fail(v_202) && success?(1-proj-Identity(v_202))) in
+    {955}let av_8: svn = (if v_203 then 4-proj-Identity(v_202) else caught-fail) in
+    {956}let ap_8: attr = (if v_203 then 3-proj-Identity(v_202) else caught-fail) in
+    {957}let asigner_8: attr = (if v_203 then 2-proj-Identity(v_202) else caught-fail) in
+    {958}let am_8: attr = (if v_203 then 1-proj-Identity(v_202) else caught-fail) in
+    {959}let vm_8: bool = (if v_203 then catch-fail(matchid(cm_8,am_8)) else caught-fail) in
+    {960}let v_204: bool = not-caught-fail(vm_8) in
+    {961}let vs_8: bool = (if v_204 then catch-fail(matchid(cs_8,asigner_8)) else caught-fail) in
+    {962}let v_205: bool = not-caught-fail(vs_8) in
+    {963}let vp_8: bool = (if v_205 then catch-fail(matchid(cp_8,ap_8)) else caught-fail) in
+    {964}let v_206: bool = not-caught-fail(vp_8) in
+    {965}let vv_8: bool = (if v_206 then catch-fail(matchv(cv_8,av_8)) else caught-fail) in
+    {966}let v_207: bool = not-caught-fail(vv_8) in
+    {944}let ts_8: tcbstatus = Good in
+    {967}let vt_8: bool = (if v_207 then catch-fail(matchtcb(ct_8,ts_8)) else caught-fail) in
+    {968}let v_208: bool = not-caught-fail(vt_8) in
+    {942}let who_8: party = P2 in
+    {969}let va_8: bool = (if v_208 then catch-fail(matchatt(ca_8,who_8)) else caught-fail) in
+    {970}let v_209: bool = not-caught-fail(va_8) in
+    {971}let accepted_7: bool = (if v_201 then (if v_203 then (if v_204 then (if v_205 then (if v_206 then (if v_207 then (if v_208 then (if v_209 then (vm_8 && (vs_8 && (vp_8 && (vv_8 && (vt_8 && va_8))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {972}if (accepted_7 = true) then
+    {973}event UnexpectedEntryAcceptance
+) | (
+    {974}let c_10: entry = Req(Any,Any,Any,V0,Both,NoAtt) in
+    {978}let v_210: entry = c_10 in
+    {979}let v_211: bool = success?(1-proj-Req(v_210)) in
+    {980}let ca_9: attreq = (if v_211 then 6-proj-Req(v_210) else caught-fail) in
+    {981}let ct_9: tcbreq = (if v_211 then 5-proj-Req(v_210) else caught-fail) in
+    {982}let cv_9: svn = (if v_211 then 4-proj-Req(v_210) else caught-fail) in
+    {983}let cp_9: ident = (if v_211 then 3-proj-Req(v_210) else caught-fail) in
+    {984}let cs_9: ident = (if v_211 then 2-proj-Req(v_210) else caught-fail) in
+    {985}let cm_9: ident = (if v_211 then 1-proj-Req(v_210) else caught-fail) in
+    {976}let actual_9: identity = Identity(mE1,s1,prodA,V2) in
+    {986}let v_212: identity = (if v_211 then catch-fail(actual_9) else caught-fail) in
+    {987}let v_213: bool = (not-caught-fail(v_212) && success?(1-proj-Identity(v_212))) in
+    {988}let av_9: svn = (if v_213 then 4-proj-Identity(v_212) else caught-fail) in
+    {989}let ap_9: attr = (if v_213 then 3-proj-Identity(v_212) else caught-fail) in
+    {990}let asigner_9: attr = (if v_213 then 2-proj-Identity(v_212) else caught-fail) in
+    {991}let am_9: attr = (if v_213 then 1-proj-Identity(v_212) else caught-fail) in
+    {992}let vm_9: bool = (if v_213 then catch-fail(matchid(cm_9,am_9)) else caught-fail) in
+    {993}let v_214: bool = not-caught-fail(vm_9) in
+    {994}let vs_9: bool = (if v_214 then catch-fail(matchid(cs_9,asigner_9)) else caught-fail) in
+    {995}let v_215: bool = not-caught-fail(vs_9) in
+    {996}let vp_9: bool = (if v_215 then catch-fail(matchid(cp_9,ap_9)) else caught-fail) in
+    {997}let v_216: bool = not-caught-fail(vp_9) in
+    {998}let vv_9: bool = (if v_216 then catch-fail(matchv(cv_9,av_9)) else caught-fail) in
+    {999}let v_217: bool = not-caught-fail(vv_9) in
+    {977}let ts_9: tcbstatus = Good in
+    {1000}let vt_9: bool = (if v_217 then catch-fail(matchtcb(ct_9,ts_9)) else caught-fail) in
+    {1001}let v_218: bool = not-caught-fail(vt_9) in
+    {975}let who_9: party = P1 in
+    {1002}let va_9: bool = (if v_218 then catch-fail(matchatt(ca_9,who_9)) else caught-fail) in
+    {1003}let v_219: bool = not-caught-fail(va_9) in
+    {1004}let accepted_8: bool = (if v_211 then (if v_213 then (if v_214 then (if v_215 then (if v_216 then (if v_217 then (if v_218 then (if v_219 then (vm_9 && (vs_9 && (vp_9 && (vv_9 && (vt_9 && va_9))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+    {1005}if (accepted_8 = true) then
+    {1006}event UnexpectedEntryAcceptance
+)
+
+-- Query not event(WrongJoinIdentity) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(WrongJoinIdentity)
+RESULT not event(WrongJoinIdentity) is true.
+-- Query not event(WrongJoinSVN) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(WrongJoinSVN)
+RESULT not event(WrongJoinSVN) is true.
+-- Query not event(WrongJoinTCB) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(WrongJoinTCB)
+RESULT not event(WrongJoinTCB) is true.
+-- Query not event(WrongJoinAttester) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(WrongJoinAttester)
+RESULT not event(WrongJoinAttester) is true.
+-- Query not event(WrongMatchIdentity) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(WrongMatchIdentity)
+RESULT not event(WrongMatchIdentity) is true.
+-- Query not event(WrongMatchSVN) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(WrongMatchSVN)
+RESULT not event(WrongMatchSVN) is true.
+-- Query not event(WrongMatchTCB) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(WrongMatchTCB)
+RESULT not event(WrongMatchTCB) is true.
+-- Query not event(WrongMatchAttester) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(WrongMatchAttester)
+RESULT not event(WrongMatchAttester) is true.
+-- Query not event(WildcardAndIdempotence) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(WildcardAndIdempotence)
+goal reachable: event(WildcardAndIdempotence)
+
+Derivation:
+
+1. Event WildcardAndIdempotence may be executed at {391}.
+event(WildcardAndIdempotence).
+
+2. By 1, event(WildcardAndIdempotence).
+The goal is reached, represented in the following fact:
+event(WildcardAndIdempotence).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+event CompatibleEntryAccepted at {549}
+
+event OrderNormalization at {516}
+
+event RedundantInputsEqual at {454}
+
+event WildcardAndIdempotence at {391} (goal)
+
+The event WildcardAndIdempotence is executed at {391}.
+A trace has been found.
+RESULT not event(WildcardAndIdempotence) is false.
+-- Query not event(RedundantInputsEqual) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(RedundantInputsEqual)
+goal reachable: event(RedundantInputsEqual)
+
+Derivation:
+
+1. Event RedundantInputsEqual may be executed at {454}.
+event(RedundantInputsEqual).
+
+2. By 1, event(RedundantInputsEqual).
+The goal is reached, represented in the following fact:
+event(RedundantInputsEqual).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+event CompatibleEntryAccepted at {549}
+
+event OrderNormalization at {516}
+
+event RedundantInputsEqual at {454} (goal)
+
+The event RedundantInputsEqual is executed at {454}.
+A trace has been found.
+RESULT not event(RedundantInputsEqual) is false.
+-- Query not event(OrderNormalization) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(OrderNormalization)
+goal reachable: event(OrderNormalization)
+
+Derivation:
+
+1. Event OrderNormalization may be executed at {516}.
+event(OrderNormalization).
+
+2. By 1, event(OrderNormalization).
+The goal is reached, represented in the following fact:
+event(OrderNormalization).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+event CompatibleEntryAccepted at {549}
+
+event OrderNormalization at {516} (goal)
+
+The event OrderNormalization is executed at {516}.
+A trace has been found.
+RESULT not event(OrderNormalization) is false.
+-- Query not event(CompatibleEntryAccepted) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(CompatibleEntryAccepted)
+goal reachable: event(CompatibleEntryAccepted)
+
+Derivation:
+
+1. Event CompatibleEntryAccepted may be executed at {549}.
+event(CompatibleEntryAccepted).
+
+2. By 1, event(CompatibleEntryAccepted).
+The goal is reached, represented in the following fact:
+event(CompatibleEntryAccepted).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+event CompatibleEntryAccepted at {549} (goal)
+
+The event CompatibleEntryAccepted is executed at {549}.
+A trace has been found.
+RESULT not event(CompatibleEntryAccepted) is false.
+-- Query not event(MeasurementConflictAccepted) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(MeasurementConflictAccepted)
+RESULT not event(MeasurementConflictAccepted) is true.
+-- Query not event(SignerConflictAccepted) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(SignerConflictAccepted)
+RESULT not event(SignerConflictAccepted) is true.
+-- Query not event(ProductConflictAccepted) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(ProductConflictAccepted)
+RESULT not event(ProductConflictAccepted) is true.
+-- Query not event(TCBConflictAccepted) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(TCBConflictAccepted)
+RESULT not event(TCBConflictAccepted) is true.
+-- Query not event(AttesterConflictAccepted) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(AttesterConflictAccepted)
+RESULT not event(AttesterConflictAccepted) is true.
+-- Query not event(RevokedAccepted) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(RevokedAccepted)
+RESULT not event(RevokedAccepted) is true.
+-- Query not event(InvalidAccepted) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(InvalidAccepted)
+RESULT not event(InvalidAccepted) is true.
+-- Query not event(UnexpectedEntryAcceptance) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(UnexpectedEntryAcceptance)
+RESULT not event(UnexpectedEntryAcceptance) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not event(WrongJoinIdentity) is true.
+
+Query not event(WrongJoinSVN) is true.
+
+Query not event(WrongJoinTCB) is true.
+
+Query not event(WrongJoinAttester) is true.
+
+Query not event(WrongMatchIdentity) is true.
+
+Query not event(WrongMatchSVN) is true.
+
+Query not event(WrongMatchTCB) is true.
+
+Query not event(WrongMatchAttester) is true.
+
+Query not event(WildcardAndIdempotence) is false.
+
+Query not event(RedundantInputsEqual) is false.
+
+Query not event(OrderNormalization) is false.
+
+Query not event(CompatibleEntryAccepted) is false.
+
+Query not event(MeasurementConflictAccepted) is true.
+
+Query not event(SignerConflictAccepted) is true.
+
+Query not event(ProductConflictAccepted) is true.
+
+Query not event(TCBConflictAccepted) is true.
+
+Query not event(AttesterConflictAccepted) is true.
+
+Query not event(RevokedAccepted) is true.
+
+Query not event(InvalidAccepted) is true.
+
+Query not event(UnexpectedEntryAcceptance) is true.
+
+--------------------------------------------------------------
+

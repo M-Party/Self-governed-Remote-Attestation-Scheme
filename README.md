@@ -108,9 +108,15 @@ $ sed -i 's/0.0.0.0/ip-of-fabric-network/g' config/network.json  # Modify the IP
 Symbolic models of SRAS mutual attestation and consensus-policy negotiation
 live under `formal_verification/`:
 
-- `sras-n2.pv` — N=2 Stage 2 + light Stage 3 (agreement, authenticity, join, issuance)
-- `sras-n3.pv` — N=3 full views with H(π*) confirmation
-- `sras-n3-ablation.pv` — asymmetric views without confirmation (expected agreement failure)
+- `sras-n2.pv` — N=2 Stage 2 and Stage 3 quote checks and certificate issuance
+- `sras-n3.pv` — N=3 full-input policy join with H(π*) confirmation
+- `sras-n3-ablation.pv` — the same N=3 model with only confirmation removed
+
+The revised models retain the original four property families in a bounded
+policy domain. Agreement remains true in the confirmation-only ablation;
+separate diagnostics expose a loss of coordination. The models, scope audit,
+reproduction scripts, and complete final logs are in
+[`formal_verification/revised-20261027/`](formal_verification/revised-20261027/).
 
 Build the `sras-proverif` image, mount the directory read-only, then run
 `proverif -parse-only` and `proverif` on each model. Full steps, threat model,

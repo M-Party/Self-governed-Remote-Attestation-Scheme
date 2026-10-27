@@ -1,0 +1,389 @@
+Process 0 (that is, the initial process):
+{1}new akRPE: skey;
+{2}new akADV: skey;
+{3}out(net, (pk(akRPE),pk(akADV),akADV));
+(
+    {4}let akRPE_1: skey = akRPE in
+    {5}let pkAKRPE: pkey = pk(akRPE) in
+    {6}new sk1: skey;
+    {7}let pk1: pkey = pk(sk1) in
+    {8}let rho1: policy = pol(P1,Any) in
+    {9}event PolicyDeclared(P1,rho1);
+    {10}let q1: bitstring = sign((mRPE,hbind(P1,pk1,hpol(rho1))),akRPE_1) in
+    {11}out(net, (P1,q1,pk1,hpol(rho1)));
+    {12}in(net, (=P2,q2: bitstring,pk2: pkey,hb2: bitstring));
+    {13}let (=mRPE,d2: bitstring) = checksign(q2,pkAKRPE) in
+    {14}if (d2 = hbind(P2,pk2,hb2)) then
+    {15}out(net, (P1,rho1));
+    {16}in(net, (=P2,rho2: policy));
+    {17}if (hpol(rho2) = hb2) then
+    {18}event PolicyAccepted(P1,P2,rho2);
+    {19}let pol(a1: party,i1: ident) = rho1 in
+    {20}let pol(a2: party,i2: ident) = rho2 in
+    {21}let joined12: ident = joinid(i1,i2) in
+    {22}let pistar: polstar = mkstar2(joined12,rho1,rho2) in
+    {23}event FullJoin(P1,pistar);
+    {24}event Confirm(P1,pistar)
+) | (
+    {25}let akRPE_2: skey = akRPE in
+    {26}let pkAKRPE_1: pkey = pk(akRPE) in
+    {27}new sk2: skey;
+    {28}let pk2_1: pkey = pk(sk2) in
+    {29}let rho2_1: policy = pol(P2,Any) in
+    {30}event PolicyDeclared(P2,rho2_1);
+    {31}let q2_1: bitstring = sign((mRPE,hbind(P2,pk2_1,hpol(rho2_1))),akRPE_2) in
+    {32}out(net, (P2,q2_1,pk2_1,hpol(rho2_1)));
+    {33}in(net, (=P1,q1_1: bitstring,pk1_1: pkey,hb1: bitstring));
+    {34}let (=mRPE,d1: bitstring) = checksign(q1_1,pkAKRPE_1) in
+    {35}if (d1 = hbind(P1,pk1_1,hb1)) then
+    {36}in(net, (=P3,q3: bitstring,pk3: pkey,hb3: bitstring));
+    {37}let (=mRPE,d3: bitstring) = checksign(q3,pkAKRPE_1) in
+    {38}if (d3 = hbind(P3,pk3,hb3)) then
+    {39}out(net, (P2,rho2_1));
+    {40}in(net, (=P1,rho1_1: policy));
+    {41}if (hpol(rho1_1) = hb1) then
+    {42}event PolicyAccepted(P2,P1,rho1_1);
+    {43}in(net, (=P3,rho3: policy));
+    {44}if (hpol(rho3) = hb3) then
+    {45}event PolicyAccepted(P2,P3,rho3);
+    {46}let pol(a1_1: party,i1_1: ident) = rho1_1 in
+    {47}let pol(a2_1: party,i2_1: ident) = rho2_1 in
+    {48}let pol(a3: party,i3: ident) = rho3 in
+    {49}let joined12_1: ident = joinid(i1_1,i2_1) in
+    {50}let joined123: ident = joinid(joined12_1,i3) in
+    {51}let pistar_1: polstar = mkstar3(joined123,rho1_1,rho2_1,rho3) in
+    {52}event FullJoin(P2,pistar_1);
+    {53}event Confirm(P2,pistar_1)
+) | (
+    {54}let akRPE_3: skey = akRPE in
+    {55}let pkAKRPE_2: pkey = pk(akRPE) in
+    {56}in(net, rho3_1: policy);
+    {57}event PolicyDeclared(P3,rho3_1);
+    {58}new sk3: skey;
+    {59}let pk3_1: pkey = pk(sk3) in
+    {60}let q3_1: bitstring = sign((mRPE,hbind(P3,pk3_1,hpol(rho3_1))),akRPE_3) in
+    {61}out(net, (P3,q3_1,pk3_1,hpol(rho3_1)));
+    {62}in(net, (=P2,q2_2: bitstring,pk2_2: pkey,hb2_1: bitstring));
+    {63}let (=mRPE,d2_1: bitstring) = checksign(q2_2,pkAKRPE_2) in
+    {64}if (d2_1 = hbind(P2,pk2_2,hb2_1)) then
+    {65}out(net, (P3,rho3_1));
+    {66}in(net, (=P2,rho2_2: policy));
+    {67}if (hpol(rho2_2) = hb2_1) then
+    {68}event PolicyAccepted(P3,P2,rho2_2);
+    {69}let pol(a2_2: party,i2_2: ident) = rho2_2 in
+    {70}let pol(a3_1: party,i3_1: ident) = rho3_1 in
+    {71}let joined23: ident = joinid(i2_2,i3_1) in
+    {72}let pistar_2: polstar = mkstar2(joined23,rho2_2,rho3_1) in
+    {73}event FullJoin(P3,pistar_2);
+    {74}event Confirm(P3,pistar_2)
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new akRPE: skey;
+{2}new akADV: skey;
+{3}out(net, (pk(akRPE),pk(akADV),akADV));
+(
+    {6}new sk1: skey;
+    {8}let rho1: policy = pol(P1,Any) in
+    {9}event PolicyDeclared(P1,rho1);
+    {7}let pk1: pkey = pk(sk1) in
+    {4}let akRPE_1: skey = akRPE in
+    {10}let q1: bitstring = sign((mRPE,hbind(P1,pk1,hpol(rho1))),akRPE_1) in
+    {11}out(net, (P1,q1,pk1,hpol(rho1)));
+    {12}in(net, (=P2,q2: bitstring,pk2: pkey,hb2: bitstring));
+    {5}let pkAKRPE: pkey = pk(akRPE) in
+    {13}let (=mRPE,d2: bitstring) = checksign(q2,pkAKRPE) in
+    {14}if (d2 = hbind(P2,pk2,hb2)) then
+    {15}out(net, (P1,rho1));
+    {16}in(net, (=P2,rho2: policy));
+    {17}if (hpol(rho2) = hb2) then
+    {18}event PolicyAccepted(P1,P2,rho2);
+    {19}let pol(a1: party,i1: ident) = rho1 in
+    {20}let pol(a2: party,i2: ident) = rho2 in
+    {21}let joined12: ident = joinid(i1,i2) in
+    {22}let pistar: polstar = mkstar2(joined12,rho1,rho2) in
+    {23}event FullJoin(P1,pistar);
+    {24}event Confirm(P1,pistar)
+) | (
+    {27}new sk2: skey;
+    {29}let rho2_1: policy = pol(P2,Any) in
+    {30}event PolicyDeclared(P2,rho2_1);
+    {28}let pk2_1: pkey = pk(sk2) in
+    {25}let akRPE_2: skey = akRPE in
+    {31}let q2_1: bitstring = sign((mRPE,hbind(P2,pk2_1,hpol(rho2_1))),akRPE_2) in
+    {32}out(net, (P2,q2_1,pk2_1,hpol(rho2_1)));
+    {33}in(net, (=P1,q1_1: bitstring,pk1_1: pkey,hb1: bitstring));
+    {26}let pkAKRPE_1: pkey = pk(akRPE) in
+    {34}let (=mRPE,d1: bitstring) = checksign(q1_1,pkAKRPE_1) in
+    {35}if (d1 = hbind(P1,pk1_1,hb1)) then
+    {36}in(net, (=P3,q3: bitstring,pk3: pkey,hb3: bitstring));
+    {37}let (=mRPE,d3: bitstring) = checksign(q3,pkAKRPE_1) in
+    {38}if (d3 = hbind(P3,pk3,hb3)) then
+    {39}out(net, (P2,rho2_1));
+    {40}in(net, (=P1,rho1_1: policy));
+    {41}if (hpol(rho1_1) = hb1) then
+    {42}event PolicyAccepted(P2,P1,rho1_1);
+    {43}in(net, (=P3,rho3: policy));
+    {44}if (hpol(rho3) = hb3) then
+    {45}event PolicyAccepted(P2,P3,rho3);
+    {46}let pol(a1_1: party,i1_1: ident) = rho1_1 in
+    {47}let pol(a2_1: party,i2_1: ident) = rho2_1 in
+    {48}let pol(a3: party,i3: ident) = rho3 in
+    {49}let joined12_1: ident = joinid(i1_1,i2_1) in
+    {50}let joined123: ident = joinid(joined12_1,i3) in
+    {51}let pistar_1: polstar = mkstar3(joined123,rho1_1,rho2_1,rho3) in
+    {52}event FullJoin(P2,pistar_1);
+    {53}event Confirm(P2,pistar_1)
+) | (
+    {56}in(net, rho3_1: policy);
+    {57}event PolicyDeclared(P3,rho3_1);
+    {58}new sk3: skey;
+    {59}let pk3_1: pkey = pk(sk3) in
+    {54}let akRPE_3: skey = akRPE in
+    {60}let q3_1: bitstring = sign((mRPE,hbind(P3,pk3_1,hpol(rho3_1))),akRPE_3) in
+    {61}out(net, (P3,q3_1,pk3_1,hpol(rho3_1)));
+    {62}in(net, (=P2,q2_2: bitstring,pk2_2: pkey,hb2_1: bitstring));
+    {55}let pkAKRPE_2: pkey = pk(akRPE) in
+    {63}let (=mRPE,d2_1: bitstring) = checksign(q2_2,pkAKRPE_2) in
+    {64}if (d2_1 = hbind(P2,pk2_2,hb2_1)) then
+    {65}out(net, (P3,rho3_1));
+    {66}in(net, (=P2,rho2_2: policy));
+    {67}if (hpol(rho2_2) = hb2_1) then
+    {68}event PolicyAccepted(P3,P2,rho2_2);
+    {69}let pol(a2_2: party,i2_2: ident) = rho2_2 in
+    {70}let pol(a3_1: party,i3_1: ident) = rho3_1 in
+    {71}let joined23: ident = joinid(i2_2,i3_1) in
+    {72}let pistar_2: polstar = mkstar2(joined23,rho2_2,rho3_1) in
+    {73}event FullJoin(P3,pistar_2);
+    {74}event Confirm(P3,pistar_2)
+)
+
+-- Query event(Confirm(a,x)) && event(Confirm(b,y)) && a ≠ b ==> x = y in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query event(Confirm(a,x)) && event(Confirm(b,y)) && a ≠ b ==> x = y
+goal reachable: b-event(@p_act(@occ56[],pol(a3_2,joined123_1))) && attacker(a3_2) && attacker(joined123_1) -> event(Confirm(P3[],mkstar2(joined123_1,pol(P2[],Any),pol(a3_2,joined123_1)))) && event(Confirm(P2[],mkstar3(joined123_1,pol(P1[],Any),pol(P2[],Any),pol(a3_2,joined123_1))))
+
+Derivation:
+Abbreviations:
+sk3_1 = sk3[rho3_1 = pol(a3_2,joined123_1)]
+
+1. Using the function Any the attacker may obtain Any.
+attacker(Any).
+
+2. The attacker initially knows P1[].
+attacker(P1[]).
+
+3. By 2, the attacker may know P1[].
+By 1, the attacker may know Any.
+Using the function pol the attacker may obtain pol(P1[],Any).
+attacker(pol(P1[],Any)).
+
+4. By 3, the attacker may know pol(P1[],Any).
+Using the function hpol the attacker may obtain hpol(pol(P1[],Any)).
+attacker(hpol(pol(P1[],Any))).
+
+5. The message (P1[],sign((mRPE[],hbind(P1[],pk(sk1[]),hpol(pol(P1[],Any)))),akRPE[]),pk(sk1[]),hpol(pol(P1[],Any))) may be sent to the attacker at output {11}.
+attacker((P1[],sign((mRPE[],hbind(P1[],pk(sk1[]),hpol(pol(P1[],Any)))),akRPE[]),pk(sk1[]),hpol(pol(P1[],Any)))).
+
+6. By 5, the attacker may know (P1[],sign((mRPE[],hbind(P1[],pk(sk1[]),hpol(pol(P1[],Any)))),akRPE[]),pk(sk1[]),hpol(pol(P1[],Any))).
+Using the function 3-proj-4-tuple the attacker may obtain pk(sk1[]).
+attacker(pk(sk1[])).
+
+7. By 5, the attacker may know (P1[],sign((mRPE[],hbind(P1[],pk(sk1[]),hpol(pol(P1[],Any)))),akRPE[]),pk(sk1[]),hpol(pol(P1[],Any))).
+Using the function 2-proj-4-tuple the attacker may obtain sign((mRPE[],hbind(P1[],pk(sk1[]),hpol(pol(P1[],Any)))),akRPE[]).
+attacker(sign((mRPE[],hbind(P1[],pk(sk1[]),hpol(pol(P1[],Any)))),akRPE[])).
+
+8. By 2, the attacker may know P1[].
+By 7, the attacker may know sign((mRPE[],hbind(P1[],pk(sk1[]),hpol(pol(P1[],Any)))),akRPE[]).
+By 6, the attacker may know pk(sk1[]).
+By 4, the attacker may know hpol(pol(P1[],Any)).
+Using the function 4-tuple the attacker may obtain (P1[],sign((mRPE[],hbind(P1[],pk(sk1[]),hpol(pol(P1[],Any)))),akRPE[]),pk(sk1[]),hpol(pol(P1[],Any))).
+attacker((P1[],sign((mRPE[],hbind(P1[],pk(sk1[]),hpol(pol(P1[],Any)))),akRPE[]),pk(sk1[]),hpol(pol(P1[],Any)))).
+
+9. We assume as hypothesis that
+attacker(joined123_1).
+
+10. We assume as hypothesis that
+attacker(a3_2).
+
+11. By 10, the attacker may know a3_2.
+By 9, the attacker may know joined123_1.
+Using the function pol the attacker may obtain pol(a3_2,joined123_1).
+attacker(pol(a3_2,joined123_1)).
+
+12. By 11, the attacker may know pol(a3_2,joined123_1).
+Using the function hpol the attacker may obtain hpol(pol(a3_2,joined123_1)).
+attacker(hpol(pol(a3_2,joined123_1))).
+
+13. The event @p_act(@occ56[],pol(a3_2,joined123_1)) records how variables are instantiated at {56}.
+The message pol(a3_2,joined123_1) that the attacker may have by 11 may be received at input {56}.
+So the message (P3[],sign((mRPE[],hbind(P3[],pk(sk3_1),hpol(pol(a3_2,joined123_1)))),akRPE[]),pk(sk3_1),hpol(pol(a3_2,joined123_1))) may be sent to the attacker at output {61}.
+attacker((P3[],sign((mRPE[],hbind(P3[],pk(sk3_1),hpol(pol(a3_2,joined123_1)))),akRPE[]),pk(sk3_1),hpol(pol(a3_2,joined123_1)))).
+
+14. By 13, the attacker may know (P3[],sign((mRPE[],hbind(P3[],pk(sk3_1),hpol(pol(a3_2,joined123_1)))),akRPE[]),pk(sk3_1),hpol(pol(a3_2,joined123_1))).
+Using the function 3-proj-4-tuple the attacker may obtain pk(sk3_1).
+attacker(pk(sk3_1)).
+
+15. By 13, the attacker may know (P3[],sign((mRPE[],hbind(P3[],pk(sk3_1),hpol(pol(a3_2,joined123_1)))),akRPE[]),pk(sk3_1),hpol(pol(a3_2,joined123_1))).
+Using the function 2-proj-4-tuple the attacker may obtain sign((mRPE[],hbind(P3[],pk(sk3_1),hpol(pol(a3_2,joined123_1)))),akRPE[]).
+attacker(sign((mRPE[],hbind(P3[],pk(sk3_1),hpol(pol(a3_2,joined123_1)))),akRPE[])).
+
+16. The attacker initially knows P3[].
+attacker(P3[]).
+
+17. By 16, the attacker may know P3[].
+By 15, the attacker may know sign((mRPE[],hbind(P3[],pk(sk3_1),hpol(pol(a3_2,joined123_1)))),akRPE[]).
+By 14, the attacker may know pk(sk3_1).
+By 12, the attacker may know hpol(pol(a3_2,joined123_1)).
+Using the function 4-tuple the attacker may obtain (P3[],sign((mRPE[],hbind(P3[],pk(sk3_1),hpol(pol(a3_2,joined123_1)))),akRPE[]),pk(sk3_1),hpol(pol(a3_2,joined123_1))).
+attacker((P3[],sign((mRPE[],hbind(P3[],pk(sk3_1),hpol(pol(a3_2,joined123_1)))),akRPE[]),pk(sk3_1),hpol(pol(a3_2,joined123_1)))).
+
+18. By 2, the attacker may know P1[].
+By 3, the attacker may know pol(P1[],Any).
+Using the function 2-tuple the attacker may obtain (P1[],pol(P1[],Any)).
+attacker((P1[],pol(P1[],Any))).
+
+19. By 16, the attacker may know P3[].
+By 11, the attacker may know pol(a3_2,joined123_1).
+Using the function 2-tuple the attacker may obtain (P3[],pol(a3_2,joined123_1)).
+attacker((P3[],pol(a3_2,joined123_1))).
+
+20. The message (P1[],sign((mRPE[],hbind(P1[],pk(sk1[]),hpol(pol(P1[],Any)))),akRPE[]),pk(sk1[]),hpol(pol(P1[],Any))) that the attacker may have by 8 may be received at input {33}.
+The message (P3[],sign((mRPE[],hbind(P3[],pk(sk3_1),hpol(pol(a3_2,joined123_1)))),akRPE[]),pk(sk3_1),hpol(pol(a3_2,joined123_1))) that the attacker may have by 17 may be received at input {36}.
+The message (P1[],pol(P1[],Any)) that the attacker may have by 18 may be received at input {40}.
+The message (P3[],pol(a3_2,joined123_1)) that the attacker may have by 19 may be received at input {43}.
+So event Confirm(P2[],mkstar3(joined123_1,pol(P1[],Any),pol(P2[],Any),pol(a3_2,joined123_1))) may be executed at {53}.
+event(Confirm(P2[],mkstar3(joined123_1,pol(P1[],Any),pol(P2[],Any),pol(a3_2,joined123_1)))).
+
+21. The attacker initially knows P2[].
+attacker(P2[]).
+
+22. By 21, the attacker may know P2[].
+By 1, the attacker may know Any.
+Using the function pol the attacker may obtain pol(P2[],Any).
+attacker(pol(P2[],Any)).
+
+23. By 22, the attacker may know pol(P2[],Any).
+Using the function hpol the attacker may obtain hpol(pol(P2[],Any)).
+attacker(hpol(pol(P2[],Any))).
+
+24. The message (P2[],sign((mRPE[],hbind(P2[],pk(sk2[]),hpol(pol(P2[],Any)))),akRPE[]),pk(sk2[]),hpol(pol(P2[],Any))) may be sent to the attacker at output {32}.
+attacker((P2[],sign((mRPE[],hbind(P2[],pk(sk2[]),hpol(pol(P2[],Any)))),akRPE[]),pk(sk2[]),hpol(pol(P2[],Any)))).
+
+25. By 24, the attacker may know (P2[],sign((mRPE[],hbind(P2[],pk(sk2[]),hpol(pol(P2[],Any)))),akRPE[]),pk(sk2[]),hpol(pol(P2[],Any))).
+Using the function 3-proj-4-tuple the attacker may obtain pk(sk2[]).
+attacker(pk(sk2[])).
+
+26. By 24, the attacker may know (P2[],sign((mRPE[],hbind(P2[],pk(sk2[]),hpol(pol(P2[],Any)))),akRPE[]),pk(sk2[]),hpol(pol(P2[],Any))).
+Using the function 2-proj-4-tuple the attacker may obtain sign((mRPE[],hbind(P2[],pk(sk2[]),hpol(pol(P2[],Any)))),akRPE[]).
+attacker(sign((mRPE[],hbind(P2[],pk(sk2[]),hpol(pol(P2[],Any)))),akRPE[])).
+
+27. By 21, the attacker may know P2[].
+By 26, the attacker may know sign((mRPE[],hbind(P2[],pk(sk2[]),hpol(pol(P2[],Any)))),akRPE[]).
+By 25, the attacker may know pk(sk2[]).
+By 23, the attacker may know hpol(pol(P2[],Any)).
+Using the function 4-tuple the attacker may obtain (P2[],sign((mRPE[],hbind(P2[],pk(sk2[]),hpol(pol(P2[],Any)))),akRPE[]),pk(sk2[]),hpol(pol(P2[],Any))).
+attacker((P2[],sign((mRPE[],hbind(P2[],pk(sk2[]),hpol(pol(P2[],Any)))),akRPE[]),pk(sk2[]),hpol(pol(P2[],Any)))).
+
+28. By 21, the attacker may know P2[].
+By 22, the attacker may know pol(P2[],Any).
+Using the function 2-tuple the attacker may obtain (P2[],pol(P2[],Any)).
+attacker((P2[],pol(P2[],Any))).
+
+29. The event @p_act(@occ56[],pol(a3_2,joined123_1)) records how variables are instantiated at {56}.
+The message pol(a3_2,joined123_1) that the attacker may have by 11 may be received at input {56}.
+The message (P2[],sign((mRPE[],hbind(P2[],pk(sk2[]),hpol(pol(P2[],Any)))),akRPE[]),pk(sk2[]),hpol(pol(P2[],Any))) that the attacker may have by 27 may be received at input {62}.
+The message (P2[],pol(P2[],Any)) that the attacker may have by 28 may be received at input {66}.
+So event Confirm(P3[],mkstar2(joined123_1,pol(P2[],Any),pol(a3_2,joined123_1))) may be executed at {74}.
+event(Confirm(P3[],mkstar2(joined123_1,pol(P2[],Any),pol(a3_2,joined123_1)))).
+
+30. By 29, event(Confirm(P3[],mkstar2(joined123_1,pol(P2[],Any),pol(a3_2,joined123_1)))).
+By 20, event(Confirm(P2[],mkstar3(joined123_1,pol(P1[],Any),pol(P2[],Any),pol(a3_2,joined123_1)))).
+We have P3[] ≠ P2[].
+The goals are reached, combined in the following fact:
+event(Confirm(P3[],mkstar2(joined123_1,pol(P2[],Any),pol(a3_2,joined123_1)))) && event(Confirm(P2[],mkstar3(joined123_1,pol(P1[],Any),pol(P2[],Any),pol(a3_2,joined123_1)))).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new akRPE: skey creating akRPE_4 at {1}
+
+new akADV: skey creating akADV_1 at {2}
+
+out(net, (~M,~M_1,~M_2)) with ~M = pk(akRPE_4), ~M_1 = pk(akADV_1), ~M_2 = akADV_1 at {3}
+
+new sk2: skey creating sk2_1 at {27}
+
+event PolicyDeclared(P2,pol(P2,Any)) at {30}
+
+out(net, (~M_3,~M_4,~M_5,~M_6)) with ~M_3 = P2, ~M_4 = sign((mRPE,hbind(P2,pk(sk2_1),hpol(pol(P2,Any)))),akRPE_4), ~M_5 = pk(sk2_1), ~M_6 = hpol(pol(P2,Any)) at {32}
+
+new sk1: skey creating sk1_1 at {6}
+
+event PolicyDeclared(P1,pol(P1,Any)) at {9}
+
+out(net, (~M_7,~M_8,~M_9,~M_10)) with ~M_7 = P1, ~M_8 = sign((mRPE,hbind(P1,pk(sk1_1),hpol(pol(P1,Any)))),akRPE_4), ~M_9 = pk(sk1_1), ~M_10 = hpol(pol(P1,Any)) at {11}
+
+in(net, (P1,~M_8,~M_9,hpol(pol(P1,Any)))) with ~M_8 = sign((mRPE,hbind(P1,pk(sk1_1),hpol(pol(P1,Any)))),akRPE_4), ~M_9 = pk(sk1_1) at {33}
+
+in(net, pol(a,a_1)) at {56}
+
+event PolicyDeclared(P3,pol(a,a_1)) at {57}
+
+new sk3: skey creating sk3_2 at {58}
+
+out(net, (~M_11,~M_12,~M_13,~M_14)) with ~M_11 = P3, ~M_12 = sign((mRPE,hbind(P3,pk(sk3_2),hpol(pol(a,a_1)))),akRPE_4), ~M_13 = pk(sk3_2), ~M_14 = hpol(pol(a,a_1)) at {61}
+
+in(net, (P3,~M_12,~M_13,hpol(pol(a,a_1)))) with ~M_12 = sign((mRPE,hbind(P3,pk(sk3_2),hpol(pol(a,a_1)))),akRPE_4), ~M_13 = pk(sk3_2) at {36}
+
+out(net, (~M_15,pol(~M_16,Any))) with ~M_15 = P2, ~M_16 = P2 at {39}
+
+in(net, (P1,pol(P1,Any))) at {40}
+
+event PolicyAccepted(P2,P1,pol(P1,Any)) at {42}
+
+in(net, (P3,pol(a,a_1))) at {43}
+
+event PolicyAccepted(P2,P3,pol(a,a_1)) at {45}
+
+event FullJoin(P2,mkstar3(a_1,pol(P1,Any),pol(P2,Any),pol(a,a_1))) at {52}
+
+event Confirm(P2,mkstar3(a_1,pol(P1,Any),pol(P2,Any),pol(a,a_1))) at {53} (goal)
+
+in(net, (P2,~M_4,~M_5,hpol(pol(P2,Any)))) with ~M_4 = sign((mRPE,hbind(P2,pk(sk2_1),hpol(pol(P2,Any)))),akRPE_4), ~M_5 = pk(sk2_1) at {62}
+
+out(net, (~M_17,pol(~M_18,~M_19))) with ~M_17 = P3, ~M_18 = a, ~M_19 = a_1 at {65}
+
+in(net, (P2,pol(P2,Any))) at {66}
+
+event PolicyAccepted(P3,P2,pol(P2,Any)) at {68}
+
+event FullJoin(P3,mkstar2(a_1,pol(P2,Any),pol(a,a_1))) at {73}
+
+event Confirm(P3,mkstar2(a_1,pol(P2,Any),pol(a,a_1))) at {74} (goal)
+
+The event Confirm(P3,mkstar2(a_1,pol(P2,Any),pol(a,a_1))) is executed at {74}.
+The event Confirm(P2,mkstar3(a_1,pol(P1,Any),pol(P2,Any),pol(a,a_1))) is executed at {53}.
+A trace has been found.
+RESULT event(Confirm(a,x)) && event(Confirm(b,y)) && a ≠ b ==> x = y is false.
+-- Query event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r))
+goal reachable: b-event(PolicyDeclared(P2[],pol(P2[],Any))) && b-event(PolicyDeclared(P3[],rho3_2)) && attacker(rho3_2) && b-event(@p_act(@occ56_1[],rho3_2)) -> event(PolicyAccepted(P3[],P2[],pol(P2[],Any)))
+goal reachable: b-event(PolicyDeclared(P3[],r)) && b-event(@p_act(@occ56_1[],r)) && attacker(r) && b-event(PolicyDeclared(P1[],pol(P1[],Any))) && b-event(PolicyDeclared(P2[],pol(P2[],Any))) -> event(PolicyAccepted(P2[],P3[],r))
+goal reachable: b-event(PolicyDeclared(P3[],rho3_2)) && b-event(@p_act(@occ56_1[],rho3_2)) && attacker(rho3_2) && b-event(PolicyDeclared(P1[],pol(P1[],Any))) && b-event(PolicyDeclared(P2[],pol(P2[],Any))) -> event(PolicyAccepted(P2[],P1[],pol(P1[],Any)))
+goal reachable: b-event(PolicyDeclared(P2[],pol(P2[],Any))) && b-event(PolicyDeclared(P1[],pol(P1[],Any))) -> event(PolicyAccepted(P1[],P2[],pol(P2[],Any)))
+RESULT event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query event(Confirm(a,x)) && event(Confirm(b,y)) && a ≠ b ==> x = y is false.
+
+Query event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)) is true.
+
+--------------------------------------------------------------
+

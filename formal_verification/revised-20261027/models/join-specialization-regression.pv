@@ -1,0 +1,485 @@
+(* Direct ProVerif cross-check of the emitted specialized join tables.
+ * Tables below are extracted from the actual generated primary model files.
+ * Inputs are all 11 documented adversarial profiles plus the honest base.
+ * Expected behavior is computed by generic jointcb and joinentry IN PROVERIF,
+ * without using the Python merge_star implementation that generated tables.
+ * Each mismatch in result, or in success/failure, reaches WrongSpecializationN*.
+ * Expected raw results: not event(WrongSpecializationN2/N3) is true.
+ * This covers exactly the documented canonical fold domain, not arbitrary
+ * table operands or arbitrary policies outside the catalog.
+ *)
+(* Shared policy algebra for the revised SRAS models, ProVerif 2.05.
+ * Exact identity attributes are symbolic atoms. SVN and TCB are finite.
+ * Joins return only normalized constraints; no source-policy history is kept.
+ * A failed destructor represents an unsatisfiable/ill-formed component.
+ *)
+
+type party.
+type attr.
+type ident.
+type svn.
+type tcbstatus.
+type tcbreq.
+type attreq.
+type entry.
+type identity.
+
+const P1: party [data].
+const P2: party [data].
+const P3: party [data].
+const mRPE: attr [data].
+const mE1: attr [data].
+const mE2: attr [data].
+const mE3: attr [data].
+const mBad: attr [data].
+const s1: attr [data].
+const s2: attr [data].
+const s3: attr [data].
+const sBad: attr [data].
+const prodA: attr [data].
+const prodB: attr [data].
+
+const Any: ident [data].
+fun exact(attr): ident [data].
+
+(* V0 is both the least represented version and the unrestricted lower bound.
+ * The represented order is V0 < V1 < V2; unbounded integer SVN is not modeled.
+ *)
+const V0: svn [data].
+const V1: svn [data].
+const V2: svn [data].
+
+const Good: tcbstatus [data].
+const Outdated: tcbstatus [data].
+const Revoked: tcbstatus [data].
+const Invalid: tcbstatus [data].
+const Both: tcbreq [data].
+const OnlyGood: tcbreq [data].
+const OnlyOutdated: tcbreq [data].
+
+const NoAtt: attreq [data].
+fun Assign(party): attreq [data].
+
+(* Canonical order: measurement, signer, product, minimum SVN, TCB, attester. *)
+fun Req(ident, ident, ident, svn, tcbreq, attreq): entry [data].
+fun Identity(attr, attr, attr, svn): identity [data].
+
+(* Shape-aware rules reject arbitrary names of type ident/attreq rather than
+ * returning them unchanged through a wildcard rule. Exact atoms are symbolic.
+ *)
+fun joinid(ident, ident): ident
+reduc joinid(Any, Any) = Any
+otherwise forall a: attr; joinid(Any, exact(a)) = exact(a)
+otherwise forall a: attr; joinid(exact(a), Any) = exact(a)
+otherwise forall a: attr; joinid(exact(a), exact(a)) = exact(a).
+
+fun joinv(svn, svn): svn
+reduc joinv(V0, V0) = V0
+otherwise joinv(V0, V1) = V1
+otherwise joinv(V0, V2) = V2
+otherwise joinv(V1, V0) = V1
+otherwise joinv(V1, V1) = V1
+otherwise joinv(V1, V2) = V2
+otherwise joinv(V2, V0) = V2
+otherwise joinv(V2, V1) = V2
+otherwise joinv(V2, V2) = V2.
+
+(* Intersection of nonempty acceptable-status sets. The disjoint pair
+ * OnlyGood/OnlyOutdated has no rule and therefore aborts the local join.
+ *)
+fun jointcb(tcbreq, tcbreq): tcbreq
+reduc jointcb(Both, Both) = Both
+otherwise jointcb(Both, OnlyGood) = OnlyGood
+otherwise jointcb(Both, OnlyOutdated) = OnlyOutdated
+otherwise jointcb(OnlyGood, Both) = OnlyGood
+otherwise jointcb(OnlyOutdated, Both) = OnlyOutdated
+otherwise jointcb(OnlyGood, OnlyGood) = OnlyGood
+otherwise jointcb(OnlyOutdated, OnlyOutdated) = OnlyOutdated.
+
+fun joinatt(attreq, attreq): attreq
+reduc joinatt(NoAtt, NoAtt) = NoAtt
+otherwise forall a: party; joinatt(NoAtt, Assign(a)) = Assign(a)
+otherwise forall a: party; joinatt(Assign(a), NoAtt) = Assign(a)
+otherwise forall a: party; joinatt(Assign(a), Assign(a)) = Assign(a).
+
+(* Satisfaction destructors return true only for accepted values. *)
+fun matchid(ident, attr): bool
+reduc forall a: attr; matchid(Any, a) = true
+otherwise forall a: attr; matchid(exact(a), a) = true.
+
+fun matchv(svn, svn): bool
+reduc matchv(V0, V0) = true
+otherwise matchv(V0, V1) = true
+otherwise matchv(V0, V2) = true
+otherwise matchv(V1, V1) = true
+otherwise matchv(V1, V2) = true
+otherwise matchv(V2, V2) = true.
+
+fun matchtcb(tcbreq, tcbstatus): bool
+reduc matchtcb(Both, Good) = true
+otherwise matchtcb(Both, Outdated) = true
+otherwise matchtcb(OnlyGood, Good) = true
+otherwise matchtcb(OnlyOutdated, Outdated) = true.
+
+(* NoAtt contributes no assignment; it never authorizes an arbitrary RPE. *)
+fun matchatt(attreq, party): bool
+reduc forall a: party; matchatt(Assign(a), a) = true.
+
+(* Initialization checks for adversary-selected policy components. *)
+fun validid(ident): bool
+reduc validid(Any) = true
+otherwise forall a: attr; validid(exact(a)) = true.
+
+fun validv(svn): bool
+reduc validv(V0) = true
+otherwise validv(V1) = true
+otherwise validv(V2) = true.
+
+fun validtcbreq(tcbreq): bool
+reduc validtcbreq(Both) = true
+otherwise validtcbreq(OnlyGood) = true
+otherwise validtcbreq(OnlyOutdated) = true.
+
+fun validatt(attreq): bool
+reduc validatt(NoAtt) = true
+otherwise forall a: party; validatt(Assign(a)) = true.
+
+letfun validentry(c: entry) =
+  let Req(cm: ident, cs: ident, cp: ident, cv: svn, ct: tcbreq, ca: attreq) = c in
+  let vm = validid(cm) in
+  let vs = validid(cs) in
+  let vp = validid(cp) in
+  let vv = validv(cv) in
+  let vt = validtcbreq(ct) in
+  let va = validatt(ca) in
+  vm && vs && vp && vv && vt && va.
+
+letfun joinentry(x: entry, y: entry) =
+  let Req(xm: ident, xs: ident, xp: ident, xv: svn, xt: tcbreq, xa: attreq) = x in
+  let Req(ym: ident, ys: ident, yp: ident, yv: svn, yt: tcbreq, ya: attreq) = y in
+  let jm = joinid(xm, ym) in
+  let js = joinid(xs, ys) in
+  let jp = joinid(xp, yp) in
+  let jv = joinv(xv, yv) in
+  let jt = jointcb(xt, yt) in
+  let ja = joinatt(xa, ya) in
+  Req(jm, js, jp, jv, jt, ja).
+
+letfun checkentry(c: entry, who: party, actual: identity, ts: tcbstatus) =
+  let Req(cm: ident, cs: ident, cp: ident, cv: svn, ct: tcbreq, ca: attreq) = c in
+  let Identity(am: attr, asigner: attr, ap: attr, av: svn) = actual in
+  let vm = matchid(cm, am) in
+  let vs = matchid(cs, asigner) in
+  let vp = matchid(cp, ap) in
+  let vv = matchv(cv, av) in
+  let vt = matchtcb(ct, ts) in
+  let va = matchatt(ca, who) in
+  vm && vs && vp && vv && vt && va.
+
+(* Source primary model SHA256: 3ac3faf42424c00b479393a8cdd9a9404817e4df52d16626444c2457e5eaafb3 *)
+type diagpolstar2.
+fun DiagStar2(tcbreq,tcbreq,entry,entry): diagpolstar2 [data].
+fun diagjoin2(diagpolstar2, diagpolstar2): diagpolstar2
+reduc diagjoin2(DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2))), DiagStar2(Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(s2),Any,V0,Both,Assign(P2)))) = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)))
+otherwise diagjoin2(DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2))), DiagStar2(Both,Both,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)))) = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)))
+otherwise diagjoin2(DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2))), DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)))) = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)))
+otherwise diagjoin2(DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2))), DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)))) = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)))
+otherwise diagjoin2(DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2))), DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)))) = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2))).
+letfun genericjoin2(x: diagpolstar2, y: diagpolstar2) =
+  let DiagStar2(xt1: tcbreq, xt2: tcbreq, xe1: entry, xe2: entry) = x in
+  let DiagStar2(yt1: tcbreq, yt2: tcbreq, ye1: entry, ye2: entry) = y in
+  let jt1 = jointcb(xt1,yt1) in
+  let jt2 = jointcb(xt2,yt2) in
+  let je1 = joinentry(xe1,ye1) in
+  let je2 = joinentry(xe2,ye2) in
+  DiagStar2(jt1,jt2,je1,je2).
+event WrongSpecializationN2().
+query event(WrongSpecializationN2()).
+
+(* Source primary model SHA256: 3cbabae3dfd80969c60b4b2380c87ade02f23a863d1938e105e8a693aa1790ab *)
+type diagpolstar3.
+fun DiagStar3(tcbreq,tcbreq,tcbreq,entry,entry,entry): diagpolstar3 [data].
+fun diagjoin3(diagpolstar3, diagpolstar3): diagpolstar3
+reduc diagjoin3(DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))), DiagStar3(Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(s3),Any,V0,Both,Assign(P3)))) = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))
+otherwise diagjoin3(DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))), DiagStar3(Both,Both,Both,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))) = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))
+otherwise diagjoin3(DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))), DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))) = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))
+otherwise diagjoin3(DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))), DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))) = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))
+otherwise diagjoin3(DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))), DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))) = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))).
+letfun genericjoin3(x: diagpolstar3, y: diagpolstar3) =
+  let DiagStar3(xt1: tcbreq, xt2: tcbreq, xt3: tcbreq, xe1: entry, xe2: entry, xe3: entry) = x in
+  let DiagStar3(yt1: tcbreq, yt2: tcbreq, yt3: tcbreq, ye1: entry, ye2: entry, ye3: entry) = y in
+  let jt1 = jointcb(xt1,yt1) in
+  let jt2 = jointcb(xt2,yt2) in
+  let jt3 = jointcb(xt3,yt3) in
+  let je1 = joinentry(xe1,ye1) in
+  let je2 = joinentry(xe2,ye2) in
+  let je3 = joinentry(xe3,ye3) in
+  DiagStar3(jt1,jt2,jt3,je1,je2,je3).
+event WrongSpecializationN3().
+query event(WrongSpecializationN3()).
+
+process
+  (* N=2, profile=Compatible *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=2, profile=Weak *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(Both,Both,Req(Any, Any, Any, V0, Both, NoAtt),Req(Any, exact(s2), Any, V0, Both, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=2, profile=StrongerSVN *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=2, profile=ConflictMeasurement *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(OnlyGood,OnlyGood,Req(exact(mBad), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=2, profile=ConflictSigner *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(sBad), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=2, profile=ConflictProduct *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodB), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=2, profile=ConflictTCB *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyOutdated, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=2, profile=ConflictAttester *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=2, profile=RejectPeerTCB *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(OnlyOutdated,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=2, profile=NoAssignments *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, NoAtt),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=2, profile=PermissiveRpeTCB *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(Both,Both,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=2, profile=HonestBase *)
+  (let left = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let right = DiagStar2(OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2))) in
+   let generic = genericjoin2(left,right) in
+     (let specialized = diagjoin2(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN2())
+      else event WrongSpecializationN2())
+   else
+     (let specialized = diagjoin2(left,right) in
+       event WrongSpecializationN2()
+      else 0))
+  | (* N=3, profile=Compatible *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))
+  | (* N=3, profile=Weak *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(Both,Both,Both,Req(Any, Any, Any, V0, Both, NoAtt),Req(Any, Any, Any, V0, Both, NoAtt),Req(Any, exact(s3), Any, V0, Both, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))
+  | (* N=3, profile=StrongerSVN *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))
+  | (* N=3, profile=ConflictMeasurement *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mBad), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))
+  | (* N=3, profile=ConflictSigner *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(sBad), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))
+  | (* N=3, profile=ConflictProduct *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodB), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))
+  | (* N=3, profile=ConflictTCB *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyOutdated, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))
+  | (* N=3, profile=ConflictAttester *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P3)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))
+  | (* N=3, profile=RejectPeerTCB *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(OnlyOutdated,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))
+  | (* N=3, profile=NoAssignments *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, NoAtt),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, NoAtt),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))
+  | (* N=3, profile=PermissiveRpeTCB *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(Both,Both,Both,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))
+  | (* N=3, profile=HonestBase *)
+  (let left = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let right = DiagStar3(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)),Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)),Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3))) in
+   let generic = genericjoin3(left,right) in
+     (let specialized = diagjoin3(left,right) in
+       (if specialized = generic then 0 else event WrongSpecializationN3())
+      else event WrongSpecializationN3())
+   else
+     (let specialized = diagjoin3(left,right) in
+       event WrongSpecializationN3()
+      else 0))

@@ -18,7 +18,7 @@ RUN sed -i \
 
 USER opam
 RUN opam update \
-    && opam install -y proverif \
+    && opam install -y proverif.2.05 \
     && opam exec -- proverif -help >/dev/null
 
 WORKDIR /work

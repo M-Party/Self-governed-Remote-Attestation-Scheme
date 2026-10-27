@@ -1,0 +1,1 @@
+timeout 600 proverif -graph /out/sras-n3-no-confirm-coordination/graphs models/sras-n3-no-confirm-coordination.pv

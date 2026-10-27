@@ -1,0 +1,1 @@
+proverif -parse-only models/join-regression.pv

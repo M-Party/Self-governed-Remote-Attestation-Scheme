@@ -1,0 +1,292 @@
+SRAS prior-model audit and Stage 2 regression design
+Status: source audit and proposed checks; this file does not report new tool results.
+Inputs: original sras-n2.pv, sras-n3.pv, sras-n3-ablation.pv; latest attached
+main.tex; the attached revised experiment instructions. The paper is not edited.
+
+1. What the old normal models already enforce
+
+The N=2 process for P1 receives and verifies P2's Quote at lines 118-121,
+accepts P2's hash-matching policy at 124-126, combines that policy with its
+own policy at 127-131, and only then emits FullJoin at 132. P2 does the
+symmetric operations at 166-179. The own policy has been locally established
+before the first Quote. Stage 1 is an initialization assumption.
+
+The N=3 process for P1 must receive and verify both required Quotes before
+publishing its policy (77-83), must accept both distinct required policies
+(84-89), and must join all three local/received policies before FullJoin
+(90-96). P2 follows the same sequence at 111-130, and P3 at 145-164.
+Consequently a missing P3 message cannot be replaced by a P2 message: the
+receive patterns select distinct expected peers. No timeout branch shrinks
+the required set. A failed receive/check or failed join blocks that branch.
+
+The old FullJoin trigger is therefore already a complete-input trigger in
+the two NORMAL models under their fixed peer configurations. It would be
+incorrect to report full-input waiting as entirely new in this revision.
+The Q3 query Confirm(a,p) ==> FullJoin(a,p) can remain unchanged. Additional
+input-tracking events may make this existing process fact mechanically
+inspectable without creating a replacement paper-level property.
+
+2. Concrete differences from the current Stage 2 protocol
+
+2.1 Authentication of policy and confirmation exchange
+All messages use the public net channel. The old policy message is only
+(P_i,rho_i); a genuine hash commitment binds its value but does not implement
+the paper's authenticated channel. A plain sender tag is attacker controlled.
+Confirmation is even weaker: (P_i,hstar(p)) is public, without any signature
+or authenticated-channel abstraction. An attacker can take a receiver's own
+published hash and relabel it as each required peer. This is why copying the
+old confirmation block into the asymmetric variant would not establish the
+paper's claimed protection. The normal fixed-input agreement proof can still
+be true because the guarded local input computations already coincide.
+
+Necessary repair: model authenticated envelopes over the same public net,
+verified using each peer public key accepted from its Evidence Quote. This
+retains interception, replay, delay, substitution attempts, and suppression.
+Signature/domain-separation envelopes may represent the channel guarantee;
+they do not constitute a new network round or a Stage 1 owner signature.
+Do not use private channels to make delivery mandatory or hide an attacker-
+controlled scheduling decision. Policy confidentiality may be left outside
+these four properties with an explicit stronger-attacker abstraction.
+
+2.2 RPE platform appraisal
+The old Quote check authenticates a hardware-signature abstraction, verifies
+mRPE, and checks hbind. It does not carry or test TCB appraisal status or a
+policy-specific acceptable-status requirement. This must be added or expressly
+excluded from the claim; the current instructions require the necessary check.
+
+2.3 Quote structure and party association
+The old hbind has arguments (party, pkey, H(policy)), whereas the latest
+paper's report_data is H(PK_rpe || H(policy)). An internal party label must
+not silently be treated as a new authenticated wire field. The revised model
+should use the paper's binding and document how the policy Self/required-peer
+association follows from the scoped initialization premise and receipt checks.
+No result here proves owner authorization authenticity.
+
+2.4 Join representation
+N=2 mkstar retains the two full input policies as arguments; N=3 mkstar3
+retains all three. Different input histories therefore produce different
+symbolic terms even if their semantic constraint joins coincide. The old
+ablation also uses disjoint mkstar2 and mkstar3 constructors. This cannot
+support a claim that every missing policy changes the consensus hash.
+Replace only this abstraction with a normalized aggregate containing the
+joined constraint fields, not the input policy history. Explicitly cover
+Any, compatible equal exact constraints, redundancy, and conflict/abort;
+bounded SVN and finite TCB domains are valid if clearly specified.
+
+3. Scope that must remain explicit
+
+The old processes are single, unreplicated roles, with one instance per
+party and fresh RPE keys. They model a single initialization. No sid is needed
+to compare their Confirm events; this is not an unbounded multi-session proof.
+
+The normal N=2/N=3 models instantiate a common static membership configuration.
+Their expected peers are selected by role structure, not network discovery.
+In a revised finite policy syntax, make the fixed Trusted Entities mapping
+an explicit configuration instantiation. The corrupted owner's constraint
+values can still be adversary chosen within that syntax; this does not prove
+that arbitrary independent membership configurations agree. Do not initialize
+honest RPEs with the full global collection of policies or a common consensus.
+
+P2 (N=2) / P3 (N=3) owner corruption means adversarial policy choice while
+the protected RPE follows its code and retains its signing key. It is not
+arbitrary Byzantine RPE behavior. New envelope authentication must preserve
+this distinction and the public-network adversary.
+
+4. Existing Stage 3 limitation (cross-check with dedicated Stage 3 audit)
+
+Old N=2 places Stage 3 after Confirm, uses a fresh challenge, verifies a
+hardware-signature abstraction and H(challenge, instance public key), and
+checks the joined measurement pin (143-155 / 189-201).
+It has no signer/product/SVN, no TCB acceptance check, and no attester
+assignment. Its certificate signs hcert(instance key, RPE key), omitting the
+consensus hash required by the latest certificate structure. Its CertIssued
+and QuoteSatisfied events carry measurement and consensus but omit instance
+public key (and Quote attributes/challenge), so Q4 does not itself relate
+the accepted instance key to the signed certificate. Extending these event
+parameters is a necessary refinement of Q4, not a new property family.
+
+5. Suggested auxiliary evidence within the retained event framework
+
+Emit QuoteAccepted(receiver,peer,peerKey,commitment) only after the signature,
+code, TCB and report_data checks. Emit PolicyExchangeStarted after ALL required
+Quotes have been accepted. Correspondences from PolicyExchangeStarted to each
+required QuoteAccepted show that missing Quote prevents the phase transition.
+
+Emit PolicyAccepted(receiver,peer,rho) only after both authenticated-envelope
+verification and hash-commitment verification. An auxiliary AcceptedInput
+event can additionally carry peerKey and the accepted Quote commitment.
+This permits a query that ties the accepted rho to hpol(rho) and the same
+accepted peer key rather than treating a sender label as authentication.
+
+Emit JoinInputs(receiver,result,rhoSelf,rhoPeer1[,rhoPeer2]) with the actual
+local variables used in the join. For each concrete receiver, query that this
+event implies its own PolicyDeclared and each required PolicyAccepted using
+those exact rho variables. Keep FullJoin and Q3. These are supporting checks
+of the process implementation, not a renamed independent contribution.
+
+Emit ConfirmationAccepted(receiver,peer,result) only after verifying the
+peer-authenticated envelope and equality to hstar(result). Query that each
+Confirm(receiver,result) implies one such event for every required peer.
+Also relate ConfirmationAccepted to the corresponding peer's actual hash-
+send event. This guards against the old relabel/reflection omission.
+
+6. Normal joint reachability (existential, not network liveness)
+
+Use a separate query-enabled copy or query mode, preserving the primary
+model process. N=2 should ask for both Confirm events and at least one valid
+CertIssued in the SAME trace (prefer both legitimate issuances if supported).
+N=3 should ask for all three Confirm events in the same trace. Individual
+reachability queries alone are insufficient to demonstrate joint completion.
+Queries can use conjunctions of events; ProVerif's output
+  RESULT not (event(...) && event(...)) is false.
+with a reconstructed trace means the requested joint execution is reachable.
+It is a positive non-vacuity witness, not a security attack and not a promise
+of completion against an adversary who can withhold messages.
+
+7. Small regression scenarios and interpretation
+
+The receiver code should stay identical across negative fixtures. Suppress
+one sender output, or replace one test payload, rather than removing a guard.
+Do not give the network adversary trusted signing keys in the primary model.
+
+R1 Missing required Quote: suppress P3's Quote to the public network in a
+N=3 fixture; ask whether P1 can begin its policy exchange. Expected unreachable.
+R2 Missing required policy after all Quotes: suppress P3's authenticated
+policy output; verify P1 can accept all Quotes but cannot FullJoin/Confirm.
+R3 Repeated wrong peer: R2 already allows unlimited replay of P2's signed
+policy on the public net. Proving P1 cannot FullJoin shows repetitions cannot
+fill P3's required slot. Record this explicitly instead of treating it as a
+second large model.
+R4 Quote-policy mismatch: an authenticated-envelope/commitment correspondence
+can cover this without granting trusted-code signing authority to the attacker.
+If a deliberately faulty signed-payload fixture is used to exercise the
+hash guard, label it as a validation fixture outside honest-RPE behavior,
+not a newly allowed adversarial capability or a real-protocol attack.
+R5 Missing confirmation: suppress only P3's authenticated confirmation after
+all input processing; demonstrate P1 can FullJoin but cannot Confirm.
+R6 Mismatched confirmation: a network substitution must fail authenticated
+verification; a deliberately signed mismatching fixture can separately
+exercise the equality guard, with the same out-of-main-model label as R4.
+R7 Conflict: choose an allowed corrupted-owner policy whose relevant exact
+constraint conflicts with the honest policy; all Quotes/policies can be
+accepted but the target FullJoin/Confirm is unreachable.
+R8 Stage 3 invalid instance: keep Stage 2 compatible, vary the Quote identity,
+TCB or assigned attester and check CertIssued cannot refer to the rejected
+instance/public key. Include bad signature/key/challenge binding scenarios.
+
+For absence fixtures, report positive reachability of the immediately preceding
+phase too, preventing an earlier unrelated deadlock from masquerading as
+the intended guard. All negative fixture successes mean unreachability in
+that fixture. Full security still comes from the primary Dolev-Yao queries.
+
+8. Old and optional new ablation
+
+Archive the old partial-view/no-confirmation model and results unmodified.
+Its two simultaneous changes and history-preserving join make it unsuitable
+as confirmation-necessity evidence for the revised full-input protocol.
+
+If running a diagnostic no-confirmation variant, delete only the hash send,
+receive and wait/check block. Preserve FullJoin, complete-input computation,
+and the comparable completion event Confirm. Under single initialization,
+honest RPE code, fixed membership and authenticated policy commitments,
+Agreement may remain true; report the result actually obtained. Such a result
+does not prove global dispensability of confirmation in deployment, only that
+this property is derivable from the other assumptions in the scoped model.
+
+9. Review of the proposed key-based peer association
+
+The proposed revision removes party from hbind, rejects a peer key equal to
+the receiver's own key, and requires distinct keys across the required peer
+slots. This implements the requirement that replaying one RPE cannot count
+as another RPE, without adding wire fields or a membership hash. In a single
+initialization containing exactly the N compliant role instances, N-1 distinct
+non-self compliant keys necessarily cover the other role instances. This
+argument depends on that bounded-role setup; arbitrary additional compliant
+RPEs and independently configured membership sets are not thereby verified.
+
+The outer Quote sender label remains untrusted. If labels are swapped, a
+valid Quote can occupy the wrong provisional slot before the later signed
+policy Self check rejects it. Therefore QuoteAccepted(receiver,slot,...) at
+that early point should mean successful Quote checks for a slot, not proof
+that the physical sender is the party named by the untrusted label. The
+party-to-key association is established when the authenticated policy's Self
+matches the required party and its hash matches that Quote. Latest paper
+line 627 explicitly checks Self against the RPE startup designation in Stage
+1; using that as the initialization premise is consistent with the task.
+
+A signature over a domain-separated policy/confirmation payload including
+the recipient public key is a suitable abstraction of the existing channel's
+authenticated endpoints. That endpoint field is not a proposed new real
+protocol field or round, and the public network must retain replay/suppression.
+
+The local key de-duplication rule should be described as explicit peer-
+distinctness modeling. This audit has not checked whether the implementation
+contains that exact check; it should not be reported as an implementation
+fact based solely on the formal model.
+
+10. First generated-model review (findings communicated for correction)
+
+Reviewed generate_models.py and the initially generated primary, auxiliary,
+reachability and scenario models. This is a review snapshot; final corrected
+artifacts and actual run results supersede the following open findings.
+
+Confirmed structure:
+  - Every normal RPE receives all required Quote slots, validates code/TCB/
+    key-policy commitment, excludes its own key and duplicate peer keys,
+    then sends its policy.
+  - Every peer policy undergoes signature/recipient-key checking, Quote hash
+    checking and Self matching; the actual accepted rho variables are used
+    in the local join before FullJoin.
+  - All communication uses public net. Sender and recipient labels outside
+    the signed payload are not trusted as cryptographic identities.
+  - The no-confirm primary diff deletes only confirmation send/receive/check
+    blocks, retaining FullJoin, Confirm, all input guards and primary queries.
+  - The adversarial owner's 11-profile catalog is an explicit bounded policy
+    domain, not a proof for all combinations of all legal policy fields.
+
+Finding F1: initialization admissibility of catalog profiles.
+  Weak and NoAssignments initially set the corrupted owner's OWN instance
+  attester to NoAtt. Latest paper line 627 requires its local beta_i to
+  assign the Self instance to that RPE before Stage 2. Preserve Assign(P_n)
+  for the owner's own entry; absence of assignments can still be exercised
+  in its peer entries. The own signer must remain concrete as already done.
+
+Finding F2: a targeted policy-output omission can be bypassed by slot swap.
+  Before receiving policies, a sender's Quote-slot party labels are still
+  provisional. In a missing-P3-to-P1 policy fixture, the attacker can swap
+  the P1/P2 Quote slots at P3. P3's surviving output labelled for P2 then
+  carries receiverPk=pk1 and can be relabelled/delivered to P1. Suppressing
+  only the logical P1-labelled output therefore does not force the intended
+  missing-policy condition. Suppress all P3 policy outputs for this fixture,
+  while retaining Quotes and unrestricted attacker replay of other policies.
+  The same issue affects a targeted policy-hash-mismatch output: a surviving
+  correct output can be redirected. Replace all that sender's policy outputs
+  with the test payload when testing the hash guard.
+
+Finding F3: the mismatch payload must actually differ in every fixture run.
+  Initially, policy-hash-mismatch replaced the payload with the Weak profile
+  while leaving the sender's initialized profile adversary chosen. Choosing
+  Weak makes the purported mismatch disappear. Fix that fixture's initialized
+  profile (e.g. Compatible) and a distinct payload; this is a faulty-sender
+  validation fixture, not a main-model honest-RPE execution.
+
+Finding F4: wrong-attester fixture must preserve/declare its initialization
+  boundary. Initially it changed every policy's E1 assignment to P2, including
+  P1's own assignment. This violates the local Stage 1 self-assignment premise.
+  A verifier unit fixture may deliberately bypass that premise to exercise
+  the attester guard, but should be clearly distinguished from an in-scope
+  owner-policy scenario. A protocol-level negative test can instead request
+  attestation of a peer entity at an RPE that is not its designated attester,
+  if the service request abstraction explicitly supports such a request.
+
+Auxiliary-event interpretation:
+  PolicySent(sender,recipientLabel,rho) is recorded before the sender has
+  verified peer policy Self. Its recipient argument names a provisional slot.
+  A successful correspondence to that event must not be advertised as a
+  separate proof that the sender had already authenticated the recipient's
+  logical party identity. The actual endpoint check is the signature payload's
+  receiver public key. Confirmation is later, after policy Self validation,
+  so analogous slot-swap issues do not bypass the confirmation fixtures.
+
+Negative fixtures already include positive reachability queries for a prior
+gate. Preserve these and inspect actual traces, not just expected booleans.

@@ -1,0 +1,28 @@
+{
+  "N2": {
+    "Compatible": "pol(P2, Members2, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)))",
+    "Weak": "pol(P2, Members2, Both, Both, Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, exact(s2), Any, V0, Both, Assign(P2)))",
+    "StrongerSVN": "pol(P2, Members2, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)))",
+    "ConflictMeasurement": "pol(P2, Members2, OnlyGood, OnlyGood, Req(exact(mBad), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)))",
+    "ConflictSigner": "pol(P2, Members2, OnlyGood, OnlyGood, Req(exact(mE1), exact(sBad), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)))",
+    "ConflictProduct": "pol(P2, Members2, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodB), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)))",
+    "ConflictTCB": "pol(P2, Members2, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyOutdated, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)))",
+    "ConflictAttester": "pol(P2, Members2, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)))",
+    "RejectPeerTCB": "pol(P2, Members2, OnlyOutdated, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)))",
+    "NoAssignments": "pol(P2, Members2, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, NoAtt), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)))",
+    "PermissiveRpeTCB": "pol(P2, Members2, Both, Both, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)))"
+  },
+  "N3": {
+    "Compatible": "pol(P3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3)))",
+    "Weak": "pol(P3, Members3, Both, Both, Both, Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, exact(s3), Any, V0, Both, Assign(P3)))",
+    "StrongerSVN": "pol(P3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3)))",
+    "ConflictMeasurement": "pol(P3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mBad), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3)))",
+    "ConflictSigner": "pol(P3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(sBad), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3)))",
+    "ConflictProduct": "pol(P3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodB), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3)))",
+    "ConflictTCB": "pol(P3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyOutdated, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3)))",
+    "ConflictAttester": "pol(P3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P3)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3)))",
+    "RejectPeerTCB": "pol(P3, Members3, OnlyOutdated, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3)))",
+    "NoAssignments": "pol(P3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, NoAtt), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, NoAtt), Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3)))",
+    "PermissiveRpeTCB": "pol(P3, Members3, Both, Both, Both, Req(exact(mE1), exact(s1), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(s2), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(s3), exact(prodA), V1, OnlyGood, Assign(P3)))"
+  }
+}

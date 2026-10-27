@@ -1,0 +1,1 @@
+proverif -parse-only models/sras-n3-no-confirm-coordination.pv

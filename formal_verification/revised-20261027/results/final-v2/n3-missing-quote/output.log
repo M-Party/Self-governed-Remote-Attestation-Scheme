@@ -1,0 +1,602 @@
+Process 0 (that is, the initial process):
+{1}new akRPE: skey;
+{2}new akTEE: skey;
+{3}new akADV: skey;
+{4}out(net, (pk(akRPE),pk(akTEE),pk(akADV),akADV));
+(
+    {5}let akR: skey = akRPE in
+    {6}let pkAKR: pkey = pk(akRPE) in
+    {7}let pkAKE: pkey = pk(akTEE) in
+    {8}let rho1: policy = pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {9}new sk1: skey;
+    {10}let pk1: pkey = pk(sk1) in
+    {11}event PolicyDeclared(P1,rho1);
+    {12}let q1: bitstring = sign(rpeQuote(mRPE,Good,hbind(pk1,hpol(rho1))),akR) in
+    {13}out(net, (P1,q1,pk1,hpol(rho1)));
+    {14}in(net, (=P2,q2: bitstring,pk2: pkey,hb2: bitstring));
+    {15}let rpeQuote(=mRPE,ts2: tcbstatus,d2: bitstring) = checksign(q2,pkAKR) in
+    {16}if (d2 = hbind(pk2,hb2)) then
+    {17}let tcbok2: bool = matchtcb(rpeTcb2(rho1),ts2) in
+    {18}if (tcbok2 = true) then
+    {19}if (pk2 ≠ pk1) then
+    {20}event EvidenceChecked(P1,P2,pk2,hb2);
+    {21}in(net, (=P3,q3: bitstring,pk3: pkey,hb3: bitstring));
+    {22}let rpeQuote(=mRPE,ts3: tcbstatus,d3: bitstring) = checksign(q3,pkAKR) in
+    {23}if (d3 = hbind(pk3,hb3)) then
+    {24}let tcbok3: bool = matchtcb(rpeTcb3(rho1),ts3) in
+    {25}if (tcbok3 = true) then
+    {26}if ((pk3 ≠ pk1) && (pk3 ≠ pk2)) then
+    {27}event EvidenceChecked(P1,P3,pk3,hb3);
+    {28}event QuotesComplete(P1);
+    {29}event PolicySent(P1,pk2,rho1);
+    {30}out(net, (P1,P2,sign(policyMsg(pk2,rho1),sk1)));
+    {31}event PolicySent(P1,pk3,rho1);
+    {32}out(net, (P1,P3,sign(policyMsg(pk3,rho1),sk1)));
+    {33}in(net, (=P2,=P1,msg2: bitstring));
+    {34}let policyMsg(=pk1,rho2: policy) = checksign(msg2,pk2) in
+    {35}event PolicyAuthenticated(P1,P2,rho2);
+    {36}if (hpol(rho2) = hb2) then
+    {37}if (policySelf(rho2) = P2) then
+    {38}event PolicyAccepted(P1,P2,rho2);
+    {39}event PolicyAcceptedKeys(P1,P2,pk1,pk2,rho2);
+    {40}in(net, (=P3,=P1,msg3: bitstring));
+    {41}let policyMsg(=pk1,rho3: policy) = checksign(msg3,pk3) in
+    {42}event PolicyAuthenticated(P1,P3,rho3);
+    {43}if (hpol(rho3) = hb3) then
+    {44}if (policySelf(rho3) = P3) then
+    {45}event PolicyAccepted(P1,P3,rho3);
+    {46}event PolicyAcceptedKeys(P1,P3,pk1,pk3,rho3);
+    {47}event PoliciesComplete(P1);
+    {48}let joined12: polstar = joinstar(constraints(rho1),constraints(rho2)) in
+    {49}let pistar: polstar = joinstar(joined12,constraints(rho3)) in
+    {50}event FullJoin(P1,pistar);
+    {51}event ConfirmationSent(P1,P2,hstar(pistar));
+    {52}out(net, (P1,P2,sign(confirmMsg(pk2,hstar(pistar)),sk1)));
+    {53}event ConfirmationSent(P1,P3,hstar(pistar));
+    {54}out(net, (P1,P3,sign(confirmMsg(pk3,hstar(pistar)),sk1)));
+    {55}in(net, (=P2,=P1,confirmation2: bitstring));
+    {56}let confirmMsg(=pk1,hs2: bitstring) = checksign(confirmation2,pk2) in
+    {57}event ConfirmationAuthenticated(P1,P2,hs2);
+    {58}if (hs2 = hstar(pistar)) then
+    {59}event ConfirmationAccepted(P1,P2,hs2);
+    {60}in(net, (=P3,=P1,confirmation3: bitstring));
+    {61}let confirmMsg(=pk1,hs3: bitstring) = checksign(confirmation3,pk3) in
+    {62}event ConfirmationAuthenticated(P1,P3,hs3);
+    {63}if (hs3 = hstar(pistar)) then
+    {64}event ConfirmationAccepted(P1,P3,hs3);
+    {65}event Confirm(P1,pistar)
+) | (
+    {66}let akR_1: skey = akRPE in
+    {67}let pkAKR_1: pkey = pk(akRPE) in
+    {68}let pkAKE_1: pkey = pk(akTEE) in
+    {69}let rho2_1: policy = pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {70}new sk2: skey;
+    {71}let pk2_1: pkey = pk(sk2) in
+    {72}event PolicyDeclared(P2,rho2_1);
+    {73}let q2_1: bitstring = sign(rpeQuote(mRPE,Good,hbind(pk2_1,hpol(rho2_1))),akR_1) in
+    {74}out(net, (P2,q2_1,pk2_1,hpol(rho2_1)));
+    {75}in(net, (=P1,q1_1: bitstring,pk1_1: pkey,hb1: bitstring));
+    {76}let rpeQuote(=mRPE,ts1: tcbstatus,d1: bitstring) = checksign(q1_1,pkAKR_1) in
+    {77}if (d1 = hbind(pk1_1,hb1)) then
+    {78}let tcbok1: bool = matchtcb(rpeTcb1(rho2_1),ts1) in
+    {79}if (tcbok1 = true) then
+    {80}if (pk1_1 ≠ pk2_1) then
+    {81}event EvidenceChecked(P2,P1,pk1_1,hb1);
+    {82}in(net, (=P3,q3_1: bitstring,pk3_1: pkey,hb3_1: bitstring));
+    {83}let rpeQuote(=mRPE,ts3_1: tcbstatus,d3_1: bitstring) = checksign(q3_1,pkAKR_1) in
+    {84}if (d3_1 = hbind(pk3_1,hb3_1)) then
+    {85}let tcbok3_1: bool = matchtcb(rpeTcb3(rho2_1),ts3_1) in
+    {86}if (tcbok3_1 = true) then
+    {87}if ((pk3_1 ≠ pk2_1) && (pk3_1 ≠ pk1_1)) then
+    {88}event EvidenceChecked(P2,P3,pk3_1,hb3_1);
+    {89}event QuotesComplete(P2);
+    {90}event PolicySent(P2,pk1_1,rho2_1);
+    {91}out(net, (P2,P1,sign(policyMsg(pk1_1,rho2_1),sk2)));
+    {92}event PolicySent(P2,pk3_1,rho2_1);
+    {93}out(net, (P2,P3,sign(policyMsg(pk3_1,rho2_1),sk2)));
+    {94}in(net, (=P1,=P2,msg1: bitstring));
+    {95}let policyMsg(=pk2_1,rho1_1: policy) = checksign(msg1,pk1_1) in
+    {96}event PolicyAuthenticated(P2,P1,rho1_1);
+    {97}if (hpol(rho1_1) = hb1) then
+    {98}if (policySelf(rho1_1) = P1) then
+    {99}event PolicyAccepted(P2,P1,rho1_1);
+    {100}event PolicyAcceptedKeys(P2,P1,pk2_1,pk1_1,rho1_1);
+    {101}in(net, (=P3,=P2,msg3_1: bitstring));
+    {102}let policyMsg(=pk2_1,rho3_1: policy) = checksign(msg3_1,pk3_1) in
+    {103}event PolicyAuthenticated(P2,P3,rho3_1);
+    {104}if (hpol(rho3_1) = hb3_1) then
+    {105}if (policySelf(rho3_1) = P3) then
+    {106}event PolicyAccepted(P2,P3,rho3_1);
+    {107}event PolicyAcceptedKeys(P2,P3,pk2_1,pk3_1,rho3_1);
+    {108}event PoliciesComplete(P2);
+    {109}let joined12_1: polstar = joinstar(constraints(rho1_1),constraints(rho2_1)) in
+    {110}let pistar_1: polstar = joinstar(joined12_1,constraints(rho3_1)) in
+    {111}event FullJoin(P2,pistar_1);
+    {112}event ConfirmationSent(P2,P1,hstar(pistar_1));
+    {113}out(net, (P2,P1,sign(confirmMsg(pk1_1,hstar(pistar_1)),sk2)));
+    {114}event ConfirmationSent(P2,P3,hstar(pistar_1));
+    {115}out(net, (P2,P3,sign(confirmMsg(pk3_1,hstar(pistar_1)),sk2)));
+    {116}in(net, (=P1,=P2,confirmation1: bitstring));
+    {117}let confirmMsg(=pk2_1,hs1: bitstring) = checksign(confirmation1,pk1_1) in
+    {118}event ConfirmationAuthenticated(P2,P1,hs1);
+    {119}if (hs1 = hstar(pistar_1)) then
+    {120}event ConfirmationAccepted(P2,P1,hs1);
+    {121}in(net, (=P3,=P2,confirmation3_1: bitstring));
+    {122}let confirmMsg(=pk2_1,hs3_1: bitstring) = checksign(confirmation3_1,pk3_1) in
+    {123}event ConfirmationAuthenticated(P2,P3,hs3_1);
+    {124}if (hs3_1 = hstar(pistar_1)) then
+    {125}event ConfirmationAccepted(P2,P3,hs3_1);
+    {126}event Confirm(P2,pistar_1)
+) | (
+    {127}let akR_2: skey = akRPE in
+    {128}let pkAKR_2: pkey = pk(akRPE) in
+    {129}let pkAKE_2: pkey = pk(akTEE) in
+    {130}in(net, selectedProfile: profile);
+    {131}let rho3_2: policy = choosePolicy(selectedProfile) in
+    {132}new sk3: skey;
+    {133}let pk3_2: pkey = pk(sk3) in
+    {134}event PolicyDeclared(P3,rho3_2);
+    {135}let q3_2: bitstring = sign(rpeQuote(mRPE,Good,hbind(pk3_2,hpol(rho3_2))),akR_2) in
+    {136}in(net, (=P1,q1_2: bitstring,pk1_2: pkey,hb1_1: bitstring));
+    {137}let rpeQuote(=mRPE,ts1_1: tcbstatus,d1_1: bitstring) = checksign(q1_2,pkAKR_2) in
+    {138}if (d1_1 = hbind(pk1_2,hb1_1)) then
+    {139}let tcbok1_1: bool = matchtcb(rpeTcb1(rho3_2),ts1_1) in
+    {140}if (tcbok1_1 = true) then
+    {141}if (pk1_2 ≠ pk3_2) then
+    {142}event EvidenceChecked(P3,P1,pk1_2,hb1_1);
+    {143}in(net, (=P2,q2_2: bitstring,pk2_2: pkey,hb2_1: bitstring));
+    {144}let rpeQuote(=mRPE,ts2_1: tcbstatus,d2_1: bitstring) = checksign(q2_2,pkAKR_2) in
+    {145}if (d2_1 = hbind(pk2_2,hb2_1)) then
+    {146}let tcbok2_1: bool = matchtcb(rpeTcb2(rho3_2),ts2_1) in
+    {147}if (tcbok2_1 = true) then
+    {148}if ((pk2_2 ≠ pk3_2) && (pk2_2 ≠ pk1_2)) then
+    {149}event EvidenceChecked(P3,P2,pk2_2,hb2_1);
+    {150}event QuotesComplete(P3);
+    {151}event PolicySent(P3,pk1_2,rho3_2);
+    {152}out(net, (P3,P1,sign(policyMsg(pk1_2,rho3_2),sk3)));
+    {153}event PolicySent(P3,pk2_2,rho3_2);
+    {154}out(net, (P3,P2,sign(policyMsg(pk2_2,rho3_2),sk3)));
+    {155}in(net, (=P1,=P3,msg1_1: bitstring));
+    {156}let policyMsg(=pk3_2,rho1_2: policy) = checksign(msg1_1,pk1_2) in
+    {157}event PolicyAuthenticated(P3,P1,rho1_2);
+    {158}if (hpol(rho1_2) = hb1_1) then
+    {159}if (policySelf(rho1_2) = P1) then
+    {160}event PolicyAccepted(P3,P1,rho1_2);
+    {161}event PolicyAcceptedKeys(P3,P1,pk3_2,pk1_2,rho1_2);
+    {162}in(net, (=P2,=P3,msg2_1: bitstring));
+    {163}let policyMsg(=pk3_2,rho2_2: policy) = checksign(msg2_1,pk2_2) in
+    {164}event PolicyAuthenticated(P3,P2,rho2_2);
+    {165}if (hpol(rho2_2) = hb2_1) then
+    {166}if (policySelf(rho2_2) = P2) then
+    {167}event PolicyAccepted(P3,P2,rho2_2);
+    {168}event PolicyAcceptedKeys(P3,P2,pk3_2,pk2_2,rho2_2);
+    {169}event PoliciesComplete(P3);
+    {170}let joined12_2: polstar = joinstar(constraints(rho1_2),constraints(rho2_2)) in
+    {171}let pistar_2: polstar = joinstar(joined12_2,constraints(rho3_2)) in
+    {172}event FullJoin(P3,pistar_2);
+    {173}event ConfirmationSent(P3,P1,hstar(pistar_2));
+    {174}out(net, (P3,P1,sign(confirmMsg(pk1_2,hstar(pistar_2)),sk3)));
+    {175}event ConfirmationSent(P3,P2,hstar(pistar_2));
+    {176}out(net, (P3,P2,sign(confirmMsg(pk2_2,hstar(pistar_2)),sk3)));
+    {177}in(net, (=P1,=P3,confirmation1_1: bitstring));
+    {178}let confirmMsg(=pk3_2,hs1_1: bitstring) = checksign(confirmation1_1,pk1_2) in
+    {179}event ConfirmationAuthenticated(P3,P1,hs1_1);
+    {180}if (hs1_1 = hstar(pistar_2)) then
+    {181}event ConfirmationAccepted(P3,P1,hs1_1);
+    {182}in(net, (=P2,=P3,confirmation2_1: bitstring));
+    {183}let confirmMsg(=pk3_2,hs2_1: bitstring) = checksign(confirmation2_1,pk2_2) in
+    {184}event ConfirmationAuthenticated(P3,P2,hs2_1);
+    {185}if (hs2_1 = hstar(pistar_2)) then
+    {186}event ConfirmationAccepted(P3,P2,hs2_1);
+    {187}event Confirm(P3,pistar_2)
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new akRPE: skey;
+{2}new akTEE: skey;
+{3}new akADV: skey;
+{4}out(net, (pk(akRPE),pk(akTEE),pk(akADV),akADV));
+(
+    {9}new sk1: skey;
+    {8}let rho1: policy = pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {11}event PolicyDeclared(P1,rho1);
+    {10}let pk1: pkey = pk(sk1) in
+    {5}let akR: skey = akRPE in
+    {12}let q1: bitstring = sign(rpeQuote(mRPE,Good,hbind(pk1,hpol(rho1))),akR) in
+    {13}out(net, (P1,q1,pk1,hpol(rho1)));
+    {14}in(net, (=P2,q2: bitstring,pk2: pkey,hb2: bitstring));
+    {6}let pkAKR: pkey = pk(akRPE) in
+    {15}let rpeQuote(=mRPE,ts2: tcbstatus,d2: bitstring) = checksign(q2,pkAKR) in
+    {16}if (d2 = hbind(pk2,hb2)) then
+    {17}let tcbok2: bool = matchtcb(rpeTcb2(rho1),ts2) in
+    {18}if (tcbok2 = true) then
+    {19}if (pk2 ≠ pk1) then
+    {20}event EvidenceChecked(P1,P2,pk2,hb2);
+    {21}in(net, (=P3,q3: bitstring,pk3: pkey,hb3: bitstring));
+    {22}let rpeQuote(=mRPE,ts3: tcbstatus,d3: bitstring) = checksign(q3,pkAKR) in
+    {23}if (d3 = hbind(pk3,hb3)) then
+    {24}let tcbok3: bool = matchtcb(rpeTcb3(rho1),ts3) in
+    {25}if (tcbok3 = true) then
+    {26}if ((pk3 ≠ pk1) && (pk3 ≠ pk2)) then
+    {27}event EvidenceChecked(P1,P3,pk3,hb3);
+    {28}event QuotesComplete(P1);
+    {29}event PolicySent(P1,pk2,rho1);
+    {30}out(net, (P1,P2,sign(policyMsg(pk2,rho1),sk1)));
+    {31}event PolicySent(P1,pk3,rho1);
+    {32}out(net, (P1,P3,sign(policyMsg(pk3,rho1),sk1)));
+    {33}in(net, (=P2,=P1,msg2: bitstring));
+    {34}let policyMsg(=pk1,rho2: policy) = checksign(msg2,pk2) in
+    {35}event PolicyAuthenticated(P1,P2,rho2);
+    {36}if (hpol(rho2) = hb2) then
+    {37}if (policySelf(rho2) = P2) then
+    {38}event PolicyAccepted(P1,P2,rho2);
+    {39}event PolicyAcceptedKeys(P1,P2,pk1,pk2,rho2);
+    {40}in(net, (=P3,=P1,msg3: bitstring));
+    {41}let policyMsg(=pk1,rho3: policy) = checksign(msg3,pk3) in
+    {42}event PolicyAuthenticated(P1,P3,rho3);
+    {43}if (hpol(rho3) = hb3) then
+    {44}if (policySelf(rho3) = P3) then
+    {45}event PolicyAccepted(P1,P3,rho3);
+    {46}event PolicyAcceptedKeys(P1,P3,pk1,pk3,rho3);
+    {47}event PoliciesComplete(P1);
+    {48}let joined12: polstar = joinstar(constraints(rho1),constraints(rho2)) in
+    {49}let pistar: polstar = joinstar(joined12,constraints(rho3)) in
+    {50}event FullJoin(P1,pistar);
+    {51}event ConfirmationSent(P1,P2,hstar(pistar));
+    {52}out(net, (P1,P2,sign(confirmMsg(pk2,hstar(pistar)),sk1)));
+    {53}event ConfirmationSent(P1,P3,hstar(pistar));
+    {54}out(net, (P1,P3,sign(confirmMsg(pk3,hstar(pistar)),sk1)));
+    {55}in(net, (=P2,=P1,confirmation2: bitstring));
+    {56}let confirmMsg(=pk1,hs2: bitstring) = checksign(confirmation2,pk2) in
+    {57}event ConfirmationAuthenticated(P1,P2,hs2);
+    {58}if (hs2 = hstar(pistar)) then
+    {59}event ConfirmationAccepted(P1,P2,hs2);
+    {60}in(net, (=P3,=P1,confirmation3: bitstring));
+    {61}let confirmMsg(=pk1,hs3: bitstring) = checksign(confirmation3,pk3) in
+    {62}event ConfirmationAuthenticated(P1,P3,hs3);
+    {63}if (hs3 = hstar(pistar)) then
+    {64}event ConfirmationAccepted(P1,P3,hs3);
+    {65}event Confirm(P1,pistar)
+) | (
+    {70}new sk2: skey;
+    {69}let rho2_1: policy = pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {72}event PolicyDeclared(P2,rho2_1);
+    {71}let pk2_1: pkey = pk(sk2) in
+    {66}let akR_1: skey = akRPE in
+    {73}let q2_1: bitstring = sign(rpeQuote(mRPE,Good,hbind(pk2_1,hpol(rho2_1))),akR_1) in
+    {74}out(net, (P2,q2_1,pk2_1,hpol(rho2_1)));
+    {75}in(net, (=P1,q1_1: bitstring,pk1_1: pkey,hb1: bitstring));
+    {67}let pkAKR_1: pkey = pk(akRPE) in
+    {76}let rpeQuote(=mRPE,ts1: tcbstatus,d1: bitstring) = checksign(q1_1,pkAKR_1) in
+    {77}if (d1 = hbind(pk1_1,hb1)) then
+    {78}let tcbok1: bool = matchtcb(rpeTcb1(rho2_1),ts1) in
+    {79}if (tcbok1 = true) then
+    {80}if (pk1_1 ≠ pk2_1) then
+    {81}event EvidenceChecked(P2,P1,pk1_1,hb1);
+    {82}in(net, (=P3,q3_1: bitstring,pk3_1: pkey,hb3_1: bitstring));
+    {83}let rpeQuote(=mRPE,ts3_1: tcbstatus,d3_1: bitstring) = checksign(q3_1,pkAKR_1) in
+    {84}if (d3_1 = hbind(pk3_1,hb3_1)) then
+    {85}let tcbok3_1: bool = matchtcb(rpeTcb3(rho2_1),ts3_1) in
+    {86}if (tcbok3_1 = true) then
+    {87}if ((pk3_1 ≠ pk2_1) && (pk3_1 ≠ pk1_1)) then
+    {88}event EvidenceChecked(P2,P3,pk3_1,hb3_1);
+    {89}event QuotesComplete(P2);
+    {90}event PolicySent(P2,pk1_1,rho2_1);
+    {91}out(net, (P2,P1,sign(policyMsg(pk1_1,rho2_1),sk2)));
+    {92}event PolicySent(P2,pk3_1,rho2_1);
+    {93}out(net, (P2,P3,sign(policyMsg(pk3_1,rho2_1),sk2)));
+    {94}in(net, (=P1,=P2,msg1: bitstring));
+    {95}let policyMsg(=pk2_1,rho1_1: policy) = checksign(msg1,pk1_1) in
+    {96}event PolicyAuthenticated(P2,P1,rho1_1);
+    {97}if (hpol(rho1_1) = hb1) then
+    {98}if (policySelf(rho1_1) = P1) then
+    {99}event PolicyAccepted(P2,P1,rho1_1);
+    {100}event PolicyAcceptedKeys(P2,P1,pk2_1,pk1_1,rho1_1);
+    {101}in(net, (=P3,=P2,msg3_1: bitstring));
+    {102}let policyMsg(=pk2_1,rho3_1: policy) = checksign(msg3_1,pk3_1) in
+    {103}event PolicyAuthenticated(P2,P3,rho3_1);
+    {104}if (hpol(rho3_1) = hb3_1) then
+    {105}if (policySelf(rho3_1) = P3) then
+    {106}event PolicyAccepted(P2,P3,rho3_1);
+    {107}event PolicyAcceptedKeys(P2,P3,pk2_1,pk3_1,rho3_1);
+    {108}event PoliciesComplete(P2);
+    {109}let joined12_1: polstar = joinstar(constraints(rho1_1),constraints(rho2_1)) in
+    {110}let pistar_1: polstar = joinstar(joined12_1,constraints(rho3_1)) in
+    {111}event FullJoin(P2,pistar_1);
+    {112}event ConfirmationSent(P2,P1,hstar(pistar_1));
+    {113}out(net, (P2,P1,sign(confirmMsg(pk1_1,hstar(pistar_1)),sk2)));
+    {114}event ConfirmationSent(P2,P3,hstar(pistar_1));
+    {115}out(net, (P2,P3,sign(confirmMsg(pk3_1,hstar(pistar_1)),sk2)));
+    {116}in(net, (=P1,=P2,confirmation1: bitstring));
+    {117}let confirmMsg(=pk2_1,hs1: bitstring) = checksign(confirmation1,pk1_1) in
+    {118}event ConfirmationAuthenticated(P2,P1,hs1);
+    {119}if (hs1 = hstar(pistar_1)) then
+    {120}event ConfirmationAccepted(P2,P1,hs1);
+    {121}in(net, (=P3,=P2,confirmation3_1: bitstring));
+    {122}let confirmMsg(=pk2_1,hs3_1: bitstring) = checksign(confirmation3_1,pk3_1) in
+    {123}event ConfirmationAuthenticated(P2,P3,hs3_1);
+    {124}if (hs3_1 = hstar(pistar_1)) then
+    {125}event ConfirmationAccepted(P2,P3,hs3_1);
+    {126}event Confirm(P2,pistar_1)
+) | (
+    {130}in(net, selectedProfile: profile);
+    {131}let rho3_2: policy = choosePolicy(selectedProfile) in
+    {132}new sk3: skey;
+    {134}event PolicyDeclared(P3,rho3_2);
+    {136}in(net, (=P1,q1_2: bitstring,pk1_2: pkey,hb1_1: bitstring));
+    {128}let pkAKR_2: pkey = pk(akRPE) in
+    {137}let rpeQuote(=mRPE,ts1_1: tcbstatus,d1_1: bitstring) = checksign(q1_2,pkAKR_2) in
+    {138}if (d1_1 = hbind(pk1_2,hb1_1)) then
+    {139}let tcbok1_1: bool = matchtcb(rpeTcb1(rho3_2),ts1_1) in
+    {140}if (tcbok1_1 = true) then
+    {133}let pk3_2: pkey = pk(sk3) in
+    {141}if (pk1_2 ≠ pk3_2) then
+    {142}event EvidenceChecked(P3,P1,pk1_2,hb1_1);
+    {143}in(net, (=P2,q2_2: bitstring,pk2_2: pkey,hb2_1: bitstring));
+    {144}let rpeQuote(=mRPE,ts2_1: tcbstatus,d2_1: bitstring) = checksign(q2_2,pkAKR_2) in
+    {145}if (d2_1 = hbind(pk2_2,hb2_1)) then
+    {146}let tcbok2_1: bool = matchtcb(rpeTcb2(rho3_2),ts2_1) in
+    {147}if (tcbok2_1 = true) then
+    {148}if ((pk2_2 ≠ pk3_2) && (pk2_2 ≠ pk1_2)) then
+    {149}event EvidenceChecked(P3,P2,pk2_2,hb2_1);
+    {150}event QuotesComplete(P3);
+    {151}event PolicySent(P3,pk1_2,rho3_2);
+    {152}out(net, (P3,P1,sign(policyMsg(pk1_2,rho3_2),sk3)));
+    {153}event PolicySent(P3,pk2_2,rho3_2);
+    {154}out(net, (P3,P2,sign(policyMsg(pk2_2,rho3_2),sk3)));
+    {155}in(net, (=P1,=P3,msg1_1: bitstring));
+    {156}let policyMsg(=pk3_2,rho1_2: policy) = checksign(msg1_1,pk1_2) in
+    {157}event PolicyAuthenticated(P3,P1,rho1_2);
+    {158}if (hpol(rho1_2) = hb1_1) then
+    {159}if (policySelf(rho1_2) = P1) then
+    {160}event PolicyAccepted(P3,P1,rho1_2);
+    {161}event PolicyAcceptedKeys(P3,P1,pk3_2,pk1_2,rho1_2);
+    {162}in(net, (=P2,=P3,msg2_1: bitstring));
+    {163}let policyMsg(=pk3_2,rho2_2: policy) = checksign(msg2_1,pk2_2) in
+    {164}event PolicyAuthenticated(P3,P2,rho2_2);
+    {165}if (hpol(rho2_2) = hb2_1) then
+    {166}if (policySelf(rho2_2) = P2) then
+    {167}event PolicyAccepted(P3,P2,rho2_2);
+    {168}event PolicyAcceptedKeys(P3,P2,pk3_2,pk2_2,rho2_2);
+    {169}event PoliciesComplete(P3);
+    {170}let joined12_2: polstar = joinstar(constraints(rho1_2),constraints(rho2_2)) in
+    {171}let pistar_2: polstar = joinstar(joined12_2,constraints(rho3_2)) in
+    {172}event FullJoin(P3,pistar_2);
+    {173}event ConfirmationSent(P3,P1,hstar(pistar_2));
+    {174}out(net, (P3,P1,sign(confirmMsg(pk1_2,hstar(pistar_2)),sk3)));
+    {175}event ConfirmationSent(P3,P2,hstar(pistar_2));
+    {176}out(net, (P3,P2,sign(confirmMsg(pk2_2,hstar(pistar_2)),sk3)));
+    {177}in(net, (=P1,=P3,confirmation1_1: bitstring));
+    {178}let confirmMsg(=pk3_2,hs1_1: bitstring) = checksign(confirmation1_1,pk1_2) in
+    {179}event ConfirmationAuthenticated(P3,P1,hs1_1);
+    {180}if (hs1_1 = hstar(pistar_2)) then
+    {181}event ConfirmationAccepted(P3,P1,hs1_1);
+    {182}in(net, (=P2,=P3,confirmation2_1: bitstring));
+    {183}let confirmMsg(=pk3_2,hs2_1: bitstring) = checksign(confirmation2_1,pk2_2) in
+    {184}event ConfirmationAuthenticated(P3,P2,hs2_1);
+    {185}if (hs2_1 = hstar(pistar_2)) then
+    {186}event ConfirmationAccepted(P3,P2,hs2_1);
+    {187}event Confirm(P3,pistar_2)
+)
+
+-- Query not event(EvidenceChecked(P1,P2,k,h)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 198 rules (80 with conclusion selected). Queue: 228 rules.
+400 rules inserted. Base: 392 rules (80 with conclusion selected). Queue: 328 rules.
+600 rules inserted. Base: 566 rules (80 with conclusion selected). Queue: 383 rules.
+800 rules inserted. Base: 701 rules (86 with conclusion selected). Queue: 368 rules.
+1000 rules inserted. Base: 755 rules (102 with conclusion selected). Queue: 294 rules.
+1200 rules inserted. Base: 810 rules (102 with conclusion selected). Queue: 252 rules.
+1400 rules inserted. Base: 890 rules (110 with conclusion selected). Queue: 246 rules.
+1600 rules inserted. Base: 964 rules (142 with conclusion selected). Queue: 200 rules.
+1800 rules inserted. Base: 1023 rules (142 with conclusion selected). Queue: 146 rules.
+2000 rules inserted. Base: 1034 rules (142 with conclusion selected). Queue: 30 rules.
+Starting query not event(EvidenceChecked(P1,P2,k,h))
+goal reachable: event(EvidenceChecked(P1,P2,pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))))
+
+Derivation:
+
+1. Using the function P3 the attacker may obtain P3.
+attacker(P3).
+
+2. By 1, the attacker may know P3.
+Using the function Assign the attacker may obtain Assign(P3).
+attacker(Assign(P3)).
+
+3. Using the function OnlyGood the attacker may obtain OnlyGood.
+attacker(OnlyGood).
+
+4. Using the function V1 the attacker may obtain V1.
+attacker(V1).
+
+5. Using the function prodA the attacker may obtain prodA.
+attacker(prodA).
+
+6. By 5, the attacker may know prodA.
+Using the function exact the attacker may obtain exact(prodA).
+attacker(exact(prodA)).
+
+7. Using the function s3 the attacker may obtain s3.
+attacker(s3).
+
+8. By 7, the attacker may know s3.
+Using the function exact the attacker may obtain exact(s3).
+attacker(exact(s3)).
+
+9. Using the function mE3 the attacker may obtain mE3.
+attacker(mE3).
+
+10. By 9, the attacker may know mE3.
+Using the function exact the attacker may obtain exact(mE3).
+attacker(exact(mE3)).
+
+11. By 10, the attacker may know exact(mE3).
+By 8, the attacker may know exact(s3).
+By 6, the attacker may know exact(prodA).
+By 4, the attacker may know V1.
+By 3, the attacker may know OnlyGood.
+By 2, the attacker may know Assign(P3).
+Using the function Req the attacker may obtain Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)).
+attacker(Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))).
+
+12. Using the function P2 the attacker may obtain P2.
+attacker(P2).
+
+13. By 12, the attacker may know P2.
+Using the function Assign the attacker may obtain Assign(P2).
+attacker(Assign(P2)).
+
+14. Using the function s2 the attacker may obtain s2.
+attacker(s2).
+
+15. By 14, the attacker may know s2.
+Using the function exact the attacker may obtain exact(s2).
+attacker(exact(s2)).
+
+16. Using the function mE2 the attacker may obtain mE2.
+attacker(mE2).
+
+17. By 16, the attacker may know mE2.
+Using the function exact the attacker may obtain exact(mE2).
+attacker(exact(mE2)).
+
+18. By 17, the attacker may know exact(mE2).
+By 15, the attacker may know exact(s2).
+By 6, the attacker may know exact(prodA).
+By 4, the attacker may know V1.
+By 3, the attacker may know OnlyGood.
+By 13, the attacker may know Assign(P2).
+Using the function Req the attacker may obtain Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)).
+attacker(Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2))).
+
+19. Using the function P1 the attacker may obtain P1.
+attacker(P1).
+
+20. By 19, the attacker may know P1.
+Using the function Assign the attacker may obtain Assign(P1).
+attacker(Assign(P1)).
+
+21. Using the function s1 the attacker may obtain s1.
+attacker(s1).
+
+22. By 21, the attacker may know s1.
+Using the function exact the attacker may obtain exact(s1).
+attacker(exact(s1)).
+
+23. Using the function mE1 the attacker may obtain mE1.
+attacker(mE1).
+
+24. By 23, the attacker may know mE1.
+Using the function exact the attacker may obtain exact(mE1).
+attacker(exact(mE1)).
+
+25. By 24, the attacker may know exact(mE1).
+By 22, the attacker may know exact(s1).
+By 6, the attacker may know exact(prodA).
+By 4, the attacker may know V1.
+By 3, the attacker may know OnlyGood.
+By 20, the attacker may know Assign(P1).
+Using the function Req the attacker may obtain Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)).
+attacker(Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1))).
+
+26. Using the function Members3 the attacker may obtain Members3.
+attacker(Members3).
+
+27. By 12, the attacker may know P2.
+By 26, the attacker may know Members3.
+By 3, the attacker may know OnlyGood.
+By 3, the attacker may know OnlyGood.
+By 3, the attacker may know OnlyGood.
+By 25, the attacker may know Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)).
+By 18, the attacker may know Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)).
+By 11, the attacker may know Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)).
+Using the function pol the attacker may obtain pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))).
+attacker(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))).
+
+28. By 27, the attacker may know pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))).
+Using the function hpol the attacker may obtain hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))).
+attacker(hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))).
+
+29. The message (P2,sign(rpeQuote(mRPE,Good,hbind(pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE[]),pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) may be sent to the attacker at output {74}.
+attacker((P2,sign(rpeQuote(mRPE,Good,hbind(pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE[]),pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))).
+
+30. By 29, the attacker may know (P2,sign(rpeQuote(mRPE,Good,hbind(pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE[]),pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))).
+Using the function 3-proj-4-tuple the attacker may obtain pk(sk2[]).
+attacker(pk(sk2[])).
+
+31. By 29, the attacker may know (P2,sign(rpeQuote(mRPE,Good,hbind(pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE[]),pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))).
+Using the function 2-proj-4-tuple the attacker may obtain sign(rpeQuote(mRPE,Good,hbind(pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE[]).
+attacker(sign(rpeQuote(mRPE,Good,hbind(pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE[])).
+
+32. By 12, the attacker may know P2.
+By 31, the attacker may know sign(rpeQuote(mRPE,Good,hbind(pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE[]).
+By 30, the attacker may know pk(sk2[]).
+By 28, the attacker may know hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))).
+Using the function 4-tuple the attacker may obtain (P2,sign(rpeQuote(mRPE,Good,hbind(pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE[]),pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))).
+attacker((P2,sign(rpeQuote(mRPE,Good,hbind(pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE[]),pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))).
+
+33. The message (P2,sign(rpeQuote(mRPE,Good,hbind(pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE[]),pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) that the attacker may have by 32 may be received at input {14}.
+We have pk(sk2[]) ≠ pk(sk1[]).
+So event EvidenceChecked(P1,P2,pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) may be executed at {20}.
+event(EvidenceChecked(P1,P2,pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))).
+
+34. By 33, event(EvidenceChecked(P1,P2,pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))).
+The goal is reached, represented in the following fact:
+event(EvidenceChecked(P1,P2,pk(sk2[]),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new akRPE: skey creating akRPE_1 at {1}
+
+new akTEE: skey creating akTEE_1 at {2}
+
+new akADV: skey creating akADV_1 at {3}
+
+out(net, (~M,~M_1,~M_2,~M_3)) with ~M = pk(akRPE_1), ~M_1 = pk(akTEE_1), ~M_2 = pk(akADV_1), ~M_3 = akADV_1 at {4}
+
+new sk2: skey creating sk2_1 at {70}
+
+event PolicyDeclared(P2,pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))) at {72}
+
+out(net, (P2,~M_4,~M_5,~M_6)) with ~M_4 = sign(rpeQuote(mRPE,Good,hbind(pk(sk2_1),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE_1), ~M_5 = pk(sk2_1), ~M_6 = hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))) at {74}
+
+new sk1: skey creating sk1_1 at {9}
+
+event PolicyDeclared(P1,pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))) at {11}
+
+out(net, (P1,~M_7,~M_8,~M_9)) with ~M_7 = sign(rpeQuote(mRPE,Good,hbind(pk(sk1_1),hpol(pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE_1), ~M_8 = pk(sk1_1), ~M_9 = hpol(pol(P1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))) at {13}
+
+in(net, (P2,~M_4,~M_5,hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))) with ~M_4 = sign(rpeQuote(mRPE,Good,hbind(pk(sk2_1),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3)))))),akRPE_1), ~M_5 = pk(sk2_1) at {14}
+
+event EvidenceChecked(P1,P2,pk(sk2_1),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) at {20} (goal)
+
+The event EvidenceChecked(P1,P2,pk(sk2_1),hpol(pol(P2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(s1),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(s2),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(s3),exact(prodA),V1,OnlyGood,Assign(P3))))) is executed at {20}.
+A trace has been found.
+RESULT not event(EvidenceChecked(P1,P2,k,h)) is false.
+-- Query not event(QuotesComplete(P1)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 198 rules (80 with conclusion selected). Queue: 213 rules.
+400 rules inserted. Base: 396 rules (80 with conclusion selected). Queue: 297 rules.
+600 rules inserted. Base: 596 rules (80 with conclusion selected). Queue: 317 rules.
+800 rules inserted. Base: 658 rules (80 with conclusion selected). Queue: 264 rules.
+1000 rules inserted. Base: 751 rules (80 with conclusion selected). Queue: 226 rules.
+1200 rules inserted. Base: 807 rules (80 with conclusion selected). Queue: 207 rules.
+1400 rules inserted. Base: 872 rules (110 with conclusion selected). Queue: 202 rules.
+1600 rules inserted. Base: 931 rules (110 with conclusion selected). Queue: 146 rules.
+1800 rules inserted. Base: 972 rules (110 with conclusion selected). Queue: 38 rules.
+Starting query not event(QuotesComplete(P1))
+RESULT not event(QuotesComplete(P1)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not event(EvidenceChecked(P1,P2,k,h)) is false.
+
+Query not event(QuotesComplete(P1)) is true.
+
+--------------------------------------------------------------
+

@@ -1,0 +1,377 @@
+(* SRAS algebra diagnostic, generated against shared algebra SHA256:
+ * 50815d2a89d26eac7ddd2682b2864a4cc705dcd02256f25fe33159623cbf8b63
+ *
+ * No protocol/network assumptions or private channels occur in this diagnostic.
+ * The finite expected scalar tables are independently derived from accepted
+ * outcome sets (intersection), the SVN order, and compatible assignment union.
+ * 95 scalar cases: joinid=16, joinv=9, jointcb=9, joinatt=16, matchid=12, matchv=9, matchtcb=12, matchatt=12.
+ * An incorrect result OR an unexpected reduction failure reaches a Wrong* event.
+ * All represented scalar input pairs and satisfaction combinations are covered.
+ * Exact atoms outside the representative set remain symbolic in the main model.
+ *
+ * Query interpretation: ProVerif reports "not event(E) is true" when E cannot
+ * occur, and "not event(E) is false" with a trace when E is reachable. For this
+ * diagnostic, false for the four positive witnesses is expected success.
+ * A true result for a conflict/invalid acceptance or Wrong* query is expected.
+ * This checks the actual ProVerif algebra, not the Stage 2/3 protocol properties.
+ *)
+(* Shared policy algebra for the revised SRAS models, ProVerif 2.05.
+ * Exact identity attributes are symbolic atoms. SVN and TCB are finite.
+ * Joins return only normalized constraints; no source-policy history is kept.
+ * A failed destructor represents an unsatisfiable/ill-formed component.
+ *)
+
+type party.
+type attr.
+type ident.
+type svn.
+type tcbstatus.
+type tcbreq.
+type attreq.
+type entry.
+type identity.
+
+const P1: party [data].
+const P2: party [data].
+const P3: party [data].
+const mRPE: attr [data].
+const mE1: attr [data].
+const mE2: attr [data].
+const mE3: attr [data].
+const mBad: attr [data].
+const s1: attr [data].
+const s2: attr [data].
+const s3: attr [data].
+const sBad: attr [data].
+const prodA: attr [data].
+const prodB: attr [data].
+
+const Any: ident [data].
+fun exact(attr): ident [data].
+
+(* V0 is both the least represented version and the unrestricted lower bound.
+ * The represented order is V0 < V1 < V2; unbounded integer SVN is not modeled.
+ *)
+const V0: svn [data].
+const V1: svn [data].
+const V2: svn [data].
+
+const Good: tcbstatus [data].
+const Outdated: tcbstatus [data].
+const Revoked: tcbstatus [data].
+const Invalid: tcbstatus [data].
+const Both: tcbreq [data].
+const OnlyGood: tcbreq [data].
+const OnlyOutdated: tcbreq [data].
+
+const NoAtt: attreq [data].
+fun Assign(party): attreq [data].
+
+(* Canonical order: measurement, signer, product, minimum SVN, TCB, attester. *)
+fun Req(ident, ident, ident, svn, tcbreq, attreq): entry [data].
+fun Identity(attr, attr, attr, svn): identity [data].
+
+(* Shape-aware rules reject arbitrary names of type ident/attreq rather than
+ * returning them unchanged through a wildcard rule. Exact atoms are symbolic.
+ *)
+fun joinid(ident, ident): ident
+reduc joinid(Any, Any) = Any
+otherwise forall a: attr; joinid(Any, exact(a)) = exact(a)
+otherwise forall a: attr; joinid(exact(a), Any) = exact(a)
+otherwise forall a: attr; joinid(exact(a), exact(a)) = exact(a).
+
+fun joinv(svn, svn): svn
+reduc joinv(V0, V0) = V0
+otherwise joinv(V0, V1) = V1
+otherwise joinv(V0, V2) = V2
+otherwise joinv(V1, V0) = V1
+otherwise joinv(V1, V1) = V1
+otherwise joinv(V1, V2) = V2
+otherwise joinv(V2, V0) = V2
+otherwise joinv(V2, V1) = V2
+otherwise joinv(V2, V2) = V2.
+
+(* Intersection of nonempty acceptable-status sets. The disjoint pair
+ * OnlyGood/OnlyOutdated has no rule and therefore aborts the local join.
+ *)
+fun jointcb(tcbreq, tcbreq): tcbreq
+reduc jointcb(Both, Both) = Both
+otherwise jointcb(Both, OnlyGood) = OnlyGood
+otherwise jointcb(Both, OnlyOutdated) = OnlyOutdated
+otherwise jointcb(OnlyGood, Both) = OnlyGood
+otherwise jointcb(OnlyOutdated, Both) = OnlyOutdated
+otherwise jointcb(OnlyGood, OnlyGood) = OnlyGood
+otherwise jointcb(OnlyOutdated, OnlyOutdated) = OnlyOutdated.
+
+fun joinatt(attreq, attreq): attreq
+reduc joinatt(NoAtt, NoAtt) = NoAtt
+otherwise forall a: party; joinatt(NoAtt, Assign(a)) = Assign(a)
+otherwise forall a: party; joinatt(Assign(a), NoAtt) = Assign(a)
+otherwise forall a: party; joinatt(Assign(a), Assign(a)) = Assign(a).
+
+(* Satisfaction destructors return true only for accepted values. *)
+fun matchid(ident, attr): bool
+reduc forall a: attr; matchid(Any, a) = true
+otherwise forall a: attr; matchid(exact(a), a) = true.
+
+fun matchv(svn, svn): bool
+reduc matchv(V0, V0) = true
+otherwise matchv(V0, V1) = true
+otherwise matchv(V0, V2) = true
+otherwise matchv(V1, V1) = true
+otherwise matchv(V1, V2) = true
+otherwise matchv(V2, V2) = true.
+
+fun matchtcb(tcbreq, tcbstatus): bool
+reduc matchtcb(Both, Good) = true
+otherwise matchtcb(Both, Outdated) = true
+otherwise matchtcb(OnlyGood, Good) = true
+otherwise matchtcb(OnlyOutdated, Outdated) = true.
+
+(* NoAtt contributes no assignment; it never authorizes an arbitrary RPE. *)
+fun matchatt(attreq, party): bool
+reduc forall a: party; matchatt(Assign(a), a) = true.
+
+(* Initialization checks for adversary-selected policy components. *)
+fun validid(ident): bool
+reduc validid(Any) = true
+otherwise forall a: attr; validid(exact(a)) = true.
+
+fun validv(svn): bool
+reduc validv(V0) = true
+otherwise validv(V1) = true
+otherwise validv(V2) = true.
+
+fun validtcbreq(tcbreq): bool
+reduc validtcbreq(Both) = true
+otherwise validtcbreq(OnlyGood) = true
+otherwise validtcbreq(OnlyOutdated) = true.
+
+fun validatt(attreq): bool
+reduc validatt(NoAtt) = true
+otherwise forall a: party; validatt(Assign(a)) = true.
+
+letfun validentry(c: entry) =
+  let Req(cm: ident, cs: ident, cp: ident, cv: svn, ct: tcbreq, ca: attreq) = c in
+  let vm = validid(cm) in
+  let vs = validid(cs) in
+  let vp = validid(cp) in
+  let vv = validv(cv) in
+  let vt = validtcbreq(ct) in
+  let va = validatt(ca) in
+  vm && vs && vp && vv && vt && va.
+
+letfun joinentry(x: entry, y: entry) =
+  let Req(xm: ident, xs: ident, xp: ident, xv: svn, xt: tcbreq, xa: attreq) = x in
+  let Req(ym: ident, ys: ident, yp: ident, yv: svn, yt: tcbreq, ya: attreq) = y in
+  let jm = joinid(xm, ym) in
+  let js = joinid(xs, ys) in
+  let jp = joinid(xp, yp) in
+  let jv = joinv(xv, yv) in
+  let jt = jointcb(xt, yt) in
+  let ja = joinatt(xa, ya) in
+  Req(jm, js, jp, jv, jt, ja).
+
+letfun checkentry(c: entry, who: party, actual: identity, ts: tcbstatus) =
+  let Req(cm: ident, cs: ident, cp: ident, cv: svn, ct: tcbreq, ca: attreq) = c in
+  let Identity(am: attr, asigner: attr, ap: attr, av: svn) = actual in
+  let vm = matchid(cm, am) in
+  let vs = matchid(cs, asigner) in
+  let vp = matchid(cp, ap) in
+  let vv = matchv(cv, av) in
+  let vt = matchtcb(ct, ts) in
+  let va = matchatt(ca, who) in
+  vm && vs && vp && vv && vt && va.
+
+
+event WrongJoinIdentity().
+event WrongJoinSVN().
+event WrongJoinTCB().
+event WrongJoinAttester().
+event WrongMatchIdentity().
+event WrongMatchSVN().
+event WrongMatchTCB().
+event WrongMatchAttester().
+event WildcardAndIdempotence().
+event RedundantInputsEqual().
+event OrderNormalization().
+event CompatibleEntryAccepted().
+event MeasurementConflictAccepted().
+event SignerConflictAccepted().
+event ProductConflictAccepted().
+event TCBConflictAccepted().
+event AttesterConflictAccepted().
+event RevokedAccepted().
+event InvalidAccepted().
+event UnexpectedEntryAcceptance().
+
+(* J01: UNREACHABLE; raw not-event result TRUE. *)
+query event(WrongJoinIdentity()).
+(* J02: UNREACHABLE; raw not-event result TRUE. *)
+query event(WrongJoinSVN()).
+(* J03: UNREACHABLE; raw not-event result TRUE. *)
+query event(WrongJoinTCB()).
+(* J04: UNREACHABLE; raw not-event result TRUE. *)
+query event(WrongJoinAttester()).
+(* J05: UNREACHABLE; raw not-event result TRUE. *)
+query event(WrongMatchIdentity()).
+(* J06: UNREACHABLE; raw not-event result TRUE. *)
+query event(WrongMatchSVN()).
+(* J07: UNREACHABLE; raw not-event result TRUE. *)
+query event(WrongMatchTCB()).
+(* J08: UNREACHABLE; raw not-event result TRUE. *)
+query event(WrongMatchAttester()).
+(* J09: REACHABLE; raw not-event result FALSE. *)
+query event(WildcardAndIdempotence()).
+(* J10: REACHABLE; raw not-event result FALSE. *)
+query event(RedundantInputsEqual()).
+(* J11: REACHABLE; raw not-event result FALSE. *)
+query event(OrderNormalization()).
+(* J12: REACHABLE; raw not-event result FALSE. *)
+query event(CompatibleEntryAccepted()).
+(* J13: UNREACHABLE; raw not-event result TRUE. *)
+query event(MeasurementConflictAccepted()).
+(* J14: UNREACHABLE; raw not-event result TRUE. *)
+query event(SignerConflictAccepted()).
+(* J15: UNREACHABLE; raw not-event result TRUE. *)
+query event(ProductConflictAccepted()).
+(* J16: UNREACHABLE; raw not-event result TRUE. *)
+query event(TCBConflictAccepted()).
+(* J17: UNREACHABLE; raw not-event result TRUE. *)
+query event(AttesterConflictAccepted()).
+(* J18: UNREACHABLE; raw not-event result TRUE. *)
+query event(RevokedAccepted()).
+(* J19: UNREACHABLE; raw not-event result TRUE. *)
+query event(InvalidAccepted()).
+(* J20: UNREACHABLE; raw not-event result TRUE. *)
+query event(UnexpectedEntryAcceptance()).
+
+process
+  (let got = joinid(Any, Any) in (if got = Any then 0 else event WrongJoinIdentity()) else event WrongJoinIdentity())
+  | (let got = joinid(Any, exact(mE1)) in (if got = exact(mE1) then 0 else event WrongJoinIdentity()) else event WrongJoinIdentity())
+  | (let got = joinid(Any, exact(mE2)) in (if got = exact(mE2) then 0 else event WrongJoinIdentity()) else event WrongJoinIdentity())
+  | (let got = joinid(Any, exact(mBad)) in (if got = exact(mBad) then 0 else event WrongJoinIdentity()) else event WrongJoinIdentity())
+  | (let got = joinid(exact(mE1), Any) in (if got = exact(mE1) then 0 else event WrongJoinIdentity()) else event WrongJoinIdentity())
+  | (let got = joinid(exact(mE1), exact(mE1)) in (if got = exact(mE1) then 0 else event WrongJoinIdentity()) else event WrongJoinIdentity())
+  | (let got = joinid(exact(mE1), exact(mE2)) in event WrongJoinIdentity() else 0)
+  | (let got = joinid(exact(mE1), exact(mBad)) in event WrongJoinIdentity() else 0)
+  | (let got = joinid(exact(mE2), Any) in (if got = exact(mE2) then 0 else event WrongJoinIdentity()) else event WrongJoinIdentity())
+  | (let got = joinid(exact(mE2), exact(mE1)) in event WrongJoinIdentity() else 0)
+  | (let got = joinid(exact(mE2), exact(mE2)) in (if got = exact(mE2) then 0 else event WrongJoinIdentity()) else event WrongJoinIdentity())
+  | (let got = joinid(exact(mE2), exact(mBad)) in event WrongJoinIdentity() else 0)
+  | (let got = joinid(exact(mBad), Any) in (if got = exact(mBad) then 0 else event WrongJoinIdentity()) else event WrongJoinIdentity())
+  | (let got = joinid(exact(mBad), exact(mE1)) in event WrongJoinIdentity() else 0)
+  | (let got = joinid(exact(mBad), exact(mE2)) in event WrongJoinIdentity() else 0)
+  | (let got = joinid(exact(mBad), exact(mBad)) in (if got = exact(mBad) then 0 else event WrongJoinIdentity()) else event WrongJoinIdentity())
+  | (let got = joinv(V0, V0) in (if got = V0 then 0 else event WrongJoinSVN()) else event WrongJoinSVN())
+  | (let got = joinv(V0, V1) in (if got = V1 then 0 else event WrongJoinSVN()) else event WrongJoinSVN())
+  | (let got = joinv(V0, V2) in (if got = V2 then 0 else event WrongJoinSVN()) else event WrongJoinSVN())
+  | (let got = joinv(V1, V0) in (if got = V1 then 0 else event WrongJoinSVN()) else event WrongJoinSVN())
+  | (let got = joinv(V1, V1) in (if got = V1 then 0 else event WrongJoinSVN()) else event WrongJoinSVN())
+  | (let got = joinv(V1, V2) in (if got = V2 then 0 else event WrongJoinSVN()) else event WrongJoinSVN())
+  | (let got = joinv(V2, V0) in (if got = V2 then 0 else event WrongJoinSVN()) else event WrongJoinSVN())
+  | (let got = joinv(V2, V1) in (if got = V2 then 0 else event WrongJoinSVN()) else event WrongJoinSVN())
+  | (let got = joinv(V2, V2) in (if got = V2 then 0 else event WrongJoinSVN()) else event WrongJoinSVN())
+  | (let got = jointcb(Both, Both) in (if got = Both then 0 else event WrongJoinTCB()) else event WrongJoinTCB())
+  | (let got = jointcb(Both, OnlyGood) in (if got = OnlyGood then 0 else event WrongJoinTCB()) else event WrongJoinTCB())
+  | (let got = jointcb(Both, OnlyOutdated) in (if got = OnlyOutdated then 0 else event WrongJoinTCB()) else event WrongJoinTCB())
+  | (let got = jointcb(OnlyGood, Both) in (if got = OnlyGood then 0 else event WrongJoinTCB()) else event WrongJoinTCB())
+  | (let got = jointcb(OnlyGood, OnlyGood) in (if got = OnlyGood then 0 else event WrongJoinTCB()) else event WrongJoinTCB())
+  | (let got = jointcb(OnlyGood, OnlyOutdated) in event WrongJoinTCB() else 0)
+  | (let got = jointcb(OnlyOutdated, Both) in (if got = OnlyOutdated then 0 else event WrongJoinTCB()) else event WrongJoinTCB())
+  | (let got = jointcb(OnlyOutdated, OnlyGood) in event WrongJoinTCB() else 0)
+  | (let got = jointcb(OnlyOutdated, OnlyOutdated) in (if got = OnlyOutdated then 0 else event WrongJoinTCB()) else event WrongJoinTCB())
+  | (let got = joinatt(NoAtt, NoAtt) in (if got = NoAtt then 0 else event WrongJoinAttester()) else event WrongJoinAttester())
+  | (let got = joinatt(NoAtt, Assign(P1)) in (if got = Assign(P1) then 0 else event WrongJoinAttester()) else event WrongJoinAttester())
+  | (let got = joinatt(NoAtt, Assign(P2)) in (if got = Assign(P2) then 0 else event WrongJoinAttester()) else event WrongJoinAttester())
+  | (let got = joinatt(NoAtt, Assign(P3)) in (if got = Assign(P3) then 0 else event WrongJoinAttester()) else event WrongJoinAttester())
+  | (let got = joinatt(Assign(P1), NoAtt) in (if got = Assign(P1) then 0 else event WrongJoinAttester()) else event WrongJoinAttester())
+  | (let got = joinatt(Assign(P1), Assign(P1)) in (if got = Assign(P1) then 0 else event WrongJoinAttester()) else event WrongJoinAttester())
+  | (let got = joinatt(Assign(P1), Assign(P2)) in event WrongJoinAttester() else 0)
+  | (let got = joinatt(Assign(P1), Assign(P3)) in event WrongJoinAttester() else 0)
+  | (let got = joinatt(Assign(P2), NoAtt) in (if got = Assign(P2) then 0 else event WrongJoinAttester()) else event WrongJoinAttester())
+  | (let got = joinatt(Assign(P2), Assign(P1)) in event WrongJoinAttester() else 0)
+  | (let got = joinatt(Assign(P2), Assign(P2)) in (if got = Assign(P2) then 0 else event WrongJoinAttester()) else event WrongJoinAttester())
+  | (let got = joinatt(Assign(P2), Assign(P3)) in event WrongJoinAttester() else 0)
+  | (let got = joinatt(Assign(P3), NoAtt) in (if got = Assign(P3) then 0 else event WrongJoinAttester()) else event WrongJoinAttester())
+  | (let got = joinatt(Assign(P3), Assign(P1)) in event WrongJoinAttester() else 0)
+  | (let got = joinatt(Assign(P3), Assign(P2)) in event WrongJoinAttester() else 0)
+  | (let got = joinatt(Assign(P3), Assign(P3)) in (if got = Assign(P3) then 0 else event WrongJoinAttester()) else event WrongJoinAttester())
+  | (let got = matchid(Any, mE1) in (if got = true then 0 else event WrongMatchIdentity()) else event WrongMatchIdentity())
+  | (let got = matchid(Any, mE2) in (if got = true then 0 else event WrongMatchIdentity()) else event WrongMatchIdentity())
+  | (let got = matchid(Any, mBad) in (if got = true then 0 else event WrongMatchIdentity()) else event WrongMatchIdentity())
+  | (let got = matchid(exact(mE1), mE1) in (if got = true then 0 else event WrongMatchIdentity()) else event WrongMatchIdentity())
+  | (let got = matchid(exact(mE1), mE2) in event WrongMatchIdentity() else 0)
+  | (let got = matchid(exact(mE1), mBad) in event WrongMatchIdentity() else 0)
+  | (let got = matchid(exact(mE2), mE1) in event WrongMatchIdentity() else 0)
+  | (let got = matchid(exact(mE2), mE2) in (if got = true then 0 else event WrongMatchIdentity()) else event WrongMatchIdentity())
+  | (let got = matchid(exact(mE2), mBad) in event WrongMatchIdentity() else 0)
+  | (let got = matchid(exact(mBad), mE1) in event WrongMatchIdentity() else 0)
+  | (let got = matchid(exact(mBad), mE2) in event WrongMatchIdentity() else 0)
+  | (let got = matchid(exact(mBad), mBad) in (if got = true then 0 else event WrongMatchIdentity()) else event WrongMatchIdentity())
+  | (let got = matchv(V0, V0) in (if got = true then 0 else event WrongMatchSVN()) else event WrongMatchSVN())
+  | (let got = matchv(V0, V1) in (if got = true then 0 else event WrongMatchSVN()) else event WrongMatchSVN())
+  | (let got = matchv(V0, V2) in (if got = true then 0 else event WrongMatchSVN()) else event WrongMatchSVN())
+  | (let got = matchv(V1, V0) in event WrongMatchSVN() else 0)
+  | (let got = matchv(V1, V1) in (if got = true then 0 else event WrongMatchSVN()) else event WrongMatchSVN())
+  | (let got = matchv(V1, V2) in (if got = true then 0 else event WrongMatchSVN()) else event WrongMatchSVN())
+  | (let got = matchv(V2, V0) in event WrongMatchSVN() else 0)
+  | (let got = matchv(V2, V1) in event WrongMatchSVN() else 0)
+  | (let got = matchv(V2, V2) in (if got = true then 0 else event WrongMatchSVN()) else event WrongMatchSVN())
+  | (let got = matchtcb(Both, Good) in (if got = true then 0 else event WrongMatchTCB()) else event WrongMatchTCB())
+  | (let got = matchtcb(Both, Outdated) in (if got = true then 0 else event WrongMatchTCB()) else event WrongMatchTCB())
+  | (let got = matchtcb(Both, Revoked) in event WrongMatchTCB() else 0)
+  | (let got = matchtcb(Both, Invalid) in event WrongMatchTCB() else 0)
+  | (let got = matchtcb(OnlyGood, Good) in (if got = true then 0 else event WrongMatchTCB()) else event WrongMatchTCB())
+  | (let got = matchtcb(OnlyGood, Outdated) in event WrongMatchTCB() else 0)
+  | (let got = matchtcb(OnlyGood, Revoked) in event WrongMatchTCB() else 0)
+  | (let got = matchtcb(OnlyGood, Invalid) in event WrongMatchTCB() else 0)
+  | (let got = matchtcb(OnlyOutdated, Good) in event WrongMatchTCB() else 0)
+  | (let got = matchtcb(OnlyOutdated, Outdated) in (if got = true then 0 else event WrongMatchTCB()) else event WrongMatchTCB())
+  | (let got = matchtcb(OnlyOutdated, Revoked) in event WrongMatchTCB() else 0)
+  | (let got = matchtcb(OnlyOutdated, Invalid) in event WrongMatchTCB() else 0)
+  | (let got = matchatt(NoAtt, P1) in event WrongMatchAttester() else 0)
+  | (let got = matchatt(NoAtt, P2) in event WrongMatchAttester() else 0)
+  | (let got = matchatt(NoAtt, P3) in event WrongMatchAttester() else 0)
+  | (let got = matchatt(Assign(P1), P1) in (if got = true then 0 else event WrongMatchAttester()) else event WrongMatchAttester())
+  | (let got = matchatt(Assign(P1), P2) in event WrongMatchAttester() else 0)
+  | (let got = matchatt(Assign(P1), P3) in event WrongMatchAttester() else 0)
+  | (let got = matchatt(Assign(P2), P1) in event WrongMatchAttester() else 0)
+  | (let got = matchatt(Assign(P2), P2) in (if got = true then 0 else event WrongMatchAttester()) else event WrongMatchAttester())
+  | (let got = matchatt(Assign(P2), P3) in event WrongMatchAttester() else 0)
+  | (let got = matchatt(Assign(P3), P1) in event WrongMatchAttester() else 0)
+  | (let got = matchatt(Assign(P3), P2) in event WrongMatchAttester() else 0)
+  | (let got = matchatt(Assign(P3), P3) in (if got = true then 0 else event WrongMatchAttester()) else event WrongMatchAttester())
+  | (let neutral = Req(Any, Any, Any, V0, Both, NoAtt) in
+     let c = Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)) in
+     let left = joinentry(neutral, c) in
+     let right = joinentry(c, neutral) in
+     let idem = joinentry(c, c) in
+     if left = c && right = c && idem = c then event WildcardAndIdempotence())
+  | (let cA = Req(Any, exact(s1), Any, V0, Both, Assign(P1)) in
+     let cB = Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)) in
+     let cC = Req(exact(mE1), exact(s1), Any, V1, Both, Assign(P1)) in
+     let twoInputs = joinentry(cA, cB) in
+     let threeInputs = joinentry(twoInputs, cC) in
+     if cA <> cB && cA <> cC && cB <> cC && twoInputs = threeInputs then event RedundantInputsEqual())
+  | (let cA = Req(Any, exact(s1), Any, V0, Both, Assign(P1)) in
+     let cB = Req(exact(mE1), exact(s1), Any, V1, Both, Assign(P1)) in
+     let ab = joinentry(cA, cB) in
+     let ba = joinentry(cB, cA) in
+     if ab = ba then event OrderNormalization())
+  | (let ok = checkentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), P1, Identity(mE1, s1, prodA, V2), Good) in
+     if ok = true then event CompatibleEntryAccepted())
+  | (let impossible = joinentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), Req(exact(mBad), Any, Any, V0, Both, NoAtt)) in event MeasurementConflictAccepted())
+  | (let impossible = joinentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), Req(Any, exact(sBad), Any, V0, Both, NoAtt)) in event SignerConflictAccepted())
+  | (let impossible = joinentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), Req(Any, Any, exact(prodB), V0, Both, NoAtt)) in event ProductConflictAccepted())
+  | (let impossible = joinentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), Req(Any, Any, Any, V0, OnlyOutdated, NoAtt)) in event TCBConflictAccepted())
+  | (let impossible = joinentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), Req(Any, Any, Any, V0, Both, Assign(P2))) in event AttesterConflictAccepted())
+  | (let accepted = checkentry(Req(Any, Any, Any, V0, Both, Assign(P1)), P1, Identity(mE1, s1, prodA, V2), Revoked) in if accepted = true then event RevokedAccepted())
+  | (let accepted = checkentry(Req(Any, Any, Any, V0, Both, Assign(P1)), P1, Identity(mE1, s1, prodA, V2), Invalid) in if accepted = true then event InvalidAccepted())
+  | (let accepted = checkentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), P1, Identity(mBad, s1, prodA, V2), Good) in if accepted = true then event UnexpectedEntryAcceptance())
+  | (let accepted = checkentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), P1, Identity(mE1, sBad, prodA, V2), Good) in if accepted = true then event UnexpectedEntryAcceptance())
+  | (let accepted = checkentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), P1, Identity(mE1, s1, prodB, V2), Good) in if accepted = true then event UnexpectedEntryAcceptance())
+  | (let accepted = checkentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), P1, Identity(mE1, s1, prodA, V1), Good) in if accepted = true then event UnexpectedEntryAcceptance())
+  | (let accepted = checkentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), P1, Identity(mE1, s1, prodA, V2), Outdated) in if accepted = true then event UnexpectedEntryAcceptance())
+  | (let accepted = checkentry(Req(exact(mE1), exact(s1), exact(prodA), V2, OnlyGood, Assign(P1)), P2, Identity(mE1, s1, prodA, V2), Good) in if accepted = true then event UnexpectedEntryAcceptance())
+  | (let accepted = checkentry(Req(Any, Any, Any, V0, Both, NoAtt), P1, Identity(mE1, s1, prodA, V2), Good) in if accepted = true then event UnexpectedEntryAcceptance())

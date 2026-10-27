@@ -1,0 +1,1 @@
+elapsed_seconds=0.62 user_seconds=0.61 system_seconds=0.01 max_rss_kb=24288 exit_status=0
