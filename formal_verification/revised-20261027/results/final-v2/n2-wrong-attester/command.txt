@@ -1,1 +1,0 @@
-timeout 600 proverif -graph /out/n2-wrong-attester/graphs scenarios/n2-wrong-attester.pv

@@ -1,1 +1,0 @@
-Source mount /work read-only; output mount /out writable; Docker networking disabled.

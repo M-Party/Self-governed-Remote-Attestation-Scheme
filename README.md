@@ -105,29 +105,17 @@ $ sed -i 's/0.0.0.0/ip-of-fabric-network/g' config/network.json  # Modify the IP
 
 ## Formal Verification (ProVerif)
 
-Symbolic models of SRAS mutual attestation and consensus-policy negotiation
-live under `formal_verification/`:
+The current SRAS experiment verifies **N=3 Stage 1–3** under twelve representative
+policy profiles. Authorization, Agreement, Authenticity, Completeness and
+Issuance hold in the stated model. The 69 selected jobs and 189 query results
+include original logs, model snapshots and three joint execution traces.
 
-- `sras-n2.pv` — N=2 Stage 2 and Stage 3 quote checks and certificate issuance
-- `sras-n3.pv` — N=3 Stage 1–3, twelve policy profiles, five properties including Authorization
-- `sras-n3-ablation.pv` — historical N=3 Stage 2 model with only confirmation removed
-
-The N=3 model extends the original four property families with Authorization
-in a twelve-profile policy domain. The current revision checks independent
-Self RPE/TEE fields and includes three joint execution witnesses and targeted
-rejection controls. The profiles cover principal field types and representative
-cases; they do not establish coverage of arbitrary field combinations. See the
-[current results](formal_verification/revised-20261027/reports/stage123r2-SUMMARY.txt).
-The historical confirmation-only ablation
-preserved Agreement, while separate diagnostics exposed a loss of coordination.
-The models, scope audit,
-reproduction scripts, and complete final logs are in
-[`formal_verification/revised-20261027/`](formal_verification/revised-20261027/).
-
-Build the `sras-proverif` image, mount the directory read-only, then run
-`proverif -parse-only` and `proverif` on each model. Full steps, threat model,
-query meanings, and reference results are documented in
-[`formal_verification/README.md`](formal_verification/README.md).
+Start with the [formal verification guide](formal_verification/README.md),
+[current experiment directory](formal_verification/revised-20261027/), or
+[result summary](formal_verification/revised-20261027/reports/stage123r2-SUMMARY.txt).
+The directory name is inherited from the start of the revision; it contains the
+current experiment. Superseded result tables and logs are kept in Git history
+rather than displayed as another current result set.
 
 ## SRAS Stage 1 / 2 / 3 Performance Tests
 

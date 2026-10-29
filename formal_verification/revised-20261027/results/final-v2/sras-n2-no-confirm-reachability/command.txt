@@ -1,1 +1,0 @@
-timeout 600 proverif -graph /out/sras-n2-no-confirm-reachability/graphs models/sras-n2-no-confirm-reachability.pv

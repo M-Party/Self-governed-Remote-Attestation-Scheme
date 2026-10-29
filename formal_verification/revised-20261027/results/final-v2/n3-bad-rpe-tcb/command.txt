@@ -1,1 +1,0 @@
-timeout 600 proverif -graph /out/n3-bad-rpe-tcb/graphs scenarios/n3-bad-rpe-tcb.pv

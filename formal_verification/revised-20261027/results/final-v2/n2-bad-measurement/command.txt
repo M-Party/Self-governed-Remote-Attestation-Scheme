@@ -1,1 +1,0 @@
-timeout 600 proverif -graph /out/n2-bad-measurement/graphs scenarios/n2-bad-measurement.pv

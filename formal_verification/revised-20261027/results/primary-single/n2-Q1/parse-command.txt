@@ -1,1 +1,0 @@
-proverif -parse-only queries/n2-Q1.pv

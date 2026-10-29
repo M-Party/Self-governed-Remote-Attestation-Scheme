@@ -1,1 +1,0 @@
-timeout 600 proverif -graph /out/n3-conflict-tcb/graphs scenarios/n3-conflict-tcb.pv

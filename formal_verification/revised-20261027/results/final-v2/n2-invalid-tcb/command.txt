@@ -1,1 +1,0 @@
-timeout 600 proverif -graph /out/n2-invalid-tcb/graphs scenarios/n2-invalid-tcb.pv

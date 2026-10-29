@@ -1,1 +1,0 @@
-timeout 600 proverif -graph /out/n2-Q2/graphs queries/n2-Q2.pv

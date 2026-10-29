@@ -1,1 +1,0 @@
-timeout 600 proverif -graph /out/n3-missing-quote/graphs scenarios/n3-missing-quote.pv

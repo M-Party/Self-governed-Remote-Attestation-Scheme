@@ -1,1 +1,0 @@
-timeout 600 proverif -graph /out/n3-reject-peer-tcb/graphs scenarios/n3-reject-peer-tcb.pv

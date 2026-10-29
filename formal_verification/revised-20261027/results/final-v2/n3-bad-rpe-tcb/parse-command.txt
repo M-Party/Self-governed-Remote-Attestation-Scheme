@@ -1,1 +1,0 @@
-proverif -parse-only scenarios/n3-bad-rpe-tcb.pv

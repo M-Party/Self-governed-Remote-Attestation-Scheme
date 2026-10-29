@@ -1,1 +1,0 @@
-proverif -parse-only models/sras-n3-coordination.pv

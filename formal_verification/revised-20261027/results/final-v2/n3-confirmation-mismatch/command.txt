@@ -1,1 +1,0 @@
-timeout 600 proverif -graph /out/n3-confirmation-mismatch/graphs scenarios/n3-confirmation-mismatch.pv

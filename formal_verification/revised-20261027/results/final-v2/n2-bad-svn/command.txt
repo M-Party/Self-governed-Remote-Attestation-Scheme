@@ -1,1 +1,0 @@
-timeout 600 proverif -graph /out/n2-bad-svn/graphs scenarios/n2-bad-svn.pv
