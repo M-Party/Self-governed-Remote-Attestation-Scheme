@@ -1,0 +1,68 @@
+Stage123 r2／12 profiles 复现与证据说明
+
+工作目录：formal_verification/revised-20261027。
+依赖：Python 3 标准库、Docker、sras-proverif:latest（ProVerif 2.05）。
+本次恢复镜像 ID：
+sha256:75b3b4709fa26bcb771723b73f7c4b2d0a308b81248a640572573761d0ed2be4
+每个批次保留 image-inspect.json、ProVerif/Docker/Graphviz 版本及内核信息。
+Docker 网络关闭不改变 ProVerif 主模型中的公开 Dolev–Yao 网络。
+
+源码生成（不需要重新生成历史模型）
+
+  python3 stage123_complete.py
+  python3 stage123_supplement.py
+
+stage123_complete.py 继承 generate_models.py 的 Stage1–3 协议体，并加入
+序列化的 SelfTEE 和实际检查；生成5主查询、14辅助、3联合查询及目录。
+stage123_supplement.py 生成29控制场景、16局部Stage1模型、目录join对照
+和控制表join对照。stage123_regression.py 提供局部守卫/通用join辅助函数。
+--install 可将 r2 五查询模型写入原始 ../sras-n3.pv；本轮已完成此更新。
+不要以 generate_models.py --stage123 覆盖该入口：那生成的是保留的 r1。
+
+完整重跑（每个输出名称必须未使用；runner拒绝覆盖旧目录）
+
+  SRAS_TIMEOUT_SECONDS=150 SRAS_MEMORY=2g sh run.sh reproduced-r2-main jobs-stage123r2-main.txt
+  SRAS_TIMEOUT_SECONDS=150 SRAS_MEMORY=2g sh run.sh reproduced-r2-aux1 jobs-stage123r2-aux1.txt
+  SRAS_TIMEOUT_SECONDS=150 SRAS_MEMORY=2g sh run.sh reproduced-r2-aux2 jobs-stage123r2-aux2.txt
+  SRAS_TIMEOUT_SECONDS=150 SRAS_MEMORY=2g sh run.sh reproduced-r2-aux3 jobs-stage123r2-aux3.txt
+  SRAS_TIMEOUT_SECONDS=150 SRAS_MEMORY=2g sh run.sh reproduced-r2-witness jobs-stage123r2-witness.txt
+  SRAS_TIMEOUT_SECONDS=30 SRAS_MEMORY=2g SRAS_GRAPHS=0 sh run.sh reproduced-r2-controls jobs-stage123r2-controls.txt
+  SRAS_TIMEOUT_SECONDS=30 SRAS_MEMORY=1g SRAS_GRAPHS=0 sh run.sh reproduced-r2-local jobs-stage123r2-local.txt
+  SRAS_TIMEOUT_SECONDS=30 SRAS_MEMORY=1g SRAS_GRAPHS=0 sh run.sh reproduced-r2-tables jobs-stage123r2-control-tables.txt
+
+每份模型先 parse-only，再运行验证；各限制按单个模型计。
+五主查询分别运行，22个公开网络查询模型的非查询过程完全相同。
+控制实验关闭DOT/PDF绘图，仍执行并保存完整文字轨迹重建。该开关不改
+模型、查询或求解规则。公开联合见证保留图形轨迹。
+计时含验证命令内部的解析、转换、求解和请求的绘图；另行 parse-only、
+Docker 启动分别记录，不计入主查询时间。多查询模型只报告全文件耗时。
+
+收集上面新跑的证据（不覆盖当前报告，使用自己的prefix）
+
+  python3 collect_stage23_results.py --report-prefix reproduced-r2 --evidence-json reports/stage123r2-control-expectations.json reproduced-r2-main reproduced-r2-aux1 reproduced-r2-aux2 reproduced-r2-aux3 reproduced-r2-witness reproduced-r2-controls reproduced-r2-local reproduced-r2-tables
+
+只读取本次实际日志并重建当前结果表
+
+  python3 collect_stage23_results.py --report-prefix stage123r2 --select-json reports/stage123r2-current-selection.json --evidence-json reports/stage123r2-control-expectations.json stage123r2-pilot2-20261028 stage123r2-main-20261028 stage123r2-aux1-20261028 stage123r2-aux2-20261028 stage123r2-aux3-20261028 stage123r2-witness-20261028 stage123r2-controls1-complete-20261028 stage123r2-controls2-complete-20261028 stage123r2-quote-delivery-20261028 stage123r2-duplicate-quote-20261028 stage123r2-local-final-20261028 stage123r2-signer-final-20261028
+  python3 organize_stage123r2_results.py
+  sha256sum -c SHA256SUMS.stage123r2.public.txt
+
+current-selection 明确选取69个源/日志匹配、解析及验证正常结束的当前作业。
+结果表另列process_extent与input_nature，明确前缀/完整过程及故障类别；
+recorded_category原样保留运行时的批次标签，解释分类不修改原日志。
+这是对保存证据的版本选择：例如旧版signer冲突配置、早期Quote模型超时
+仍原样保存在本地，但不替代最终修订源的完整运行。仓库直接提供69个
+选中作业，development-summary概括未选中的开发状态；其原始文件不重复
+上传。批次jobs.txt保留原始列表，collector按current-selection跳过未选项。
+
+每个作业保存冻结model.pv、SHA256、解析/验证命令及完整输出、退出码、
+GNU time；批次保存限额和生成器依赖快照。运行源码只读，只有新结果目录
+可写；没有回填或改写日志。报告脚本还在/tmp再生成所有69个当前模型并
+逐字节核对，同时检查公开过程一致性、预期拒绝和正向实际轨迹。
+
+当前仓库清单是SHA256SUMS.stage123r2.public.txt，只引用随本次提交提供的
+模型、报告、脚本与原始证据，不依赖本地中间版本或交付包。固定基线
+生成器和models/stage123r2-report-inputs.json也已收录，因此在没有Git
+数据库、原任务附件和旧版数据集的环境下也能审查并再生成全部模型。
+原3766338公开清单应在原提交中核验；中间r1/Stage23和完整ZIP保留本地，
+不重复提交。未重跑可选消融，未改写main.tex。

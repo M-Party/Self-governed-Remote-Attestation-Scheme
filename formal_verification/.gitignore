@@ -15,3 +15,18 @@ proverifbin2.05.tar.gz
 !/revised-20261027/results/final-v2/**/*.pdf
 !/revised-20261027/results/primary-single/**/*.pdf
 !/results/restore-20261027/**/*.pdf
+!/revised-20261027/results/stage23-11profiles-*-20261028/**/*.pdf
+!/revised-20261027/results/stage123-p12-*-20261028/**/*.pdf
+!/revised-20261027/results/stage123r2-witness-20261028/**/*.pdf
+
+# Local delivery archive; the corresponding source/log files remain reviewable.
+/SRAS-N3-Stage23-11profiles-20261028.zip
+/SRAS-N3-Stage23-11profiles-20261028.zip.sha256
+
+# Delivery copies and abandoned experiment branches stay local. Publish the
+# selected source/log/trace files directly, without duplicate archives/images.
+/*.zip
+/*.zip.sha256
+/stage123r2-complete-package-*/
+/from-original-20261028/
+/revised-20261028/

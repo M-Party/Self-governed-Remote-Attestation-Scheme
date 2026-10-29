@@ -1,0 +1,1 @@
+timeout 150 proverif -graph /out/sras-n3-stage123r2-reachability-profile12/graphs /out/sras-n3-stage123r2-reachability-profile12/model.pv

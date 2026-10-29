@@ -1,0 +1,767 @@
+{
+  "n3-stage123r2-control-normal": {
+    "case": "normal",
+    "expected_reachability": [
+      true
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-normal.pv"
+  },
+  "n3-stage123r2-control-authorized-signer-peer-conflict": {
+    "case": "authorized-signer-peer-conflict",
+    "expected_reachability": [
+      true,
+      false
+    ],
+    "nature": "explicit-control-configuration-different-peer-signer-expectation",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-authorized-signer-peer-conflict.pv"
+  },
+  "n3-stage123r2-control-missing-quote": {
+    "case": "missing-quote",
+    "expected_reachability": [
+      true,
+      false
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + exact Evidence-check prefix",
+    "source": "scenarios/n3-stage123r2-control-missing-quote.pv"
+  },
+  "n3-stage123r2-control-duplicate-quote": {
+    "case": "duplicate-quote",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + exact Evidence-check prefix",
+    "source": "scenarios/n3-stage123r2-control-duplicate-quote.pv"
+  },
+  "n3-stage123r2-control-bad-rpe-code": {
+    "case": "bad-rpe-code",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "protected-sender-or-hardware-fault-injection",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + exact Evidence-check prefix",
+    "source": "scenarios/n3-stage123r2-control-bad-rpe-code.pv"
+  },
+  "n3-stage123r2-control-bad-rpe-tcb": {
+    "case": "bad-rpe-tcb",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "protected-sender-or-hardware-fault-injection",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + exact Evidence-check prefix",
+    "source": "scenarios/n3-stage123r2-control-bad-rpe-tcb.pv"
+  },
+  "n3-stage123r2-control-missing-policy": {
+    "case": "missing-policy",
+    "expected_reachability": [
+      true,
+      false
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-missing-policy.pv"
+  },
+  "n3-stage123r2-control-duplicate-policy": {
+    "case": "duplicate-policy",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-duplicate-policy.pv"
+  },
+  "n3-stage123r2-control-policy-hash-mismatch": {
+    "case": "policy-hash-mismatch",
+    "expected_reachability": [
+      true,
+      false,
+      true,
+      true
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-policy-hash-mismatch.pv"
+  },
+  "n3-stage123r2-control-missing-confirmation": {
+    "case": "missing-confirmation",
+    "expected_reachability": [
+      true,
+      false
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-missing-confirmation.pv"
+  },
+  "n3-stage123r2-control-duplicate-confirmation": {
+    "case": "duplicate-confirmation",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-duplicate-confirmation.pv"
+  },
+  "n3-stage123r2-control-confirmation-mismatch": {
+    "case": "confirmation-mismatch",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "protected-sender-or-hardware-fault-injection",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-confirmation-mismatch.pv"
+  },
+  "n3-stage123r2-control-conflict-measurement": {
+    "case": "conflict-measurement",
+    "expected_reachability": [
+      true,
+      false
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mBad), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-conflict-measurement.pv"
+  },
+  "n3-stage123r2-control-conflict-signer": {
+    "case": "conflict-signer",
+    "expected_reachability": [
+      true,
+      false
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(sBad), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-conflict-signer.pv"
+  },
+  "n3-stage123r2-control-conflict-product": {
+    "case": "conflict-product",
+    "expected_reachability": [
+      true,
+      false
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodB), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-conflict-product.pv"
+  },
+  "n3-stage123r2-control-conflict-tcb": {
+    "case": "conflict-tcb",
+    "expected_reachability": [
+      true,
+      false
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyOutdated, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-conflict-tcb.pv"
+  },
+  "n3-stage123r2-control-conflict-attester": {
+    "case": "conflict-attester",
+    "expected_reachability": [
+      true,
+      false
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P3)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-conflict-attester.pv"
+  },
+  "n3-stage123r2-control-reject-peer-tcb": {
+    "case": "reject-peer-tcb",
+    "expected_reachability": [
+      true,
+      false
+    ],
+    "nature": "controlled-network-delivery",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyOutdated, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-reject-peer-tcb.pv"
+  },
+  "n3-stage123r2-control-bad-measurement": {
+    "case": "bad-measurement",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "controlled-instance-quote-input",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-bad-measurement.pv"
+  },
+  "n3-stage123r2-control-bad-signer": {
+    "case": "bad-signer",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "controlled-instance-quote-input",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-bad-signer.pv"
+  },
+  "n3-stage123r2-control-bad-product": {
+    "case": "bad-product",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "controlled-instance-quote-input",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-bad-product.pv"
+  },
+  "n3-stage123r2-control-bad-svn": {
+    "case": "bad-svn",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "controlled-instance-quote-input",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-bad-svn.pv"
+  },
+  "n3-stage123r2-control-bad-tcb": {
+    "case": "bad-tcb",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "controlled-instance-quote-input",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-bad-tcb.pv"
+  },
+  "n3-stage123r2-control-revoked-tcb": {
+    "case": "revoked-tcb",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "controlled-instance-quote-input",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-revoked-tcb.pv"
+  },
+  "n3-stage123r2-control-invalid-tcb": {
+    "case": "invalid-tcb",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "controlled-instance-quote-input",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-invalid-tcb.pv"
+  },
+  "n3-stage123r2-control-wrong-attester": {
+    "case": "wrong-attester",
+    "expected_reachability": [
+      true,
+      false,
+      true
+    ],
+    "nature": "receiver-asked-to-attest-other-designated-instance",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-wrong-attester.pv"
+  },
+  "n3-stage123r2-control-wrong-challenge": {
+    "case": "wrong-challenge",
+    "expected_reachability": [
+      true,
+      false,
+      true,
+      false
+    ],
+    "nature": "controlled-instance-quote-input",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-wrong-challenge.pv"
+  },
+  "n3-stage123r2-control-wrong-instance-key": {
+    "case": "wrong-instance-key",
+    "expected_reachability": [
+      true,
+      false,
+      true,
+      false
+    ],
+    "nature": "controlled-instance-quote-input",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-wrong-instance-key.pv"
+  },
+  "n3-stage123r2-control-invalid-signature": {
+    "case": "invalid-signature",
+    "expected_reachability": [
+      true,
+      false,
+      true,
+      false
+    ],
+    "nature": "controlled-instance-quote-input",
+    "actual_stage1_all_three": true,
+    "private_buffered_fixture": true,
+    "policies": [
+      "pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))"
+    ],
+    "process_extent": "three real authorizations + full Stage2-3 bodies",
+    "source": "scenarios/n3-stage123r2-control-invalid-signature.pv"
+  },
+  "n3-stage123r2-auth-normal": {
+    "case": "normal",
+    "expected_reachability": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-auth-normal.pv"
+  },
+  "n3-stage123r2-auth-wrong-signature": {
+    "case": "wrong-signature",
+    "expected_reachability": [
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-auth-wrong-signature.pv"
+  },
+  "n3-stage123r2-auth-fingerprint-mismatch": {
+    "case": "fingerprint-mismatch",
+    "expected_reachability": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-auth-fingerprint-mismatch.pv"
+  },
+  "n3-stage123r2-auth-key-rebinding": {
+    "case": "key-rebinding",
+    "expected_reachability": [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-auth-key-rebinding.pv"
+  },
+  "n3-stage123r2-auth-policy-rebinding": {
+    "case": "policy-rebinding",
+    "expected_reachability": [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-auth-policy-rebinding.pv"
+  },
+  "n3-stage123r2-auth-wrong-self": {
+    "case": "wrong-self",
+    "expected_reachability": [
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-auth-wrong-self.pv"
+  },
+  "n3-stage123r2-auth-wrong-attester": {
+    "case": "wrong-attester",
+    "expected_reachability": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-auth-wrong-attester.pv"
+  },
+  "n3-stage123r2-auth-nonconcrete-signer": {
+    "case": "nonconcrete-signer",
+    "expected_reachability": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-auth-nonconcrete-signer.pv"
+  },
+  "n3-stage123r2-auth-no-authorization": {
+    "case": "no-authorization",
+    "expected_reachability": [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-auth-no-authorization.pv"
+  },
+  "n3-stage123r2-owner-normal": {
+    "case": "normal",
+    "expected_reachability": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-owner-normal.pv"
+  },
+  "n3-stage123r2-owner-wrong-code": {
+    "case": "wrong-code",
+    "expected_reachability": [
+      true,
+      true,
+      false,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-owner-wrong-code.pv"
+  },
+  "n3-stage123r2-owner-wrong-tcb": {
+    "case": "wrong-tcb",
+    "expected_reachability": [
+      true,
+      true,
+      false,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-owner-wrong-tcb.pv"
+  },
+  "n3-stage123r2-owner-key-rebinding": {
+    "case": "key-rebinding",
+    "expected_reachability": [
+      true,
+      true,
+      false,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-owner-key-rebinding.pv"
+  },
+  "n3-stage123r2-owner-nonce-rebinding": {
+    "case": "nonce-rebinding",
+    "expected_reachability": [
+      true,
+      true,
+      false,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-owner-nonce-rebinding.pv"
+  },
+  "n3-stage123r2-owner-wrong-signature": {
+    "case": "wrong-signature",
+    "expected_reachability": [
+      true,
+      false,
+      false,
+      false
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-owner-wrong-signature.pv"
+  },
+  "join-stage123r2-p12-regression": {
+    "case": "join",
+    "expected_reachability": [
+      false,
+      true
+    ],
+    "nature": "local-guard-or-algebra",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "models/join-stage123r2-p12-regression.pv"
+  },
+  "n3-stage123r2-auth-wrong-self-tee": {
+    "case": "wrong-self-tee",
+    "expected_reachability": [
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ],
+    "nature": "local-extra-SelfTEE-control",
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": true,
+    "source": "scenarios/n3-stage123r2-auth-wrong-self-tee.pv"
+  },
+  "join-stage123r2-control-tables": {
+    "case": "control-table-audit",
+    "expected_reachability": [
+      false,
+      true
+    ],
+    "nature": "ground-control-tables-versus-generic-ProVerif-join",
+    "distinct_control_configurations": 8,
+    "actual_stage1_all_three": false,
+    "private_buffered_fixture": false,
+    "source": "models/join-stage123r2-control-tables.pv"
+  }
+}

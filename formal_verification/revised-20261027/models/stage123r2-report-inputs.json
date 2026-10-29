@@ -1,0 +1,1017 @@
+{
+  "description": "Self-contained report definitions and local fixture expectations for the fixed Stage123 r2 model; contains no manuscript or historical raw evidence.",
+  "instructions": "SRAS 形式化验证修订与重新实验说明（第二份）",
+  "instructions_sha256": "593e9835f8330a992577f41b3648394f17c0e3ce3d4421bd7ce35ea725cf475d",
+  "coverage": [
+    {
+      "编号": "O01",
+      "说明章节": "一",
+      "原要求摘录": "本轮以**三方 Stage 1–3 联合模型**为主",
+      "说明起始行": 5,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "实际三方 Stage1–3，五主性质、14辅助及三种三方联合执行。",
+      "证据": "sras-n3-stage123r2-primary.pv；stage123r2-results.json",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "O02",
+      "说明章节": "一",
+      "原要求摘录": "原两方模型可用于调试和回归检查",
+      "说明起始行": 17,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "主结果仅报告 N3；N2 和旧 N3 材料保留为历史/回归。",
+      "证据": "stage123r2-results.json；Git 3766338；历史索引",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "O03",
+      "说明章节": "一",
+      "原要求摘录": "本轮仅修改模型并进行实验，暂不修改论文",
+      "说明起始行": 21,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "本轮整理模型与实验材料；main.tex 附件未改写，也不把旧正文结果当作当前证明。",
+      "证据": "当前工作树差异；stage123r2-SUMMARY.txt",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "P01",
+      "说明章节": "二",
+      "原要求摘录": "保留 Dolev–Yao 网络攻击者",
+      "说明起始行": 27,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "主模型 net 公开，消息可截留、替换、重放和调度；局部 private fixture 不混作主网络证明。",
+      "证据": "models/sras-n3-stage123r2-primary.pv；stage123_regression.py",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "P02",
+      "说明章节": "二",
+      "原要求摘录": "至少保留上一轮的一个恶意 owner",
+      "说明起始行": 29,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "公开 O3 签名密钥；O1/O2 及三个 RPE 密钥受保护。只覆盖这一腐化配置。",
+      "证据": "主模型 process；HonestOwner；Authorization 查询",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "P03",
+      "说明章节": "二",
+      "原要求摘录": "不能预先假设“提交给 RPE 的授权来自正确 owner”",
+      "说明起始行": 33,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "从网络接收实际 policy、签名与 ownerKey，逐一验签并核对指纹；Owner 只预知硬件验证公钥。",
+      "证据": "generate_models.py:stage1_owner/stage123_role；auth-fingerprint-mismatch；Authorization",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "D01",
+      "说明章节": "二",
+      "原要求摘录": "主模型应允许攻击者构造**模型语法允许的 policy 及字段组合**",
+      "说明起始行": 37,
+      "当前覆盖": "按后续指令调整范围",
+      "核对结论": "原文要求一般组合；当前按后续明确选择保留 12 个 P3 完整 profile，另有两份诚实固定 policy。",
+      "证据": "models/policy-catalog-stage123r2-p12.json；private pol；choosePolicy",
+      "未覆盖或待补": "未恢复任意字段组合；没有证明 12 项构成一般策略的完备抽象。",
+      "后续直接指令": "用户随后指定回到 3766338，允许有限 profile，并要求只增补 E2-SVN 一项。"
+    },
+    {
+      "编号": "D02",
+      "说明章节": "二",
+      "原要求摘录": "不再使用 `choosePolicy(profile)`",
+      "说明起始行": 41,
+      "当前覆盖": "按后续指令调整范围",
+      "核对结论": "当前仍使用公开目录工厂。private pol 限定可构造 policy 集合，不在 RPE 中加入目录检查。",
+      "证据": "generate_models.py:schema/stage123_model",
+      "未覆盖或待补": "增加到 12 项没有满足原文“不以模板代替一般策略输入”的要求。",
+      "后续直接指令": "同 D01：按后续有限目录范围实施。"
+    },
+    {
+      "编号": "D03",
+      "说明章节": "二",
+      "原要求摘录": "存在冲突的合法策略必须能够进入相应检查",
+      "说明起始行": 43,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "五类策略冲突均重建真实三方授权及 P1 PoliciesComplete 前序，FullJoin 不可达；RejectPeerTCB 单独检查。",
+      "证据": "control-conflict-*；control-reject-peer-tcb；两项 join 对照模型",
+      "未覆盖或待补": "限定当前目录及明确列出的控制配置。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "D04",
+      "说明章节": "二",
+      "原要求摘录": "self-signer、Self designation 和本方 attester 指派的合法性",
+      "说明起始行": 44,
+      "当前覆盖": "已覆盖检查与局部负例；主策略域按后续指令收窄",
+      "核对结论": "主模型实际验证 concrete self-signer、指纹、Self RPE/TEE 及 own attester；局部测试分别证明前序可达和拒绝。",
+      "证据": "16个局部Stage1模型；auth-nonconcrete-signer/fingerprint-mismatch/wrong-self/wrong-self-tee/wrong-attester",
+      "未覆盖或待补": "主目录并未开放任意不合法 own 字段组合；这些目录外负例是明确标记的控制输入。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "D05",
+      "说明章节": "二",
+      "原要求摘录": "请列出各字段的符号表示、取值域、组合方式及合法性检查",
+      "说明起始行": 47,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "列出21个聚合字段，加上Self RPE、Self TEE、Members；分别描述语法与主目录实际取值。",
+      "证据": "stage123r2-field-domains.csv；stage123r2-profile-coverage.json",
+      "未覆盖或待补": "主目录不开放字段笛卡尔积，详见D01/D02。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "D06",
+      "说明章节": "二",
+      "原要求摘录": "也请明确诚实 owner 的策略是符号化参数还是具体配置",
+      "说明起始行": 49,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "P1/P2 使用具体 Compatible 策略，Self 不同但规范约束相同；该 join 前提已明示。",
+      "证据": "stage123r2-source-audit.json；stage123r2-SUMMARY.txt",
+      "未覆盖或待补": "未声称覆盖任意诚实配置。原文要求不得将相同 base 作为未经说明的前提；当前已披露。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S101",
+      "说明章节": "三",
+      "原要求摘录": "Owner 发出新鲜挑战",
+      "说明起始行": 60,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "RPE 先生成自身私钥；Owner 发出新鲜 n 并接收待验证公钥和 Quote。",
+      "证据": "stage1_owner；stage123_role；owner-normal",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S102",
+      "说明章节": "三",
+      "原要求摘录": "Owner 实际验证 Quote、预期代码、TCB、公钥和挑战绑定",
+      "说明起始行": 62,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "有实际硬件验签、mRPE/TCB 检查和 H(candidate,n) 绑定检查，随后才能签署授权。",
+      "证据": "owner-wrong-code/wrong-tcb/key-rebinding/nonce-rebinding/wrong-signature；A14",
+      "未覆盖或待补": "主 RPE 平台给定 Good；不合规代码/TCB 的针对性证据来自局部控制场景。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S103",
+      "说明章节": "三",
+      "原要求摘录": "Owner 的真实授权事件应记录在其实际生成授权签名的位置",
+      "说明起始行": 70,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "OwnerSigned 在 sign((RPE key,H(policy)),skOi) 处，私钥没有传给 RPE。",
+      "证据": "stage1_owner；Authorization；A14",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S104",
+      "说明章节": "三",
+      "原要求摘录": "被授权公钥与自身公钥的匹配",
+      "说明起始行": 77,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "对实际签名内容匹配 signedKey 和 signedHash，再进行 Self、指纹和 attester 检查。",
+      "证据": "auth-key-rebinding/policy-rebinding/wrong-signature/fingerprint-mismatch",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S105",
+      "说明章节": "三",
+      "原要求摘录": "Self 与启动时配置的 RPE designation 的匹配",
+      "说明起始行": 80,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "policy现在序列化独立SelfTEE字段；实际比较policySelf=Pi及policySelfTEE=Ei。",
+      "证据": "stage123_complete.py:self_tee；auth-wrong-self-tee",
+      "未覆盖或待补": "角色配置Pi/Ei仍固定；只篡改SelfTEE的局部输入在签名/hash通过后被拒绝。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S106",
+      "说明章节": "三",
+      "原要求摘录": "同一组已授权 key–policy 状态",
+      "说明起始行": 83,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "AuthAccepted 后直接使用同一 sk_i/rho_i 发 Evidence、交换 policy、计算 join 并签发。",
+      "证据": "A12/A13；stage123r2-source-audit.json；联合轨迹",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S107",
+      "说明章节": "三",
+      "原要求摘录": "Stage 1 初始 Quote 与 Stage 2 Evidence Quote",
+      "说明起始行": 87,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "二者共享 rpeQuote、硬件 key 和单一 H(key,bytes) 载荷；不以 nonce/pkey 类型隔离。",
+      "证据": "common_hash_encoding；主模型初始 Quote 服务与 Evidence 发送点",
+      "未覆盖或待补": "Stage3 的 teeQuote/硬件 key 仍是基线的独立抽象，未证明跨三个阶段的一般 Quote 类型混用。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S108",
+      "说明章节": "三",
+      "原要求摘录": "有效 Quote 本身不能直接视为 owner 授权完成",
+      "说明起始行": 91,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "无授权的局部场景已有有效初始 Quote 前序但 AuthAccepted 不可达；A12/A13 关联后续状态。",
+      "证据": "auth-no-authorization；A12/A13",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S201",
+      "说明章节": "四",
+      "原要求摘录": "每个 RPE 的必需 peers 来自其 owner 配置中的",
+      "说明起始行": 97,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "共同 Members3 配置编译为两个固定 peer 槽位，不从已到达消息决定成员。",
+      "证据": "schema；role 接收列表；A04–A06",
+      "未覆盖或待补": "不验证独立或不一致成员配置；这是本轮明确的共同静态三方前提。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S202",
+      "说明章节": "四",
+      "原要求摘录": "收齐并验证所有必需 peer 的 Evidence Quotes",
+      "说明起始行": 101,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "保留实际签名、代码/TCB、key/hash绑定与peer key去重；补齐三方真实授权后的早期Quote检查。",
+      "证据": "A01/A02；missing-quote/duplicate-quote/bad-rpe-code/bad-rpe-tcb",
+      "未覆盖或待补": "四个Quote控制模型保留精确检查前缀，省略后续不相关流程；不冒充完整私有全流程实验。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S203",
+      "说明章节": "四",
+      "原要求摘录": "检查每份 policy 的来源、承诺哈希及其与相应 peer 的关联",
+      "说明起始行": 103,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "验证 quote-bound key 下的 policyMsg、接收端 key、实际 H(policy) 与 Self。",
+      "证据": "Authenticity；A01/A13；事件前守卫",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S204",
+      "说明章节": "四",
+      "原要求摘录": "收齐每个必需 peer 的有效 policy 后",
+      "说明起始行": 104,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "本地已授权 rho 与实际收齐的 rho1/rho2/rho3 输入 canonical join。",
+      "证据": "Completeness；A03–A06；RPE 实际接收体",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S205",
+      "说明章节": "四",
+      "原要求摘录": "收到所有必需 peer 的有效且匹配的共识哈希确认后",
+      "说明起始行": 106,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "两份确认都经过 quote-bound key 验证、接收端 key 及本地 H(pi) 比较，才 Confirm。",
+      "证据": "A07–A10；Confirm 前守卫",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S206",
+      "说明章节": "四",
+      "原要求摘录": "Stage 2 不重复验证 owner 签名",
+      "说明起始行": 110,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "Stage2使用已授权状态和RPE认证策略，不重验owner签名；具体signer冲突与peer wildcard各有当前证据。",
+      "证据": "authorized-signer-peer-conflict；reachability-weak",
+      "未覆盖或待补": "signer冲突控制配置的诚实peer对E3期望改为O1指纹；主配置未改。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "J01",
+      "说明章节": "四",
+      "原要求摘录": "不预先赋予全局 policy 列表或共同的",
+      "说明起始行": 121,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "有限目录描述可构造输入域；每个 RPE 的运行状态仍来自实际授权和 peer 收集，不直接赋 pi*。",
+      "证据": "主模型 rho_i 的授权接收、peer 接收与 joinstar 实参",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "J02",
+      "说明章节": "四",
+      "原要求摘录": "输出表示规范化后的聚合约束",
+      "说明起始行": 122,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "mkstar 只包含聚合字段，不包含原始 policy 历史；通用逐字段函数处理 Any/exact、版本 max、TCB 交及 attester 冲突。",
+      "证据": "models/algebra.pvl；join-stage123r2-p12-regression",
+      "未覆盖或待补": "幂等/冗余语义的当前目录核验不是完整无限格理论证明。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "J03",
+      "说明章节": "四",
+      "原要求摘录": "它如何覆盖本轮主模型的全部可达输入",
+      "说明起始行": 126,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "Self 检查和有限工厂使 P1/P2 可接受的 policy 唯一；P3 来自 12 项。每项 fast/general join 对比覆盖同一固定 fold。",
+      "证据": "stage123r2-source-audit.json；join-stage123r2-p12-regression",
+      "未覆盖或待补": "不覆盖目录外策略、不同诚实 base 或更广泛腐化配置。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S301",
+      "说明章节": "四",
+      "原要求摘录": "为三个 RPE 分别接入实例认证过程",
+      "说明起始行": 130,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "三个 Confirm 后分别调用 attest(Pi,Ei,sk_i,pistar,starEntry_i(pistar),pkAKE)。",
+      "证据": "主模型三个 attest 调用；三个联合见证",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S302",
+      "说明章节": "四",
+      "原要求摘录": "实例 Quote 签名",
+      "说明起始行": 134,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "实际实例验签、key/挑战绑定、六类appraisal守卫保持；11项当前坏输入控制实验覆盖前序与拒绝。",
+      "证据": "Issuance；A11；11个实例控制模型",
+      "未覆盖或待补": "控制实例/接收端输入与故障性质分别列在control-expectations中。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S303",
+      "说明章节": "四",
+      "原要求摘录": "允许合规及不合规的属性",
+      "说明起始行": 142,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "实例过程从公开网络接收实际 identity/status，硬件可产生不合规属性的真实 Quote。",
+      "证据": "instance；matchid/matchv/matchtcb/matchatt；Issuance",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "S304",
+      "说明章节": "四",
+      "原要求摘录": "签发绑定实例公钥、签发 RPE 和共识策略哈希的结果",
+      "说明起始行": 140,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "实际签名 H((instance key,RPE key,H(starBytes(pi))))；A11 同时关联确认与真实 Quote。",
+      "证据": "ATTEST；A11",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "M01",
+      "说明章节": "五",
+      "原要求摘录": "检查 Authorization、Agreement、Authenticity、Completeness 和 Issuance",
+      "说明起始行": 14,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "五项主查询在同一完整过程分别证明成立，保留原四项含义并补入实际授权对应关系。",
+      "证据": "5 个 queries/n3-stage123r2-*.pv；stage123r2-results-table.csv",
+      "未覆盖或待补": "主证明适用当前有限域；不自动成为原文一般策略域的五项证明。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "M02",
+      "说明章节": "五",
+      "原要求摘录": "必要的辅助关联",
+      "说明起始行": 182,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "14 项辅助全部成立，关键链为 A12 本方授权、A13 peer 授权、A11 Confirm/真实 Quote/证书载荷、A14 owner 验 Quote。",
+      "证据": "queries/n3-stage123r2-A01…A14.pv；完整各自日志",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "R01",
+      "说明章节": "六",
+      "原要求摘录": "不能用三个彼此独立的可达查询代替联合可达性",
+      "说明起始行": 200,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "三个公开网络联合查询各自重建同一条包含三方授权、Confirm及CertIssued的轨迹。",
+      "证据": "stage123r2-executed-witnesses.json",
+      "未覆盖或待补": "实际P3分别为PermissiveRpeTCB、StrongerSVNE2和Weak；不声称每个profile均有成功执行。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T01",
+      "说明章节": "六",
+      "原要求摘录": "无有效授权、错误签名或 owner 公钥指纹不匹配",
+      "说明起始行": 206,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "局部真实接收/验签守卫测试均有相应前序且阻止接受；公共网络 Authorization 主证明另行成立。",
+      "证据": "auth-no-authorization/wrong-signature/fingerprint-mismatch",
+      "未覆盖或待补": "局部 fixture 不作为网络攻击者可伪造诚实 owner 签名的证据。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T02",
+      "说明章节": "六",
+      "原要求摘录": "授权被换绑到另一个 RPE 公钥或另一份 policy",
+      "说明起始行": 207,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "实际验签可达，key/hash 不匹配后接受不可达。",
+      "证据": "auth-key-rebinding/policy-rebinding",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T03",
+      "说明章节": "六",
+      "原要求摘录": "Self 或本方 attester 指派不符合初始化要求",
+      "说明起始行": 208,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "Self RPE、独立SelfTEE、本方attester及concrete self-signer分别有实际检查前序与拒绝证据。",
+      "证据": "auth-wrong-self/wrong-self-tee/wrong-attester/nonconcrete-signer",
+      "未覆盖或待补": "局部控制负例不等同于主目录允许任意字段组合。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T04",
+      "说明章节": "六",
+      "原要求摘录": "攻击者以自己的 signer 授权，但与 peer 的具体 signer 要求冲突",
+      "说明起始行": 209,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "P3以实际O3 key和H(pk(skO3))合法自授权；诚实peers对E3期望H(pk(skO1))。三方授权及PoliciesComplete可达，FullJoin不可达。",
+      "证据": "n3-stage123r2-control-authorized-signer-peer-conflict；control-tables",
+      "未覆盖或待补": "为触发指定冲突，单独改变控制配置中诚实peer对E3的signer期望；主五性质配置保持原样。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T05",
+      "说明章节": "六",
+      "原要求摘录": "合法具体 self-signer 与 peer 通配符能够正常协商",
+      "说明起始行": 210,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "同一公开主过程的联合查询将实际P3已授权policy约束为Weak，三方授权、确认及签发共同可达。",
+      "证据": "sras-n3-stage123r2-reachability-weak；executed-witnesses.json",
+      "未覆盖或待补": "Weak自身signer具体、对peers signer为Any；只约束查询，不限制过程输入。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T06",
+      "说明章节": "六",
+      "原要求摘录": "缺失或重复必需 Quote、policy、确认消息",
+      "说明起始行": 211,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "真实三方授权后给P1交付有效P2 Evidence，扣留P3所有Quote交付。EvidenceChecked(P1,P2)可达、QuotesComplete(P1)不可达。",
+      "证据": "control-missing-quote",
+      "未覆盖或待补": "私有确定交付与精确Evidence检查前缀；初始Quote服务保留，但不向P1交付可替代的P3 Quote。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T07",
+      "说明章节": "六",
+      "原要求摘录": "重复必需 Quote",
+      "说明起始行": 211,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "将真实P2 Quote以P3外层标签再交付；三方真实授权及首个peer检查可达，重复包接收可达，全员Quote完成不可达。",
+      "证据": "control-duplicate-quote",
+      "未覆盖或待补": "确定交付顺序的私有前缀测试；没有伪造硬件签名。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T08",
+      "说明章节": "六",
+      "原要求摘录": "缺失或重复必需 Quote、policy、确认消息",
+      "说明起始行": 211,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "缺失/重复policy均从三方真实授权继续；QuotesComplete及接受有效P2 policy可达，PoliciesComplete不可达；重复包接收另有可达查询。",
+      "证据": "control-missing-policy/duplicate-policy",
+      "未覆盖或待补": "完整Stage2–3体、私有交付控制。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T09",
+      "说明章节": "六",
+      "原要求摘录": "缺失或重复必需 Quote、policy、确认消息",
+      "说明起始行": 211,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "缺失、重复、已认证但hash不匹配的确认均有FullJoin及有效P2确认前序，Confirm(P1)不可达。",
+      "证据": "control-missing-confirmation/duplicate-confirmation/confirmation-mismatch",
+      "未覆盖或待补": "错误hash签名由受保护发送端故障注入；不声称正常网络攻击者可产生该签名。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T10",
+      "说明章节": "六",
+      "原要求摘录": "Policy 与 Quote 承诺不匹配",
+      "说明起始行": 212,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "请求真实P3初始Quote承诺Weak的hash，再交付实际授权Compatible的真实policy签名。QuotesComplete、PolicyAuthenticated可达，policy hash检查拒绝。",
+      "证据": "control-policy-hash-mismatch；ControlInitialHashRequested可达",
+      "未覆盖或待补": "使用现有初始Quote请求能力和相同载荷；没有修改受保护RPE的policy发送内容。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T11",
+      "说明章节": "六",
+      "原要求摘录": "合法语法内的策略冲突",
+      "说明起始行": 213,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "五类策略冲突均有真实三方授权、PoliciesComplete可达及FullJoin不可达；控制专门化与通用PV join逐项对照。",
+      "证据": "control-conflict-measurement/signer/product/tcb/attester；join-stage123r2-control-tables",
+      "未覆盖或待补": "语法合法输入限定列出的目录；一般自由组合仍未证明。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T12",
+      "说明章节": "六",
+      "原要求摘录": "实例 Quote 的签名、绑定或 appraisal 不通过",
+      "说明起始行": 214,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "11项坏实例输入均在三方真实授权及P1共识确认后检查签名、绑定或appraisal拒绝，并分别确认接收/验签/QuoteVerified前序。",
+      "证据": "control-bad-*/revoked-tcb/invalid-tcb/wrong-attester/wrong-challenge/wrong-instance-key/invalid-signature",
+      "未覆盖或待补": "bad-rpe-code/tcb另外属于早期Quote前缀与硬件故障测试。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "T13",
+      "说明章节": "六",
+      "原要求摘录": "每个拒绝场景都应检查其前序阶段可达",
+      "说明起始行": 216,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "29个三方控制场景和16个局部Stage1测试均核对指定前序；所有正向可达结果有实际重建轨迹。",
+      "证据": "stage123r2-control-expectations.json；stage123r2-results-table.csv",
+      "未覆盖或待补": "4个Quote场景为三方真实授权后的检查前缀；25个保留完整Stage2–3体。局部控制不替代公开网络主证明。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "A01",
+      "说明章节": "七",
+      "原要求摘录": "不强制重新开展确认轮消融",
+      "说明起始行": 222,
+      "当前覆盖": "不强制／本轮未做",
+      "核对结论": "本轮主模型优先；旧不完整输入消融只保留历史，不作为当前 Agreement 必要性证据。",
+      "证据": "当前 jobs-stage123* 不包含消融；历史模型单独保留",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "A02",
+      "说明章节": "七",
+      "原要求摘录": "区分反例、无法证明、超时、内存不足及建模错误",
+      "说明起始行": 231,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "当前69作业189条确定结果，未决0；开发阶段状态另有摘要。",
+      "证据": "stage123r2-results.json；stage123r2-development-summary.json",
+      "未覆盖或待补": "未选中开发尝试的原始文件留存本地，未计入或上传为当前结果；摘要不代替其原始证据。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "A03",
+      "说明章节": "七",
+      "原要求摘录": "保持相同的协议过程、策略域和攻击者配置",
+      "说明起始行": 235,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "5主查询、14辅助、3联合见证的非查询过程摘要一致；策略域及攻击者配置相同。",
+      "证据": "stage123r2-source-audit.json",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "V01",
+      "说明章节": "八",
+      "原要求摘录": "修改与范围对照",
+      "说明起始行": 241,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "给出基线到当前的源码差异；说明真实授权、Stage3、共享hash、独立SelfTEE和后续有限策略约定。",
+      "证据": "diffs/*-stage123r2.diff；stage123r2-SUMMARY.txt",
+      "未覆盖或待补": "11项未替换为一般组合器，而按后续指令增加到12项；这一范围变化单独列明。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "V02",
+      "说明章节": "八",
+      "原要求摘录": "完整模型与复现方法",
+      "说明起始行": 253,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "独立源码、固定基线、报告输入、生成和运行脚本、环境、命令及hash均已收录。",
+      "证据": "stage123r2-REPRODUCE.txt；各选中结果目录；SHA256SUMS.stage123r2.public.txt",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "V03",
+      "说明章节": "八",
+      "原要求摘录": "主查询耗时优先单独测量",
+      "说明起始行": 265,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "五项分别运行；准确 query、source hash、wall time、日志和计时边界均列出。",
+      "证据": "stage123r2-results-table.csv；stage123r2-queries-and-results.txt",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "V04",
+      "说明章节": "八",
+      "原要求摘录": "完整输出、错误日志、可达性轨迹及反例",
+      "说明起始行": 269,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "当前69作业保存完整文字输出、冻结源、前序及联合执行轨迹；公开联合见证有DOT/PDF。",
+      "证据": "stage123r2-current-selection.json及各作业output.log/command/time/exit",
+      "未覆盖或待补": "私有控制关闭绘图但保留文字轨迹；未选中的开发尝试只公开状态摘要，原始材料留在本地。",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "V05",
+      "说明章节": "八",
+      "原要求摘录": "面向论文的一页摘要",
+      "说明起始行": 271,
+      "当前覆盖": "已覆盖（限定当前模型）",
+      "核对结论": "本次生成限定范围的一页摘要，并明确主文能写什么、附录放什么、哪些结论尚未成立。",
+      "证据": "stage123r2-paper-summary.txt",
+      "未覆盖或待补": "",
+      "后续直接指令": ""
+    },
+    {
+      "编号": "V06",
+      "说明章节": "八",
+      "原要求摘录": "请返回一个新版本结果包",
+      "说明起始行": 239,
+      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
+      "核对结论": "当前模型、原始日志、查询、三条联合执行轨迹和复现材料直接收录到仓库。",
+      "证据": "stage123r2-current-selection.json；stage123r2-REPRODUCE.txt；SHA256SUMS.stage123r2.public.txt",
+      "未覆盖或待补": "本地完整压缩包继续保留；镜像、压缩包及其解压副本不重复提交。",
+      "后续直接指令": "按本次要求提交当前结果，排除镜像、交付副本和无关文件。"
+    }
+  ],
+  "field_domains": [
+    {
+      "序号": "1",
+      "实体": "RPE1",
+      "字段": "TCB接受集合",
+      "代数表示与范围": "Both={Good,Outdated}; OnlyGood={Good}; OnlyOutdated={Outdated}",
+      "14份目录输入中的实际取值": "Both | OnlyGood | OnlyOutdated",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "2",
+      "实体": "RPE2",
+      "字段": "TCB接受集合",
+      "代数表示与范围": "Both={Good,Outdated}; OnlyGood={Good}; OnlyOutdated={Outdated}",
+      "14份目录输入中的实际取值": "Both | OnlyGood",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "3",
+      "实体": "RPE3",
+      "字段": "TCB接受集合",
+      "代数表示与范围": "Both={Good,Outdated}; OnlyGood={Good}; OnlyOutdated={Outdated}",
+      "14份目录输入中的实际取值": "Both | OnlyGood",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "4",
+      "实体": "E1",
+      "字段": "measurement",
+      "代数表示与范围": "Any / exact(bitstring)",
+      "14份目录输入中的实际取值": "Any | exact(mBad) | exact(mE1)",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "5",
+      "实体": "E1",
+      "字段": "signer",
+      "代数表示与范围": "Any / exact(bitstring)",
+      "14份目录输入中的实际取值": "Any | exact(H(pk(skO1))) | exact(sBad)",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "6",
+      "实体": "E1",
+      "字段": "product",
+      "代数表示与范围": "Any / exact(bitstring)",
+      "14份目录输入中的实际取值": "Any | exact(prodA) | exact(prodB)",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "7",
+      "实体": "E1",
+      "字段": "最低SVN",
+      "代数表示与范围": "V0<V1<V2，V0兼作不限制",
+      "14份目录输入中的实际取值": "V0 | V1 | V2",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "8",
+      "实体": "E1",
+      "字段": "TCB接受集合",
+      "代数表示与范围": "Both / OnlyGood / OnlyOutdated",
+      "14份目录输入中的实际取值": "Both | OnlyGood | OnlyOutdated",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "9",
+      "实体": "E1",
+      "字段": "attester",
+      "代数表示与范围": "NoAtt / Assign(P1|P2|P3)",
+      "14份目录输入中的实际取值": "Assign(P1) | Assign(P3) | NoAtt",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "10",
+      "实体": "E2",
+      "字段": "measurement",
+      "代数表示与范围": "Any / exact(bitstring)",
+      "14份目录输入中的实际取值": "Any | exact(mE2)",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "11",
+      "实体": "E2",
+      "字段": "signer",
+      "代数表示与范围": "Any / exact(bitstring)",
+      "14份目录输入中的实际取值": "Any | exact(H(pk(skO2)))",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "12",
+      "实体": "E2",
+      "字段": "product",
+      "代数表示与范围": "Any / exact(bitstring)",
+      "14份目录输入中的实际取值": "Any | exact(prodA)",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "13",
+      "实体": "E2",
+      "字段": "最低SVN",
+      "代数表示与范围": "V0<V1<V2，V0兼作不限制",
+      "14份目录输入中的实际取值": "V0 | V1 | V2",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "14",
+      "实体": "E2",
+      "字段": "TCB接受集合",
+      "代数表示与范围": "Both / OnlyGood / OnlyOutdated",
+      "14份目录输入中的实际取值": "Both | OnlyGood",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "15",
+      "实体": "E2",
+      "字段": "attester",
+      "代数表示与范围": "NoAtt / Assign(P1|P2|P3)",
+      "14份目录输入中的实际取值": "Assign(P2) | NoAtt",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "16",
+      "实体": "E3",
+      "字段": "measurement",
+      "代数表示与范围": "Any / exact(bitstring)",
+      "14份目录输入中的实际取值": "Any | exact(mE3)",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "17",
+      "实体": "E3",
+      "字段": "signer",
+      "代数表示与范围": "Any / exact(bitstring)",
+      "14份目录输入中的实际取值": "exact(H(pk(skO3)))",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "18",
+      "实体": "E3",
+      "字段": "product",
+      "代数表示与范围": "Any / exact(bitstring)",
+      "14份目录输入中的实际取值": "Any | exact(prodA)",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "19",
+      "实体": "E3",
+      "字段": "最低SVN",
+      "代数表示与范围": "V0<V1<V2，V0兼作不限制",
+      "14份目录输入中的实际取值": "V0 | V1",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "20",
+      "实体": "E3",
+      "字段": "TCB接受集合",
+      "代数表示与范围": "Both / OnlyGood / OnlyOutdated",
+      "14份目录输入中的实际取值": "Both | OnlyGood",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "21",
+      "实体": "E3",
+      "字段": "attester",
+      "代数表示与范围": "NoAtt / Assign(P1|P2|P3)",
+      "14份目录输入中的实际取值": "Assign(P3)",
+      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
+    },
+    {
+      "序号": "Members",
+      "实体": "协作",
+      "字段": "成员配置",
+      "代数表示与范围": "Members3",
+      "14份目录输入中的实际取值": "Members3",
+      "组合边界": "共同静态成员；未验证独立成员配置一致性"
+    },
+    {
+      "序号": "SelfRPE",
+      "实体": "RPE",
+      "字段": "Self RPE designation",
+      "代数表示与范围": "policySelf: party",
+      "14份目录输入中的实际取值": "P1/P2/P3",
+      "组合边界": "实际Stage1比较Pi；目录外错误值用局部控制检查"
+    },
+    {
+      "序号": "SelfTEE",
+      "实体": "TEE",
+      "字段": "Self TEE designation",
+      "代数表示与范围": "policySelfTEE: entity；独立序列化字段",
+      "14份目录输入中的实际取值": "E1/E2/E3",
+      "组合边界": "实际Stage1比较Ei；wrong-self-tee单独篡改该字段"
+    }
+  ],
+  "expected_local_reachability": {
+    "n3-stage123-auth-normal": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "n3-stage123-auth-wrong-signature": [
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ],
+    "n3-stage123-auth-fingerprint-mismatch": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ],
+    "n3-stage123-auth-key-rebinding": [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ],
+    "n3-stage123-auth-policy-rebinding": [
+      true,
+      true,
+      true,
+      false,
+      false,
+      false
+    ],
+    "n3-stage123-auth-wrong-self": [
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ],
+    "n3-stage123-auth-wrong-attester": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ],
+    "n3-stage123-auth-nonconcrete-signer": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ],
+    "n3-stage123-auth-no-authorization": [
+      true,
+      false,
+      false,
+      false,
+      false,
+      false
+    ],
+    "n3-stage123-owner-normal": [
+      true,
+      true,
+      true,
+      true
+    ],
+    "n3-stage123-owner-wrong-code": [
+      true,
+      true,
+      false,
+      false
+    ],
+    "n3-stage123-owner-wrong-tcb": [
+      true,
+      true,
+      false,
+      false
+    ],
+    "n3-stage123-owner-key-rebinding": [
+      true,
+      true,
+      false,
+      false
+    ],
+    "n3-stage123-owner-nonce-rebinding": [
+      true,
+      true,
+      false,
+      false
+    ],
+    "n3-stage123-owner-wrong-signature": [
+      true,
+      false,
+      false,
+      false
+    ],
+    "join-stage123-p12-regression": [
+      false,
+      true
+    ]
+  },
+  "development_summary": {
+    "interpretation": "Historical development attempts are summarized here; their raw files are retained locally, not part of the published current evidence. Only the 69 jobs in current-selection count toward current results.",
+    "attempts": 57,
+    "parse_exit_counts": {
+      "0": 56,
+      "2": 1
+    },
+    "verification_exit_counts": {
+      "124": 25,
+      "0": 31,
+      "None": 1
+    },
+    "per_batch": [
+      {
+        "batch": "stage123r2-controls-pilot-20261028",
+        "attempts": 4
+      },
+      {
+        "batch": "stage123r2-controls-pilot2-20261028",
+        "attempts": 4
+      },
+      {
+        "batch": "stage123r2-controls1-complete-20261028",
+        "attempts": 2
+      },
+      {
+        "batch": "stage123r2-controls1-final-20261028",
+        "attempts": 15
+      },
+      {
+        "batch": "stage123r2-controls2-complete-20261028",
+        "attempts": 3
+      },
+      {
+        "batch": "stage123r2-controls2-final-20261028",
+        "attempts": 14
+      },
+      {
+        "batch": "stage123r2-early-quotes-20261028",
+        "attempts": 4
+      },
+      {
+        "batch": "stage123r2-pilot-20261028",
+        "attempts": 1
+      },
+      {
+        "batch": "stage123r2-quote-delivery-20261028",
+        "attempts": 1
+      },
+      {
+        "batch": "stage123r2-quote-prefix-20261028",
+        "attempts": 4
+      },
+      {
+        "batch": "stage123r2-quote-schedule-20261028",
+        "attempts": 4
+      },
+      {
+        "batch": "stage123r2-table-audit-20261028",
+        "attempts": 1
+      }
+    ],
+    "counted_as_current": false
+  }
+}

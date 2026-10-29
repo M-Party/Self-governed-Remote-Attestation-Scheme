@@ -1,0 +1,5 @@
+n3-stage123r2-Authorization|queries/n3-stage123r2-Authorization.pv|Authorization|3
+n3-stage123r2-Agreement|queries/n3-stage123r2-Agreement.pv|Agreement|3
+n3-stage123r2-Authenticity|queries/n3-stage123r2-Authenticity.pv|Authenticity|3
+n3-stage123r2-Completeness|queries/n3-stage123r2-Completeness.pv|Completeness|3
+n3-stage123r2-Issuance|queries/n3-stage123r2-Issuance.pv|Issuance|3

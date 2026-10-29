@@ -1,0 +1,1 @@
+timeout 150 proverif -parse-only /out/sras-n3-stage123r2-reachability-profile12/model.pv

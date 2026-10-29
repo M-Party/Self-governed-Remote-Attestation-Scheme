@@ -7,6 +7,7 @@ retained from the original models. Generated files are checked in as artifacts.
 from pathlib import Path
 import json
 import re
+import argparse
 
 ROOT = Path(__file__).resolve().parent
 MODELS = ROOT / 'models'
@@ -17,6 +18,7 @@ ALGEBRA = (MODELS / 'algebra.pvl').read_text()
 PROFILES = ['Compatible', 'Weak', 'StrongerSVN', 'ConflictMeasurement',
             'ConflictSigner', 'ConflictProduct', 'ConflictTCB', 'ConflictAttester',
             'RejectPeerTCB', 'NoAssignments', 'PermissiveRpeTCB']
+EXTENDED_PROFILES = PROFILES + ['StrongerSVNE2']
 
 def req(j, weak=False, **kw):
     fields = [f'exact(mE{j})', f'exact(s{j})', 'exact(prodA)', 'V1', 'OnlyGood', f'Assign(P{j})']
@@ -34,6 +36,8 @@ def policy(n, owner, profile='Compatible', scenario=''):
         entries = [req(j, weak=True, **({'s':f'exact(s{owner})', 'a':f'Assign(P{owner})'} if j == owner else {})) for j in range(1,n+1)]
     elif profile == 'StrongerSVN':
         entries[0] = req(1, v='V2')
+    elif profile == 'StrongerSVNE2':
+        entries[1] = req(2, v='V2')
     elif profile == 'ConflictMeasurement': entries[0] = req(1, m='exact(mBad)')
     elif profile == 'ConflictSigner': entries[0] = req(1, s='exact(sBad)')
     elif profile == 'ConflictProduct': entries[0] = req(1, p='exact(prodB)')
@@ -96,13 +100,13 @@ def merge_star(n,a,b):
     return ('mkstar',tuple(intersect_tcb(x,y) if k<n else merge_entry(x,y)
                           for k,(x,y) in enumerate(zip(a[1],b[1]))))
 
-def specialized_join(n,scenario):
+def specialized_join(n,scenario,profiles=None):
     # The canonical fold always starts with honest P1; in N3 the next input
     # is honest P2 with the same constraints. The final input is one catalog
     # policy. This table is EXACT on every authenticated input tuple in this
     # finite model. Unreachable tuples are not used to enlarge its conclusions.
     base=constraints_term(n,policy(n,1,scenario=scenario))
-    inputs={constraints_term(n,policy(n,n,p,scenario)) for p in PROFILES}
+    inputs={constraints_term(n,policy(n,n,p,scenario)) for p in (PROFILES if profiles is None else profiles)}
     inputs.add(base)
     rules=[]
     for right in sorted(inputs,key=render):
@@ -115,7 +119,8 @@ def specialized_join(n,scenario):
             'fun joinstar(polstar, polstar): polstar\nreduc '+
             '\notherwise '.join(rules)+'.\n')
 
-def schema(n, scenario):
+def schema(n, scenario, profiles=None):
+    profiles=PROFILES if profiles is None else profiles
     pvars = [f't{i}: tcbreq' for i in range(1,n+1)] + [f'e{i}: entry' for i in range(1,n+1)]
     names = [x.split(':')[0] for x in pvars]
     args = ', '.join(names)
@@ -146,11 +151,11 @@ reduc forall a: party, members: roster, {', '.join(pvars)};
 reduc forall {', '.join(pvars)};
   starEntry{j}(mkstar({args})) = e{j}.
 '''
-    result += specialized_join(n,scenario)
-    for pr in PROFILES: result += f'const {pr}: profile [data].\n'
+    result += specialized_join(n,scenario,profiles)
+    for pr in profiles: result += f'const {pr}: profile [data].\n'
     result += '\n(* Explicit finite policy domain for the adversarial owner; see policy-catalog.json. *)\n'
     result += 'fun choosePolicy(profile): policy\n'
-    result += '\notherwise '.join(('reduc ' if k==0 else '')+f'choosePolicy({pr}) = {policy(n,n,pr,scenario)}' for k,pr in enumerate(PROFILES)) + '.\n'
+    result += '\notherwise '.join(('reduc ' if k==0 else '')+f'choosePolicy({pr}) = {policy(n,n,pr,scenario)}' for k,pr in enumerate(profiles)) + '.\n'
     return result
 
 CRYPTO = '''
@@ -213,7 +218,7 @@ query a: party, e: entity, kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbsta
   event(CertIssued(a,e,kr,ke,n,id,t,x,body)) ==> event(QuoteSatisfied(a,e,kr,ke,n,id,t,x)).
 '''
 
-def auxiliary(n, no_confirm=False):
+def auxiliary(n, no_confirm=False, with_stage3=False):
     s = '''
 (* A1: actual recipient key, not an untrusted pre-policy slot label. *)
 query a: party, b: party, ka: pkey, kb: pkey, r: policy;
@@ -237,7 +242,7 @@ query a: party, b: party, h: bitstring;
 '''
         for i in range(1,n+1):
             s += f'query x: polstar;\n  event(Confirm(P{i},x)) ==> ' + ' && '.join(f'event(ConfirmationAccepted(P{i},P{j},hstar(x)))' for j in range(1,n+1) if j!=i) + '.\n'
-    if n == 2:
+    if n == 2 or with_stage3:
         s += '''
 (* A4: evidence, request, Stage 2 completion, and certificate payload binding. *)
 query a: party, e: entity, kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
@@ -246,7 +251,7 @@ query a: party, e: entity, kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbsta
 '''
     return s
 
-def reachability(n):
+def reachability(n, with_stage3=False):
     # One conjunction demands a common trace, not N separate reachable runs.
     s = '\n(* R1: joint completion; `not ... is false` plus a reconstructed trace means reachable. *)\n'
     s += 'query ' + ', '.join(f'x{i}: polstar' for i in range(1,n+1)) + ';\n  ' + ' && '.join(f'event(Confirm(P{i},x{i}))' for i in range(1,n+1)) + '.\n'
@@ -259,6 +264,17 @@ query x1: polstar, x2: polstar, kr1: pkey, kr2: pkey, ke1: pkey, ke2: pkey,
   event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,x1,b1)) &&
   event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,x2,b2)).
 '''
+    if n == 3 and with_stage3:
+        variables = []
+        facts = []
+        for i in range(1, n+1):
+            variables.extend([f'x{i}: polstar', f'kr{i}: pkey', f'ke{i}: pkey',
+                              f'n{i}: nonce', f'id{i}: identity',
+                              f't{i}: tcbstatus', f'b{i}: bitstring'])
+            facts.extend([f'event(Confirm(P{i},x{i}))',
+                          f'event(CertIssued(P{i},E{i},kr{i},ke{i},n{i},id{i},t{i},x{i},b{i}))'])
+        s += '\n(* R2: all three complete and issue in ONE execution. *)\n'
+        s += 'query ' + ', '.join(variables) + ';\n  ' + ' &&\n  '.join(facts) + '.\n'
     return s
 
 def coordination(n):
@@ -321,7 +337,7 @@ def instance(scenario):
         s += '  event QuoteProduced(pk(skE),challenge,actual,status);\n  out(net,sign(teeQuote(actual,status,hchal(challenge,pk(skE))),ak)).\n'
     return s
 
-def role(n, i, scenario='', no_confirm=False):
+def role(n, i, scenario='', no_confirm=False, with_stage3=False):
     peers = [j for j in range(1,n+1) if j != i]
     s = f'\n(* RPE_{i}: required peers are the fixed Members{n} configuration minus self. *)\n'
     s += f'let rpe{i}(akR: skey, pkAKR: pkey, pkAKE: pkey) =\n'
@@ -391,7 +407,7 @@ def role(n, i, scenario='', no_confirm=False):
 '''
     s += f'  event Confirm(P{i},pistar)'
     target = 2 if scenario=='wrong-attester' and i==1 else i
-    s += f';\n  attest(P{i},E{target},sk{i},pistar,starEntry{target}(pistar),pkAKE).\n' if n==2 else '.\n'
+    s += f';\n  attest(P{i},E{target},sk{i},pistar,starEntry{target}(pistar),pkAKE).\n' if n==2 or with_stage3 else '.\n'
     return s
 
 def scenario_queries(n, scenario):
@@ -427,21 +443,23 @@ query kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body
         s += f'query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteVerified(P1,{e},ke,n,id,t)).\n'
     return s
 
-def model(n, kind='primary', scenario='', no_confirm=False):
+def model(n, kind='primary', scenario='', no_confirm=False, with_stage3=False, profiles=None):
     head = f'''(* SRAS revision 20261027; N={n}; kind={kind}; scenario={scenario or 'none'}.
  * SINGLE static initialization with exactly N protected RPE roles.
- * The adversary chooses the last owner's policy from 11 documented profiles.
+ * The adversary chooses the last owner's policy from {len(PROFILES if profiles is None else profiles)} documented profiles.
  * All network sends/receives are public and adversary-controlled.
  * This file is generated by generate_models.py; original models remain intact.
  *)\n'''
-    text = head + ALGEBRA + schema(n,scenario) + CRYPTO
-    if kind=='primary': text += PRIMARY + (ISSUANCE if n==2 else '')
-    elif kind=='auxiliary': text += auxiliary(n,no_confirm)
-    elif kind=='reachability': text += reachability(n)
+    text = head + ALGEBRA + schema(n,scenario,profiles) + CRYPTO
+    if with_stage3:
+        text += '\n(* 20261028 extension of commit 3766338: Stage 3 runs after Confirm at every RPE. *)\n'
+    if kind=='primary': text += PRIMARY + (ISSUANCE if n==2 or with_stage3 else '')
+    elif kind=='auxiliary': text += auxiliary(n,no_confirm,with_stage3)
+    elif kind=='reachability': text += reachability(n,with_stage3)
     elif kind=='coordination': text += coordination(n)
     else: text += scenario_queries(n,scenario)
-    if n==2: text += ATTEST + instance(scenario)
-    text += ''.join(role(n,i,scenario,no_confirm) for i in range(1,n+1))
+    if n==2 or with_stage3: text += ATTEST + instance(scenario)
+    text += ''.join(role(n,i,scenario,no_confirm,with_stage3) for i in range(1,n+1))
     text += '''
 process
   new akRPE: skey;
@@ -450,7 +468,7 @@ process
   out(net,(pk(akRPE),pk(akTEE),pk(akADV),akADV));
   ('''
     text += ' |\n   '.join(f'rpe{i}(akRPE,pk(akRPE),pk(akTEE))' for i in range(1,n+1))
-    if n==2: text += ' |\n   !instance(' + ('akADV' if scenario=='invalid-signature' else 'akTEE') + ')'
+    if n==2 or with_stage3: text += ' |\n   !instance(' + ('akADV' if scenario=='invalid-signature' else 'akTEE') + ')'
     text += ')\n'
     return text
 
@@ -495,4 +513,261 @@ def main():
     (ROOT/'jobs-primary-single.txt').write_text('\n'.join(timed_jobs)+'\n')
     print('Generated primary, auxiliary, reachability, single-change no-confirm, and regression models.')
 
-if __name__ == '__main__': main()
+def stage23_main(profiles=None):
+    """Extend the requested baseline in place; preserve every historical model/log.
+
+    No change to the policy catalog, specialized join, Stage 2, or ATTEST body.
+    New evidence uses distinct filenames in the existing artifact directories.
+    """
+    tag='stage23' if profiles is None else 'stage23p12'
+    jobs=[]
+    for kind in ('primary','auxiliary','reachability'):
+        path=MODELS/f'sras-n3-{tag}-{kind}.pv'
+        path.write_text(model(3,kind,with_stage3=True,profiles=profiles))
+        jobs.append(f'{path.stem}|{path.relative_to(ROOT)}|{kind}|3')
+    src=(MODELS/f'sras-n3-{tag}-primary.pv').read_text()
+    blocks=list(re.finditer(r'^query\b.*?\.',src,re.M|re.S))
+    timed_jobs=[]
+    for i in range(1,len(blocks)+1):
+        timed=src
+        for j,m in reversed(list(enumerate(blocks,1))):
+            if j!=i:
+                timed=timed[:m.start()]+f'(* Q{j} omitted only for isolated timing. *)'+timed[m.end():]
+        path=ROOT/'queries'/f'n3-{tag}-Q{i}.pv'
+        path.write_text(timed)
+        timed_jobs.append(f'{path.stem}|{path.relative_to(ROOT)}|primary-single|3')
+    stage3=['bad-measurement','bad-signer','bad-product','bad-svn','bad-tcb',
+            'revoked-tcb','invalid-tcb','wrong-attester','wrong-challenge','invalid-signature']
+    regressions=[]
+    for scenario in stage3:
+        path=SCENARIOS/f'n3-{tag}-{scenario}.pv'
+        path.write_text(model(3,'regression',scenario,with_stage3=True,profiles=profiles))
+        regressions.append(f'{path.stem}|{path.relative_to(ROOT)}|regression-stage3|3')
+    for name,lines in [(f'jobs-{tag}.txt',jobs),(f'jobs-{tag}-single.txt',timed_jobs),
+                       (f'jobs-{tag}-regression.txt',regressions)]:
+        (ROOT/name).write_text('\n'.join(lines)+'\n')
+    # The user's original N3 entry point now runs all four requested properties.
+    (ROOT.parent/'sras-n3.pv').write_text(src)
+    if profiles is not None:
+        (MODELS/'policy-catalog-p12.json').write_text(json.dumps({pr:policy(3,3,pr) for pr in profiles},indent=2)+'\n')
+    print(f'Generated N3 {tag}; baseline models and logs preserved.')
+
+
+STAGE1_EVENTS = '''
+(* HonestOwner specifies the uncompromised keys covered by Authorization. *)
+event HonestOwner(pkey).
+event OwnerChallenge(pkey,nonce).
+event OwnerAttested(pkey,pkey,policy,nonce).
+event OwnerSigned(pkey,pkey,bitstring).
+event AuthorizationReceived(party,pkey,policy,pkey).
+event AuthorizationSignatureChecked(party,pkey,policy,pkey).
+event AuthorizationSelfChecked(party,pkey,policy,pkey).
+event AuthorizationAccepted(party,pkey,policy,pkey,attr).
+event AuthorizedPolicyDeclared(party,pkey,policy).
+'''
+
+AUTHORIZATION = '''
+(* The policy's claimed self signer, not an assumed owner identity, selects
+   the honest authority. A malicious owner signing with its own key is allowed. *)
+query a:party,k:pkey,r:policy,supplied:pkey,honest:pkey;
+  event(AuthorizationAccepted(a,k,r,supplied,H(honest))) && event(HonestOwner(honest))
+  ==> event(OwnerSigned(honest,k,hpol(r))).
+'''
+
+def stage1_owner(i):
+    return f'''
+(* Owner {i} learns the RPE key only through the public Quote exchange. *)
+let owner{i}(pkAKR:pkey) =
+  let rho={policy(3,i)} in
+  new n:nonce;
+  event OwnerChallenge(pk(skO{i}),n);
+  out(net,(P{i},n));
+  in(net,(=P{i},candidate:pkey,q:bitstring));
+  let rpeQuote(=mRPE,status:tcbstatus,binding:bitstring)=checksign(q,pkAKR) in
+  if binding=hbind(candidate,n) then
+  let platformOK=matchtcb(rpeTcb{i}(rho),status) in
+  if platformOK=true then
+  event OwnerAttested(pk(skO{i}),candidate,rho,n);
+  let authorization=sign((candidate,hpol(rho)),skO{i}) in
+  event OwnerSigned(pk(skO{i}),candidate,hpol(rho));
+  out(net,(P{i},candidate,rho,authorization,pk(skO{i}))).
+'''
+
+def stage123_role(i):
+    """Reuse the baseline Stage 2-3 suffix with the ACTUAL authorized state."""
+    old=role(3,i,with_stage3=True)
+    marker=f'  let q{i} = sign('
+    suffix=old[old.index(marker):]
+    # Put the quote service beside, not before, the actual authorization receiver.
+    # Same RPE key in both branches; no secret provisioning channel.
+    assert suffix.endswith('.\n')
+    suffix=suffix[:-2]+'\n  ).\n'
+    return f'''
+let rpe{i}(akR:skey,pkAKR:pkey,pkAKE:pkey) =
+  new sk{i}:skey;
+  let pk{i}=pk(sk{i}) in
+  out(net,(P{i},pk{i}));
+  (
+    (* An initial Quote is obtainable for any requested nonce, even after
+       authorization. Its payload is NOT separated from Stage 2 by a tag. *)
+    (!in(net,(=P{i},requested:nonce));
+      out(net,(P{i},pk{i},sign(rpeQuote(mRPE,Good,hbind(pk{i},requested)),akR))))
+  |
+    in(net,(=P{i},=pk{i},rho{i}:policy,authorization:bitstring,ownerKey:pkey)) [precise];
+    event AuthorizationReceived(P{i},pk{i},rho{i},ownerKey);
+    let (signedKey:pkey,signedHash:bitstring)=checksign(authorization,ownerKey) in
+    if signedKey=pk{i} && signedHash=hpol(rho{i}) then
+    event AuthorizationSignatureChecked(P{i},pk{i},rho{i},ownerKey);
+    if policySelf(rho{i})=P{i} then
+    event AuthorizationSelfChecked(P{i},pk{i},rho{i},ownerKey);
+    let Req(cm:ident,exact(selfSigner:attr),cp:ident,cv:svn,ct:tcbreq,ca:attreq)=starEntry{i}(constraints(rho{i})) in
+    if selfSigner=H(ownerKey) && ca=Assign(P{i}) then
+    event AuthorizationAccepted(P{i},pk{i},rho{i},ownerKey,selfSigner);
+    event AuthorizedPolicyDeclared(P{i},pk{i},rho{i});
+    event PolicyDeclared(P{i},rho{i});
+'''+suffix
+
+def common_hash_encoding(text):
+    """Inline legacy hash names as one H over canonically serialized inputs.
+
+    In particular Stage 1 H(key,nonce) and Stage 2 H(key,H(policy)) have the
+    SAME shape. Nonces and keys use bytes, so no type barrier prevents mixing.
+    """
+    for name in ('hpol','hbind','hstar','hchal','hcert'):
+        text=re.sub(r'^fun '+name+r'\([^\n]*\n','',text,flags=re.M)
+    def rewrite(src):
+        pattern=re.compile(r'\b(hpol|hbind|hstar|hchal|hcert)\(')
+        match=pattern.search(src)
+        if match is None:return src
+        pos=match.end();depth=1;start=pos;args=[]
+        while depth:
+            ch=src[pos]
+            if ch=='(':depth+=1
+            elif ch==')':depth-=1
+            if ch==',' and depth==1:
+                args.append(src[start:pos].strip());start=pos+1
+            if depth==0:args.append(src[start:pos].strip())
+            pos+=1
+        args=[rewrite(a) for a in args]
+        name=match[1]
+        if name=='hpol':value=f'H(policyBytes({args[0]}))'
+        elif name=='hstar':value=f'H(starBytes({args[0]}))'
+        elif name=='hchal':value=f'H(({args[1]},{args[0]}))'
+        else:value='H(('+','.join(args)+'))'
+        return src[:match.start()]+value+rewrite(src[pos:])
+    text=rewrite(text)
+    for oldtype in ('attr','nonce','pkey'):
+        text=text.replace(f'type {oldtype}.\n','')
+        text=re.sub(r'\b'+oldtype+r'\b','bitstring',text)
+    for i in (1,2,3):
+        text=text.replace(f'const s{i}: bitstring [data].\n','')
+        text=re.sub(r'\bs'+str(i)+r'\b',f'H(pk(skO{i}))',text)
+    return text
+
+def stage123_model(kind='primary'):
+    declarations='''type skey.
+fun pk(skey):bitstring.
+const skO1,skO2,skO3:skey [private].
+fun H(bitstring):bitstring.
+'''+ALGEBRA+schema(3,'',EXTENDED_PROFILES).replace('type skey.\n','')
+    # Bound the adversary's POLICY domain without inserting an extra protocol
+    # allow-list check after authorization. Public factories expose every P3
+    # profile; both honest policies are also published. Public projections keep
+    # fields readable. All RPEs still accept arbitrary messages/owner keys and
+    # actually check signatures, Self, self signer, and own attester.
+    declarations=re.sub(r'(fun pol\([^\n]*: policy) \[data\]\.',r'\1 [private].',declarations)
+    crypto=CRYPTO.replace('fun pk(skey): pkey.', '''fun policyBytes(policy):bitstring [data].
+fun starBytes(polstar):bitstring [data].''')
+    queries=AUTHORIZATION+PRIMARY+ISSUANCE
+    if kind=='auxiliary':
+        queries=auxiliary(3,with_stage3=True)+'''
+query a:party,k:pkey,r:policy,o:pkey,s:attr;
+  event(AuthorizedPolicyDeclared(a,k,r)) ==> event(AuthorizationAccepted(a,k,r,o,s)).
+query a:party,b:party,ka:pkey,kb:pkey,r:policy,o:pkey,s:attr;
+  event(PolicyAcceptedKeys(a,b,ka,kb,r)) ==> event(AuthorizationAccepted(b,kb,r,o,s)).
+query o:pkey,k:pkey,r:policy,n:nonce;
+  event(OwnerSigned(o,k,hpol(r))) ==> event(OwnerAttested(o,k,r,n)).
+'''
+    elif kind in ('reachability','reachability-profile12'):
+        witness=None
+        if kind=='reachability-profile12':
+            witness=render(merge_star(3,constraints_term(3,policy(3,1)),
+                                         constraints_term(3,policy(3,3,'StrongerSVNE2'))))
+        variables=[];facts=[]
+        for i in (1,2,3):
+            if witness is None:variables.append(f'x{i}:polstar')
+            variables += [f'kr{i}:pkey',f'ke{i}:pkey',f'n{i}:nonce',f'id{i}:identity',f't{i}:tcbstatus',f'b{i}:bitstring',f'r{i}:policy',f'o{i}:pkey',f's{i}a:attr']
+            x=witness or f'x{i}'
+            facts += [f'event(AuthorizationAccepted(P{i},kr{i},r{i},o{i},s{i}a))',f'event(Confirm(P{i},{x}))',f'event(CertIssued(P{i},E{i},kr{i},ke{i},n{i},id{i},t{i},{x},b{i}))']
+        queries='query '+','.join(variables)+';\n  '+' &&\n  '.join(facts)+'.\n'
+    text='''(* N3 Stage 1-3; extension of 3766338 with twelve explicit P3 profiles.
+   Two honest owner keys; O3's signing key is public, RPE keys protected.
+   One initialization; three fixed role/instance pairs P1/E1, P2/E2, P3/E3.
+   Stage 1 and Stage 2 use the SAME rpeQuote/hardware key/report-data format.
+   The finite policy domain is a scope restriction, not a new wire check.
+   Stage 3 retains the baseline distinct TEE hardware-key abstraction.
+*)\n'''+declarations+crypto+STAGE1_EVENTS+queries
+    text+=ATTEST+instance('')+stage1_owner(1)+stage1_owner(2)
+    text+=''.join(stage123_role(i) for i in (1,2,3))
+    text+='''
+process
+  new akRPE:skey;
+  new akTEE:skey;
+  new akADV:skey;
+  event HonestOwner(pk(skO1));
+  event HonestOwner(pk(skO2));
+  out(net,(pk(akRPE),pk(akTEE),pk(akADV),akADV,pk(skO1),pk(skO2),pk(skO3),skO3));
+'''
+    text+=f'  out(net,({policy(3,1)},{policy(3,2)}));\n'
+    text+='  (owner1(pk(akRPE)) | owner2(pk(akRPE)) |\n'
+    text+=' |\n'.join(f'   rpe{i}(akRPE,pk(akRPE),pk(akTEE))' for i in (1,2,3))
+    text+=' | !instance(akTEE))\n'
+    return common_hash_encoding(text)
+
+def stage123_main():
+    for kind in ('primary','auxiliary','reachability','reachability-profile12'):
+        (MODELS/f'sras-n3-stage123-{kind}.pv').write_text(stage123_model(kind))
+    source=stage123_model()
+    blocks=list(re.finditer(r'^query\b.*?\.',source,re.M|re.S))
+    names=['Authorization','Agreement','Authenticity','Completeness','Issuance']
+    assert len(blocks)==len(names)
+    jobs=[]
+    for i,name in enumerate(names):
+        single=source
+        for j,m in reversed(list(enumerate(blocks))):
+            if i!=j:single=single[:m.start()]+f'(* {names[j]} queried separately. *)'+single[m.end():]
+        path=ROOT/'queries'/f'n3-stage123-{name}.pv'
+        path.write_text(single)
+        jobs.append(f'{path.stem}|{path.relative_to(ROOT)}|{name}|3')
+    (ROOT/'jobs-stage123-single.txt').write_text('\n'.join(jobs)+'\n')
+    (ROOT/'jobs-stage123-pilot.txt').write_text('\n'.join([jobs[0],jobs[1]])+'\n')
+    (ROOT/'jobs-stage123-remaining.txt').write_text('\n'.join(jobs[2:])+'\n')
+    (ROOT/'jobs-stage123-normal.txt').write_text('sras-n3-stage123-reachability|models/sras-n3-stage123-reachability.pv|reachability|3\n')
+    (ROOT/'jobs-stage123-checks.txt').write_text('\n'.join(f'sras-n3-stage123-{k}|models/sras-n3-stage123-{k}.pv|{k}|3' for k in ('auxiliary','reachability'))+'\n')
+    aux=stage123_model('auxiliary')
+    blocks=list(re.finditer(r'^query\b.*?\.',aux,re.M|re.S))
+    grouped=[[],[],[]]
+    for i in range(len(blocks)):
+        single=aux
+        for j,m in reversed(list(enumerate(blocks))):
+            if i!=j:single=single[:m.start()]+f'(* Auxiliary {j+1} queried separately. *)'+single[m.end():]
+        path=ROOT/'queries'/f'n3-stage123-A{i+1:02d}.pv'
+        path.write_text(single)
+        grouped[min(i//5,2)].append(f'{path.stem}|{path.relative_to(ROOT)}|auxiliary|3')
+    for i,jobs in enumerate(grouped,1):
+        (ROOT/f'jobs-stage123-auxiliary{i}.txt').write_text('\n'.join(jobs)+'\n')
+    (ROOT/'jobs-stage123-profile12.txt').write_text('sras-n3-stage123-reachability-profile12|models/sras-n3-stage123-reachability-profile12.pv|reachability|3\n')
+    (MODELS/'policy-catalog-p12.json').write_text(json.dumps({pr:policy(3,3,pr) for pr in EXTENDED_PROFILES},indent=2)+'\n')
+    (MODELS/'policy-catalog-stage123-p12.json').write_text(json.dumps({pr:common_hash_encoding(policy(3,3,pr)) for pr in EXTENDED_PROFILES},indent=2)+'\n')
+    (ROOT.parent/'sras-n3.pv').write_text(source)
+    print('Generated Stage 1-3 owner authorization, same-key continuation, and five property queries.')
+
+if __name__ == '__main__':
+    cli=argparse.ArgumentParser(description=__doc__)
+    cli.add_argument('--stage23',action='store_true',help='Extend commit 3766338 N3 with its existing N2 Stage 3')
+    cli.add_argument('--profiles12',action='store_true',help='Add the E2-only minimum-SVN strengthening profile')
+    cli.add_argument('--stage123',action='store_true',help='Add real owner authorization before the three-party Stage 2-3 process')
+    args=cli.parse_args()
+    if args.stage123:stage123_main()
+    elif args.stage23:stage23_main(EXTENDED_PROFILES if args.profiles12 else None)
+    else:main()

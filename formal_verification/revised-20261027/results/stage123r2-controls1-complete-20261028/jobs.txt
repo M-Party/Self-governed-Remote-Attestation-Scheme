@@ -1,0 +1,15 @@
+n3-stage123r2-control-normal|scenarios/n3-stage123r2-control-normal.pv|controlled-full-Stage123|3
+n3-stage123r2-control-missing-quote|scenarios/n3-stage123r2-control-missing-quote.pv|controlled-full-Stage123|3
+n3-stage123r2-control-bad-rpe-code|scenarios/n3-stage123r2-control-bad-rpe-code.pv|controlled-full-Stage123|3
+n3-stage123r2-control-missing-policy|scenarios/n3-stage123r2-control-missing-policy.pv|controlled-full-Stage123|3
+n3-stage123r2-control-policy-hash-mismatch|scenarios/n3-stage123r2-control-policy-hash-mismatch.pv|controlled-full-Stage123|3
+n3-stage123r2-control-duplicate-confirmation|scenarios/n3-stage123r2-control-duplicate-confirmation.pv|controlled-full-Stage123|3
+n3-stage123r2-control-conflict-measurement|scenarios/n3-stage123r2-control-conflict-measurement.pv|controlled-full-Stage123|3
+n3-stage123r2-control-conflict-product|scenarios/n3-stage123r2-control-conflict-product.pv|controlled-full-Stage123|3
+n3-stage123r2-control-conflict-attester|scenarios/n3-stage123r2-control-conflict-attester.pv|controlled-full-Stage123|3
+n3-stage123r2-control-bad-measurement|scenarios/n3-stage123r2-control-bad-measurement.pv|controlled-full-Stage123|3
+n3-stage123r2-control-bad-product|scenarios/n3-stage123r2-control-bad-product.pv|controlled-full-Stage123|3
+n3-stage123r2-control-bad-tcb|scenarios/n3-stage123r2-control-bad-tcb.pv|controlled-full-Stage123|3
+n3-stage123r2-control-invalid-tcb|scenarios/n3-stage123r2-control-invalid-tcb.pv|controlled-full-Stage123|3
+n3-stage123r2-control-wrong-challenge|scenarios/n3-stage123r2-control-wrong-challenge.pv|controlled-full-Stage123|3
+n3-stage123r2-control-invalid-signature|scenarios/n3-stage123r2-control-invalid-signature.pv|controlled-full-Stage123|3

@@ -1,0 +1,247 @@
+Process 0 (that is, the initial process):
+{1}new akR: skey;
+{2}new akE: skey;
+(
+    {3}let akR_1: skey = akR in
+    {4}let pkAKR: bitstring = pk(akR) in
+    {5}let pkAKE: bitstring = pk(akE) in
+    {6}new sk3: skey;
+    {7}let pk3: bitstring = pk(sk3) in
+    {8}out(net, (P3,pk3));
+    (
+        {9}!
+        {10}in(net, (=P3,requested: bitstring));
+        {11}out(net, (P3,pk3,sign(rpeQuote(mRPE,Good,H((pk3,requested))),akR_1)))
+    ) | (
+        {12}in(net, (=P3,=pk3,rho3: policy,authorization: bitstring,ownerKey: bitstring));
+        {13}event AuthorizationReceived(P3,pk3,rho3,ownerKey);
+        {14}let (signedKey: bitstring,signedHash: bitstring) = checksign(authorization,ownerKey) in
+        {15}event FixtureAuthorizationCryptoChecked;
+        {16}if ((signedKey = pk3) && (signedHash = H(policyBytes(rho3)))) then
+        {17}event AuthorizationSignatureChecked(P3,pk3,rho3,ownerKey);
+        {18}if ((policySelf(rho3) = P3) && (policySelfTEE(rho3) = E3)) then
+        {19}event AuthorizationSelfChecked(P3,pk3,rho3,ownerKey);
+        {20}let Req(cm: ident,exact(selfSigner: bitstring),cp: ident,cv: svn,ct: tcbreq,ca: attreq) = starEntry3(constraints(rho3)) in
+        {21}if ((selfSigner = H(ownerKey)) && (ca = Assign(P3))) then
+        {22}event AuthorizationAccepted(P3,pk3,rho3,ownerKey,selfSigner)
+    )
+) | (
+    {23}let akR_2: skey = akR in
+    {24}new wrong: skey;
+    {25}new n: bitstring;
+    {26}in(net, (=P3,k: bitstring));
+    {27}out(net, (P3,n));
+    {28}in(net, (=P3,=k,q: bitstring));
+    {29}let rpeQuote(=mRPE,=Good,=H((k,n))) = checksign(q,pk(akR_2)) in
+    {30}event FixtureQuoteReady;
+    {31}out(net, (P3,k,pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((k,H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),wrong),pk(skO3)))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new akR: skey;
+{2}new akE: skey;
+(
+    {6}new sk3: skey;
+    {7}let pk3: bitstring = pk(sk3) in
+    {8}out(net, (P3,pk3));
+    (
+        {9}!
+        {10}in(net, (=P3,requested: bitstring));
+        {3}let akR_1: skey = akR in
+        {11}out(net, (P3,pk3,sign(rpeQuote(mRPE,Good,H((pk3,requested))),akR_1)))
+    ) | (
+        {12}in(net, (=P3,=pk3,rho3: policy,authorization: bitstring,ownerKey: bitstring));
+        {13}event AuthorizationReceived(P3,pk3,rho3,ownerKey);
+        {14}let (signedKey: bitstring,signedHash: bitstring) = checksign(authorization,ownerKey) in
+        {15}event FixtureAuthorizationCryptoChecked;
+        {16}if ((signedKey = pk3) && (signedHash = H(policyBytes(rho3)))) then
+        {17}event AuthorizationSignatureChecked(P3,pk3,rho3,ownerKey);
+        {18}if ((policySelf(rho3) = P3) && (policySelfTEE(rho3) = E3)) then
+        {19}event AuthorizationSelfChecked(P3,pk3,rho3,ownerKey);
+        {20}let Req(cm: ident,exact(selfSigner: bitstring),cp: ident,cv: svn,ct: tcbreq,ca: attreq) = starEntry3(constraints(rho3)) in
+        {21}if ((selfSigner = H(ownerKey)) && (ca = Assign(P3))) then
+        {22}event AuthorizationAccepted(P3,pk3,rho3,ownerKey,selfSigner)
+    )
+) | (
+    {24}new wrong: skey;
+    {25}new n: bitstring;
+    {26}in(net, (=P3,k: bitstring));
+    {27}out(net, (P3,n));
+    {28}in(net, (=P3,=k,q: bitstring));
+    {23}let akR_2: skey = akR in
+    {29}let rpeQuote(=mRPE,=Good,=H((k,n))) = checksign(q,pk(akR_2)) in
+    {30}event FixtureQuoteReady;
+    {31}out(net, (P3,k,pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((k,H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),wrong),pk(skO3)))
+)
+
+-- Query not event(FixtureQuoteReady) in process 1.
+Translating the process into Horn clauses...
+Termination warning: Selecting an hypothesis matching the conclusion.
+In case of non-termination, try a noselect declaration implying the following one:
+   noselect k_1:bitstring; mess(net[],(P3,k_1)).
+Completing...
+Starting query not event(FixtureQuoteReady)
+goal reachable: event(FixtureQuoteReady)
+
+Derivation:
+
+1. The message (P3,pk(sk3[])) may be sent on channel net[] at output {8}.
+mess(net[],(P3,pk(sk3[]))).
+
+2. The message (P3,pk(sk3[])) that may be sent on channel net[] by 1 may be received at input {26}.
+So the message (P3,n[]) may be sent on channel net[] at output {27}.
+mess(net[],(P3,n[])).
+
+3. The message (P3,n[]) that may be sent on channel net[] by 2 may be received at input {10}.
+So the message (P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n[]))),akR[])) may be sent on channel net[] at output {11}.
+mess(net[],(P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n[]))),akR[]))).
+
+4. The message (P3,pk(sk3[])) that may be sent on channel net[] by 1 may be received at input {26}.
+The message (P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n[]))),akR[])) that may be sent on channel net[] by 3 may be received at input {28}.
+So event FixtureQuoteReady may be executed at {30}.
+event(FixtureQuoteReady).
+
+5. By 4, event(FixtureQuoteReady).
+The goal is reached, represented in the following fact:
+event(FixtureQuoteReady).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new akR: skey creating akR_3 at {1}
+
+new akE: skey creating akE_1 at {2}
+
+new wrong: skey creating wrong_1 at {24}
+
+new n: bitstring creating n_1 at {25}
+
+new sk3: skey creating sk3_1 at {6}
+
+out(net, (P3,pk(sk3_1))) at {8} received at {26}
+
+out(net, (P3,n_1)) at {27} received at {10} in copy a
+
+out(net, (P3,pk(sk3_1),sign(rpeQuote(mRPE,Good,H((pk(sk3_1),n_1))),akR_3))) at {11} in copy a received at {28}
+
+event FixtureQuoteReady at {30} (goal)
+
+The event FixtureQuoteReady is executed at {30}.
+A trace has been found.
+RESULT not event(FixtureQuoteReady) is false.
+-- Query not event(AuthorizationReceived(P3,k_1,r,o)) in process 1.
+Translating the process into Horn clauses...
+Termination warning: Selecting an hypothesis matching the conclusion.
+In case of non-termination, try a noselect declaration implying the following one:
+   noselect k_1:bitstring; mess(net[],(P3,k_1)).
+Completing...
+Starting query not event(AuthorizationReceived(P3,k_1,r,o))
+goal reachable: b-event(@p_act(@occ12_1[],(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),wrong[]),pk(skO3)))) -> event(AuthorizationReceived(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO3)))
+
+Derivation:
+
+1. The message (P3,pk(sk3[])) may be sent on channel net[] at output {8}.
+mess(net[],(P3,pk(sk3[]))).
+
+2. The message (P3,pk(sk3[])) that may be sent on channel net[] by 1 may be received at input {26}.
+So the message (P3,n[]) may be sent on channel net[] at output {27}.
+mess(net[],(P3,n[])).
+
+3. The message (P3,n[]) that may be sent on channel net[] by 2 may be received at input {10}.
+So the message (P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n[]))),akR[])) may be sent on channel net[] at output {11}.
+mess(net[],(P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n[]))),akR[]))).
+
+4. The message (P3,pk(sk3[])) that may be sent on channel net[] by 1 may be received at input {26}.
+The message (P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n[]))),akR[])) that may be sent on channel net[] by 3 may be received at input {28}.
+So the message (P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),wrong[]),pk(skO3)) may be sent on channel net[] at output {31}.
+mess(net[],(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),wrong[]),pk(skO3))).
+
+5. The event @p_act(@occ12_1[],(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),wrong[]),pk(skO3))) records how variables are instantiated at {12}.
+The message (P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),wrong[]),pk(skO3)) that may be sent on channel net[] by 4 may be received at input {12}.
+So event AuthorizationReceived(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO3)) may be executed at {13}.
+event(AuthorizationReceived(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO3))).
+
+6. By 5, event(AuthorizationReceived(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO3))).
+The goal is reached, represented in the following fact:
+event(AuthorizationReceived(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO3))).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new akR: skey creating akR_3 at {1}
+
+new akE: skey creating akE_1 at {2}
+
+new wrong: skey creating wrong_1 at {24}
+
+new n: bitstring creating n_1 at {25}
+
+new sk3: skey creating sk3_1 at {6}
+
+out(net, (P3,pk(sk3_1))) at {8} received at {26}
+
+out(net, (P3,n_1)) at {27} received at {10} in copy a
+
+out(net, (P3,pk(sk3_1),sign(rpeQuote(mRPE,Good,H((pk(sk3_1),n_1))),akR_3))) at {11} in copy a received at {28}
+
+event FixtureQuoteReady at {30}
+
+out(net, (P3,pk(sk3_1),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3_1),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),wrong_1),pk(skO3))) at {31} received at {12}
+
+event AuthorizationReceived(P3,pk(sk3_1),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO3)) at {13} (goal)
+
+The event AuthorizationReceived(P3,pk(sk3_1),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO3)) is executed at {13}.
+A trace has been found.
+RESULT not event(AuthorizationReceived(P3,k_1,r,o)) is false.
+-- Query not event(FixtureAuthorizationCryptoChecked) in process 1.
+Translating the process into Horn clauses...
+Termination warning: Selecting an hypothesis matching the conclusion.
+In case of non-termination, try a noselect declaration implying the following one:
+   noselect k_1:bitstring; mess(net[],(P3,k_1)).
+Completing...
+Starting query not event(FixtureAuthorizationCryptoChecked)
+RESULT not event(FixtureAuthorizationCryptoChecked) is true.
+-- Query not event(AuthorizationSignatureChecked(P3,k_1,r,o)) in process 1.
+Translating the process into Horn clauses...
+Termination warning: Selecting an hypothesis matching the conclusion.
+In case of non-termination, try a noselect declaration implying the following one:
+   noselect k_1:bitstring; mess(net[],(P3,k_1)).
+Completing...
+Starting query not event(AuthorizationSignatureChecked(P3,k_1,r,o))
+RESULT not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is true.
+-- Query not event(AuthorizationSelfChecked(P3,k_1,r,o)) in process 1.
+Translating the process into Horn clauses...
+Termination warning: Selecting an hypothesis matching the conclusion.
+In case of non-termination, try a noselect declaration implying the following one:
+   noselect k_1:bitstring; mess(net[],(P3,k_1)).
+Completing...
+Starting query not event(AuthorizationSelfChecked(P3,k_1,r,o))
+RESULT not event(AuthorizationSelfChecked(P3,k_1,r,o)) is true.
+-- Query not event(AuthorizationAccepted(P3,k_1,r,o,s)) in process 1.
+Translating the process into Horn clauses...
+Termination warning: Selecting an hypothesis matching the conclusion.
+In case of non-termination, try a noselect declaration implying the following one:
+   noselect k_1:bitstring; mess(net[],(P3,k_1)).
+Completing...
+Starting query not event(AuthorizationAccepted(P3,k_1,r,o,s))
+RESULT not event(AuthorizationAccepted(P3,k_1,r,o,s)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not event(FixtureQuoteReady) is false.
+
+Query not event(AuthorizationReceived(P3,k_1,r,o)) is false.
+
+Query not event(FixtureAuthorizationCryptoChecked) is true.
+
+Query not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is true.
+
+Query not event(AuthorizationSelfChecked(P3,k_1,r,o)) is true.
+
+Query not event(AuthorizationAccepted(P3,k_1,r,o,s)) is true.
+
+--------------------------------------------------------------
+

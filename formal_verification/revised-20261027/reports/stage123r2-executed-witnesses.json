@@ -1,0 +1,26 @@
+[
+  {
+    "model": "sras-n3-stage123r2-reachability",
+    "actual_P3_profile": "PermissiveRpeTCB",
+    "actual_P3_policy": "pol(P3,E3,Members3,Both,Both,Both,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))",
+    "log": "results/stage123r2-witness-20261028/sras-n3-stage123r2-reachability/output.log",
+    "executed_event_line": 2539,
+    "elapsed_seconds": 109.74
+  },
+  {
+    "model": "sras-n3-stage123r2-reachability-profile12",
+    "actual_P3_profile": "StrongerSVNE2",
+    "actual_P3_policy": "pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))",
+    "log": "results/stage123r2-witness-20261028/sras-n3-stage123r2-reachability-profile12/output.log",
+    "executed_event_line": 2541,
+    "elapsed_seconds": 93.61
+  },
+  {
+    "model": "sras-n3-stage123r2-reachability-weak",
+    "actual_P3_profile": "Weak",
+    "actual_P3_policy": "pol(P3,E3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(H(pk(skO3))),Any,V0,Both,Assign(P3)))",
+    "log": "results/stage123r2-witness-20261028/sras-n3-stage123r2-reachability-weak/output.log",
+    "executed_event_line": 2538,
+    "elapsed_seconds": 81.0
+  }
+]

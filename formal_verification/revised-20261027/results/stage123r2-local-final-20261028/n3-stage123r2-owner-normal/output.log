@@ -1,0 +1,270 @@
+Process 0 (that is, the initial process):
+{1}new akR: skey;
+(
+    {2}let pkAKR: bitstring = pk(akR) in
+    {3}let rho: policy = pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {4}new n: bitstring;
+    {5}event OwnerChallenge(pk(skO1),n);
+    {6}out(net, (P1,n));
+    {7}in(net, (=P1,candidate: bitstring,q: bitstring));
+    {8}let signedQuote: bitstring = checksign(q,pkAKR) in
+    {9}event FixtureOwnerCryptoChecked;
+    {10}let rpeQuote(=mRPE,status: tcbstatus,binding: bitstring) = signedQuote in
+    {11}if (binding = H((candidate,n))) then
+    {12}let platformOK: bool = matchtcb(rpeTcb1(rho),status) in
+    {13}if (platformOK = true) then
+    {14}event OwnerAttested(pk(skO1),candidate,rho,n);
+    {15}let authorization: bitstring = sign((candidate,H(policyBytes(rho))),skO1) in
+    {16}event OwnerSigned(pk(skO1),candidate,H(policyBytes(rho)));
+    {17}out(net, (P1,candidate,rho,authorization,pk(skO1)))
+) | (
+    {18}let akR_1: skey = akR in
+    {19}new target: skey;
+    {20}new wrong: skey;
+    {21}new stale: bitstring;
+    {22}in(net, (=P1,n_1: bitstring));
+    {23}event FixtureOwnerResponseSent;
+    {24}out(net, (P1,pk(target),sign(rpeQuote(mRPE,Good,H((pk(target),n_1))),akR_1)))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new akR: skey;
+(
+    {4}new n: bitstring;
+    {5}event OwnerChallenge(pk(skO1),n);
+    {6}out(net, (P1,n));
+    {7}in(net, (=P1,candidate: bitstring,q: bitstring));
+    {2}let pkAKR: bitstring = pk(akR) in
+    {8}let signedQuote: bitstring = checksign(q,pkAKR) in
+    {9}event FixtureOwnerCryptoChecked;
+    {10}let rpeQuote(=mRPE,status: tcbstatus,binding: bitstring) = signedQuote in
+    {11}if (binding = H((candidate,n))) then
+    {3}let rho: policy = pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {12}let platformOK: bool = matchtcb(rpeTcb1(rho),status) in
+    {13}if (platformOK = true) then
+    {14}event OwnerAttested(pk(skO1),candidate,rho,n);
+    {16}event OwnerSigned(pk(skO1),candidate,H(policyBytes(rho)));
+    {15}let authorization: bitstring = sign((candidate,H(policyBytes(rho))),skO1) in
+    {17}out(net, (P1,candidate,rho,authorization,pk(skO1)))
+) | (
+    {19}new target: skey;
+    {20}new wrong: skey;
+    {21}new stale: bitstring;
+    {22}in(net, (=P1,n_1: bitstring));
+    {23}event FixtureOwnerResponseSent;
+    {18}let akR_1: skey = akR in
+    {24}out(net, (P1,pk(target),sign(rpeQuote(mRPE,Good,H((pk(target),n_1))),akR_1)))
+)
+
+-- Query not event(FixtureOwnerResponseSent) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(FixtureOwnerResponseSent)
+goal reachable: event(FixtureOwnerResponseSent)
+
+Derivation:
+
+1. The message (P1,n[]) may be sent on channel net[] at output {6}.
+mess(net[],(P1,n[])).
+
+2. The message (P1,n[]) that may be sent on channel net[] by 1 may be received at input {22}.
+So event FixtureOwnerResponseSent may be executed at {23}.
+event(FixtureOwnerResponseSent).
+
+3. By 2, event(FixtureOwnerResponseSent).
+The goal is reached, represented in the following fact:
+event(FixtureOwnerResponseSent).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new akR: skey creating akR_2 at {1}
+
+new target: skey creating target_1 at {19}
+
+new wrong: skey creating wrong_1 at {20}
+
+new stale: bitstring creating stale_1 at {21}
+
+new n: bitstring creating n_2 at {4}
+
+event OwnerChallenge(pk(skO1),n_2) at {5}
+
+out(net, (P1,n_2)) at {6} received at {22}
+
+event FixtureOwnerResponseSent at {23} (goal)
+
+The event FixtureOwnerResponseSent is executed at {23}.
+A trace has been found.
+RESULT not event(FixtureOwnerResponseSent) is false.
+-- Query not event(FixtureOwnerCryptoChecked) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(FixtureOwnerCryptoChecked)
+goal reachable: event(FixtureOwnerCryptoChecked)
+
+Derivation:
+
+1. The message (P1,n[]) may be sent on channel net[] at output {6}.
+mess(net[],(P1,n[])).
+
+2. The message (P1,n[]) that may be sent on channel net[] by 1 may be received at input {22}.
+So the message (P1,pk(target[]),sign(rpeQuote(mRPE,Good,H((pk(target[]),n[]))),akR[])) may be sent on channel net[] at output {24}.
+mess(net[],(P1,pk(target[]),sign(rpeQuote(mRPE,Good,H((pk(target[]),n[]))),akR[]))).
+
+3. The message (P1,pk(target[]),sign(rpeQuote(mRPE,Good,H((pk(target[]),n[]))),akR[])) that may be sent on channel net[] by 2 may be received at input {7}.
+So event FixtureOwnerCryptoChecked may be executed at {9}.
+event(FixtureOwnerCryptoChecked).
+
+4. By 3, event(FixtureOwnerCryptoChecked).
+The goal is reached, represented in the following fact:
+event(FixtureOwnerCryptoChecked).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new akR: skey creating akR_2 at {1}
+
+new target: skey creating target_1 at {19}
+
+new wrong: skey creating wrong_1 at {20}
+
+new stale: bitstring creating stale_1 at {21}
+
+new n: bitstring creating n_2 at {4}
+
+event OwnerChallenge(pk(skO1),n_2) at {5}
+
+out(net, (P1,n_2)) at {6} received at {22}
+
+event FixtureOwnerResponseSent at {23}
+
+out(net, (P1,pk(target_1),sign(rpeQuote(mRPE,Good,H((pk(target_1),n_2))),akR_2))) at {24} received at {7}
+
+event FixtureOwnerCryptoChecked at {9} (goal)
+
+The event FixtureOwnerCryptoChecked is executed at {9}.
+A trace has been found.
+RESULT not event(FixtureOwnerCryptoChecked) is false.
+-- Query not event(OwnerAttested(o,k,r,n_2)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(OwnerAttested(o,k,r,n_2))
+goal reachable: event(OwnerAttested(pk(skO1),pk(target[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),n[]))
+
+Derivation:
+
+1. The message (P1,n[]) may be sent on channel net[] at output {6}.
+mess(net[],(P1,n[])).
+
+2. The message (P1,n[]) that may be sent on channel net[] by 1 may be received at input {22}.
+So the message (P1,pk(target[]),sign(rpeQuote(mRPE,Good,H((pk(target[]),n[]))),akR[])) may be sent on channel net[] at output {24}.
+mess(net[],(P1,pk(target[]),sign(rpeQuote(mRPE,Good,H((pk(target[]),n[]))),akR[]))).
+
+3. The message (P1,pk(target[]),sign(rpeQuote(mRPE,Good,H((pk(target[]),n[]))),akR[])) that may be sent on channel net[] by 2 may be received at input {7}.
+So event OwnerAttested(pk(skO1),pk(target[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),n[]) may be executed at {14}.
+event(OwnerAttested(pk(skO1),pk(target[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),n[])).
+
+4. By 3, event(OwnerAttested(pk(skO1),pk(target[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),n[])).
+The goal is reached, represented in the following fact:
+event(OwnerAttested(pk(skO1),pk(target[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),n[])).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new akR: skey creating akR_2 at {1}
+
+new target: skey creating target_1 at {19}
+
+new wrong: skey creating wrong_1 at {20}
+
+new stale: bitstring creating stale_1 at {21}
+
+new n: bitstring creating n_2 at {4}
+
+event OwnerChallenge(pk(skO1),n_2) at {5}
+
+out(net, (P1,n_2)) at {6} received at {22}
+
+event FixtureOwnerResponseSent at {23}
+
+out(net, (P1,pk(target_1),sign(rpeQuote(mRPE,Good,H((pk(target_1),n_2))),akR_2))) at {24} received at {7}
+
+event FixtureOwnerCryptoChecked at {9}
+
+event OwnerAttested(pk(skO1),pk(target_1),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),n_2) at {14} (goal)
+
+The event OwnerAttested(pk(skO1),pk(target_1),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),n_2) is executed at {14}.
+A trace has been found.
+RESULT not event(OwnerAttested(o,k,r,n_2)) is false.
+-- Query not event(OwnerSigned(o,k,h)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+Starting query not event(OwnerSigned(o,k,h))
+goal reachable: event(OwnerSigned(pk(skO1),pk(target[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))
+
+Derivation:
+
+1. The message (P1,n[]) may be sent on channel net[] at output {6}.
+mess(net[],(P1,n[])).
+
+2. The message (P1,n[]) that may be sent on channel net[] by 1 may be received at input {22}.
+So the message (P1,pk(target[]),sign(rpeQuote(mRPE,Good,H((pk(target[]),n[]))),akR[])) may be sent on channel net[] at output {24}.
+mess(net[],(P1,pk(target[]),sign(rpeQuote(mRPE,Good,H((pk(target[]),n[]))),akR[]))).
+
+3. The message (P1,pk(target[]),sign(rpeQuote(mRPE,Good,H((pk(target[]),n[]))),akR[])) that may be sent on channel net[] by 2 may be received at input {7}.
+So event OwnerSigned(pk(skO1),pk(target[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) may be executed at {16}.
+event(OwnerSigned(pk(skO1),pk(target[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))).
+
+4. By 3, event(OwnerSigned(pk(skO1),pk(target[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))).
+The goal is reached, represented in the following fact:
+event(OwnerSigned(pk(skO1),pk(target[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new akR: skey creating akR_2 at {1}
+
+new target: skey creating target_1 at {19}
+
+new wrong: skey creating wrong_1 at {20}
+
+new stale: bitstring creating stale_1 at {21}
+
+new n: bitstring creating n_2 at {4}
+
+event OwnerChallenge(pk(skO1),n_2) at {5}
+
+out(net, (P1,n_2)) at {6} received at {22}
+
+event FixtureOwnerResponseSent at {23}
+
+out(net, (P1,pk(target_1),sign(rpeQuote(mRPE,Good,H((pk(target_1),n_2))),akR_2))) at {24} received at {7}
+
+event FixtureOwnerCryptoChecked at {9}
+
+event OwnerAttested(pk(skO1),pk(target_1),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),n_2) at {14}
+
+event OwnerSigned(pk(skO1),pk(target_1),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) at {16} (goal)
+
+The event OwnerSigned(pk(skO1),pk(target_1),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) is executed at {16}.
+A trace has been found.
+RESULT not event(OwnerSigned(o,k,h)) is false.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not event(FixtureOwnerResponseSent) is false.
+
+Query not event(FixtureOwnerCryptoChecked) is false.
+
+Query not event(OwnerAttested(o,k,r,n_2)) is false.
+
+Query not event(OwnerSigned(o,k,h)) is false.
+
+--------------------------------------------------------------
+

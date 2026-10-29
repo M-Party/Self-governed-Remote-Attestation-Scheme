@@ -1,0 +1,578 @@
+{
+  "domain": "12 complete P3 profiles, two fixed honest policies; no cross-profile field construction",
+  "principal_field_types": [
+    "measurement",
+    "signer",
+    "product",
+    "minimum SVN",
+    "TCB acceptance set",
+    "attester"
+  ],
+  "represented_semantics": [
+    "compatible concrete constraints",
+    "peer wildcards with concrete self signer",
+    "stronger SVN on E1 or E2",
+    "exact-value conflicts",
+    "disjoint TCB sets",
+    "attester conflicts",
+    "unspecified peer attester",
+    "redundant/weaker input"
+  ],
+  "profiles": [
+    {
+      "profile": "Compatible",
+      "policy": "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "compatible_join": true,
+      "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))",
+      "normalized_minimum_SVN": [
+        "V1",
+        "V1",
+        "V1"
+      ]
+    },
+    {
+      "profile": "Weak",
+      "policy": "pol(P3, E3, Members3, Both, Both, Both, Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, exact(H(pk(skO3))), Any, V0, Both, Assign(P3)))",
+      "compatible_join": true,
+      "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))",
+      "normalized_minimum_SVN": [
+        "V1",
+        "V1",
+        "V1"
+      ]
+    },
+    {
+      "profile": "StrongerSVN",
+      "policy": "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V2, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "compatible_join": true,
+      "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))",
+      "normalized_minimum_SVN": [
+        "V2",
+        "V1",
+        "V1"
+      ]
+    },
+    {
+      "profile": "ConflictMeasurement",
+      "policy": "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mBad), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "compatible_join": false,
+      "normalized_join": null,
+      "normalized_minimum_SVN": null
+    },
+    {
+      "profile": "ConflictSigner",
+      "policy": "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(sBad), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "compatible_join": false,
+      "normalized_join": null,
+      "normalized_minimum_SVN": null
+    },
+    {
+      "profile": "ConflictProduct",
+      "policy": "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodB), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "compatible_join": false,
+      "normalized_join": null,
+      "normalized_minimum_SVN": null
+    },
+    {
+      "profile": "ConflictTCB",
+      "policy": "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyOutdated, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "compatible_join": false,
+      "normalized_join": null,
+      "normalized_minimum_SVN": null
+    },
+    {
+      "profile": "ConflictAttester",
+      "policy": "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P3)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "compatible_join": false,
+      "normalized_join": null,
+      "normalized_minimum_SVN": null
+    },
+    {
+      "profile": "RejectPeerTCB",
+      "policy": "pol(P3, E3, Members3, OnlyOutdated, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "compatible_join": false,
+      "normalized_join": null,
+      "normalized_minimum_SVN": null
+    },
+    {
+      "profile": "NoAssignments",
+      "policy": "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, NoAtt), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, NoAtt), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "compatible_join": true,
+      "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))",
+      "normalized_minimum_SVN": [
+        "V1",
+        "V1",
+        "V1"
+      ]
+    },
+    {
+      "profile": "PermissiveRpeTCB",
+      "policy": "pol(P3, E3, Members3, Both, Both, Both, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "compatible_join": true,
+      "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))",
+      "normalized_minimum_SVN": [
+        "V1",
+        "V1",
+        "V1"
+      ]
+    },
+    {
+      "profile": "StrongerSVNE2",
+      "policy": "pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V2, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))",
+      "compatible_join": true,
+      "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))",
+      "normalized_minimum_SVN": [
+        "V1",
+        "V2",
+        "V1"
+      ]
+    }
+  ],
+  "successful_catalog_profiles": 6,
+  "distinct_successful_catalog_joins": 3,
+  "SVN_slice": {
+    "description": "Only P3 minimum SVNs vary; all other fields are Compatible. Each input is admissible under the general field syntax.",
+    "input_combinations": 27,
+    "distinct_successful_join_vectors": [
+      [
+        "V1",
+        "V1",
+        "V1"
+      ],
+      [
+        "V1",
+        "V1",
+        "V2"
+      ],
+      [
+        "V1",
+        "V2",
+        "V1"
+      ],
+      [
+        "V1",
+        "V2",
+        "V2"
+      ],
+      [
+        "V2",
+        "V1",
+        "V1"
+      ],
+      [
+        "V2",
+        "V1",
+        "V2"
+      ],
+      [
+        "V2",
+        "V2",
+        "V1"
+      ],
+      [
+        "V2",
+        "V2",
+        "V2"
+      ]
+    ],
+    "vectors_covered_by_catalog": [
+      [
+        "V1",
+        "V1",
+        "V1"
+      ],
+      [
+        "V1",
+        "V2",
+        "V1"
+      ],
+      [
+        "V2",
+        "V1",
+        "V1"
+      ]
+    ],
+    "missing_vectors": [
+      [
+        "V1",
+        "V1",
+        "V2"
+      ],
+      [
+        "V1",
+        "V2",
+        "V2"
+      ],
+      [
+        "V2",
+        "V1",
+        "V2"
+      ],
+      [
+        "V2",
+        "V2",
+        "V1"
+      ],
+      [
+        "V2",
+        "V2",
+        "V2"
+      ]
+    ],
+    "enumeration": [
+      {
+        "input_minimum_SVN": [
+          "V0",
+          "V0",
+          "V0"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V0",
+          "V0",
+          "V1"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V0",
+          "V0",
+          "V2"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V2"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V2,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V0",
+          "V1",
+          "V0"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V0",
+          "V1",
+          "V1"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V0",
+          "V1",
+          "V2"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V2"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V2,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V0",
+          "V2",
+          "V0"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V2",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V0",
+          "V2",
+          "V1"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V2",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V0",
+          "V2",
+          "V2"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V2",
+          "V2"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V2,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V1",
+          "V0",
+          "V0"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V1",
+          "V0",
+          "V1"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V1",
+          "V0",
+          "V2"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V2"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V2,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V1",
+          "V1",
+          "V0"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V1",
+          "V1",
+          "V1"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V1",
+          "V1",
+          "V2"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V1",
+          "V2"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V2,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V1",
+          "V2",
+          "V0"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V2",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V1",
+          "V2",
+          "V1"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V2",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V1",
+          "V2",
+          "V2"
+        ],
+        "normalized_minimum_SVN": [
+          "V1",
+          "V2",
+          "V2"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V2,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V2",
+          "V0",
+          "V0"
+        ],
+        "normalized_minimum_SVN": [
+          "V2",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V2",
+          "V0",
+          "V1"
+        ],
+        "normalized_minimum_SVN": [
+          "V2",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V2",
+          "V0",
+          "V2"
+        ],
+        "normalized_minimum_SVN": [
+          "V2",
+          "V1",
+          "V2"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V2,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V2",
+          "V1",
+          "V0"
+        ],
+        "normalized_minimum_SVN": [
+          "V2",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V2",
+          "V1",
+          "V1"
+        ],
+        "normalized_minimum_SVN": [
+          "V2",
+          "V1",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V2",
+          "V1",
+          "V2"
+        ],
+        "normalized_minimum_SVN": [
+          "V2",
+          "V1",
+          "V2"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V2,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V2",
+          "V2",
+          "V0"
+        ],
+        "normalized_minimum_SVN": [
+          "V2",
+          "V2",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V2",
+          "V2",
+          "V1"
+        ],
+        "normalized_minimum_SVN": [
+          "V2",
+          "V2",
+          "V1"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))"
+      },
+      {
+        "input_minimum_SVN": [
+          "V2",
+          "V2",
+          "V2"
+        ],
+        "normalized_minimum_SVN": [
+          "V2",
+          "V2",
+          "V2"
+        ],
+        "normalized_join": "mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V2,OnlyGood,Assign(P3)))"
+      }
+    ]
+  },
+  "interpretation": "This explicit slice refutes exhaustive field-combination coverage. The 3/8 count is not an estimate of total policy-domain coverage.",
+  "recommended_wording": "12 个预设 profile 覆盖主要 policy 字段类型及通配符、相容、强化和冲突等代表性语义情形；该有限目录不穷尽字段自由组合。"
+}

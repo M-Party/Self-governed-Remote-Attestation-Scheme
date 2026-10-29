@@ -1,0 +1,1 @@
+timeout 45 proverif -parse-only /out/join-stage123r2-p12-regression/model.pv

@@ -1,0 +1,1403 @@
+stage123r2-pilot2-20261028/n3-stage123r2-Authorization/1
+query a:party,k:bitstring,r:policy,supplied:bitstring,honest:bitstring;
+  event(AuthorizationAccepted(a,k,r,supplied,H(honest))) && event(HonestOwner(honest))
+  ==> event(OwnerSigned(honest,k,H(policyBytes(r)))).
+RESULT event(AuthorizationAccepted(a_3,k,r,supplied,H(honest))) && event(HonestOwner(honest)) ==> event(OwnerSigned(honest,k,H(policyBytes(r)))) is true.
+Result: proved; wall=36.13s (single query, whole verifier command)
+SHA256: d22a167fddd98fa63babe8f60b1a4fea68042f4790a74dab6990079dcb49e681
+Log: results/stage123r2-pilot2-20261028/n3-stage123r2-Authorization/output.log
+
+stage123r2-main-20261028/n3-stage123r2-Agreement/1
+query a: party, b: party, x: polstar, y: polstar;
+  event(Confirm(a,x)) && event(Confirm(b,y)) && a <> b ==> x = y.
+RESULT event(Confirm(a_3,x)) && event(Confirm(b,y)) && a_3 ≠ b ==> x = y is true.
+Result: proved; wall=57.89s (single query, whole verifier command)
+SHA256: af0e70f7b9f20798b29355095e276b6d18b2dac95215125f1776eb977a82c4bf
+Log: results/stage123r2-main-20261028/n3-stage123r2-Agreement/output.log
+
+stage123r2-main-20261028/n3-stage123r2-Authenticity/1
+query a: party, b: party, r: policy;
+  event(PolicyAccepted(a,b,r)) ==> event(PolicyDeclared(b,r)).
+RESULT event(PolicyAccepted(a_3,b,r)) ==> event(PolicyDeclared(b,r)) is true.
+Result: proved; wall=48.31s (single query, whole verifier command)
+SHA256: bfd0e58f62c8f1358f54a1d443b40ee4a100c02a99b46933c036ccb6508651cf
+Log: results/stage123r2-main-20261028/n3-stage123r2-Authenticity/output.log
+
+stage123r2-main-20261028/n3-stage123r2-Completeness/1
+query a: party, x: polstar;
+  event(Confirm(a,x)) ==> event(FullJoin(a,x)).
+RESULT event(Confirm(a_3,x)) ==> event(FullJoin(a_3,x)) is true.
+Result: proved; wall=47.68s (single query, whole verifier command)
+SHA256: 93829a0027fe6327682eb384e5e60a65034eb4d877f4ed12a4e3853d00ea8f24
+Log: results/stage123r2-main-20261028/n3-stage123r2-Completeness/output.log
+
+stage123r2-main-20261028/n3-stage123r2-Issuance/1
+query a: party, e: entity, kr: bitstring, ke: bitstring, n: bitstring, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(a,e,kr,ke,n,id,t,x,body)) ==> event(QuoteSatisfied(a,e,kr,ke,n,id,t,x)).
+RESULT event(CertIssued(a_3,e_3,kr,ke,n_2,id,t,x,body_3)) ==> event(QuoteSatisfied(a_3,e_3,kr,ke,n_2,id,t,x)) is true.
+Result: proved; wall=35.81s (single query, whole verifier command)
+SHA256: 38ab551fab3867ba481d2fc795fac403fd286dd2dd9bf73d8974c2070abc640e
+Log: results/stage123r2-main-20261028/n3-stage123r2-Issuance/output.log
+
+stage123r2-aux1-20261028/n3-stage123r2-A01/1
+query a: party, b: party, ka: bitstring, kb: bitstring, r: policy;
+  event(PolicyAcceptedKeys(a,b,ka,kb,r)) ==> event(PolicySent(b,ka,r)).
+RESULT event(PolicyAcceptedKeys(a_3,b,ka,kb,r)) ==> event(PolicySent(b,ka,r)) is true.
+Result: proved; wall=40.3s (single query, whole verifier command)
+SHA256: 73bc258a093a4cec2febc8da849512a5947f29d9799a565ee858e3047353c2f6
+Log: results/stage123r2-aux1-20261028/n3-stage123r2-A01/output.log
+
+stage123r2-aux1-20261028/n3-stage123r2-A02/1
+query a: party, kb: bitstring, r: policy;
+  event(PolicySent(a,kb,r)) ==> event(QuotesComplete(a)).
+RESULT event(PolicySent(a_3,kb,r)) ==> event(QuotesComplete(a_3)) is true.
+Result: proved; wall=47.57s (single query, whole verifier command)
+SHA256: 7f56e2f06896db025494a0de4c7d34640ef79a6870497caf0e385c6da101befa
+Log: results/stage123r2-aux1-20261028/n3-stage123r2-A02/output.log
+
+stage123r2-aux1-20261028/n3-stage123r2-A03/1
+query a: party, x: polstar;
+  event(FullJoin(a,x)) ==> event(PoliciesComplete(a)).
+RESULT event(FullJoin(a_3,x)) ==> event(PoliciesComplete(a_3)) is true.
+Result: proved; wall=51.86s (single query, whole verifier command)
+SHA256: 8e59d7b7dd47857ad82507d7cd5541610a827a71fb2e49723b51218713f7a206
+Log: results/stage123r2-aux1-20261028/n3-stage123r2-A03/output.log
+
+stage123r2-aux1-20261028/n3-stage123r2-A04/1
+query x: polstar, r2: policy, r3: policy;
+  event(FullJoin(P1,x)) ==> event(PolicyAccepted(P1,P2,r2)) && event(PolicyAccepted(P1,P3,r3)).
+RESULT event(FullJoin(P1,x)) ==> event(PolicyAccepted(P1,P2,r2)) && event(PolicyAccepted(P1,P3,r3)) is true.
+Result: proved; wall=53.38s (single query, whole verifier command)
+SHA256: 206fac8955454d2486204fb65f0023ce57890dcec52b2e1a422d355bafcff110
+Log: results/stage123r2-aux1-20261028/n3-stage123r2-A04/output.log
+
+stage123r2-aux1-20261028/n3-stage123r2-A05/1
+query x: polstar, r1: policy, r3: policy;
+  event(FullJoin(P2,x)) ==> event(PolicyAccepted(P2,P1,r1)) && event(PolicyAccepted(P2,P3,r3)).
+RESULT event(FullJoin(P2,x)) ==> event(PolicyAccepted(P2,P1,r1)) && event(PolicyAccepted(P2,P3,r3)) is true.
+Result: proved; wall=51.58s (single query, whole verifier command)
+SHA256: ccdcb8eef6116c9ffd90e55e1c0158dd5bc4faacad6d2c6ec6f83f16af4b3dcf
+Log: results/stage123r2-aux1-20261028/n3-stage123r2-A05/output.log
+
+stage123r2-aux2-20261028/n3-stage123r2-A06/1
+query x: polstar, r1: policy, r2: policy;
+  event(FullJoin(P3,x)) ==> event(PolicyAccepted(P3,P1,r1)) && event(PolicyAccepted(P3,P2,r2)).
+RESULT event(FullJoin(P3,x)) ==> event(PolicyAccepted(P3,P1,r1)) && event(PolicyAccepted(P3,P2,r2)) is true.
+Result: proved; wall=54.09s (single query, whole verifier command)
+SHA256: 172438fceb2e59b19bbdffedeb9a39e875091c4e36e82401e4efc20dfac4ab87
+Log: results/stage123r2-aux2-20261028/n3-stage123r2-A06/output.log
+
+stage123r2-aux2-20261028/n3-stage123r2-A07/1
+query a: party, b: party, h: bitstring;
+  event(ConfirmationAccepted(a,b,h)) ==> event(ConfirmationSent(b,a,h)).
+RESULT event(ConfirmationAccepted(a_3,b,h)) ==> event(ConfirmationSent(b,a_3,h)) is true.
+Result: proved; wall=77.4s (single query, whole verifier command)
+SHA256: 6af73a2097bd6c5723b617294858cd7cc43114be048afad233dfd24f30ce878f
+Log: results/stage123r2-aux2-20261028/n3-stage123r2-A07/output.log
+
+stage123r2-aux2-20261028/n3-stage123r2-A08/1
+query x: polstar;
+  event(Confirm(P1,x)) ==> event(ConfirmationAccepted(P1,P2,H(starBytes(x)))) && event(ConfirmationAccepted(P1,P3,H(starBytes(x)))).
+RESULT event(Confirm(P1,x)) ==> event(ConfirmationAccepted(P1,P2,H(starBytes(x)))) && event(ConfirmationAccepted(P1,P3,H(starBytes(x)))) is true.
+Result: proved; wall=66.52s (single query, whole verifier command)
+SHA256: b387c2ad089cc87f38690502549f8350151a9f6f571a0b09d6b036c43397ecfa
+Log: results/stage123r2-aux2-20261028/n3-stage123r2-A08/output.log
+
+stage123r2-aux2-20261028/n3-stage123r2-A09/1
+query x: polstar;
+  event(Confirm(P2,x)) ==> event(ConfirmationAccepted(P2,P1,H(starBytes(x)))) && event(ConfirmationAccepted(P2,P3,H(starBytes(x)))).
+RESULT event(Confirm(P2,x)) ==> event(ConfirmationAccepted(P2,P1,H(starBytes(x)))) && event(ConfirmationAccepted(P2,P3,H(starBytes(x)))) is true.
+Result: proved; wall=46.07s (single query, whole verifier command)
+SHA256: a99b5ff19cb7cc27560938a7caf9d70db51f8141a476190d589506d93e7cb15c
+Log: results/stage123r2-aux2-20261028/n3-stage123r2-A09/output.log
+
+stage123r2-aux2-20261028/n3-stage123r2-A10/1
+query x: polstar;
+  event(Confirm(P3,x)) ==> event(ConfirmationAccepted(P3,P1,H(starBytes(x)))) && event(ConfirmationAccepted(P3,P2,H(starBytes(x)))).
+RESULT event(Confirm(P3,x)) ==> event(ConfirmationAccepted(P3,P1,H(starBytes(x)))) && event(ConfirmationAccepted(P3,P2,H(starBytes(x)))) is true.
+Result: proved; wall=44.22s (single query, whole verifier command)
+SHA256: c5b0b1c3c3e7efe1029a661f95a16f5cfbac197fead3646ab01e4352a5cfad8d
+Log: results/stage123r2-aux2-20261028/n3-stage123r2-A10/output.log
+
+stage123r2-aux3-20261028/n3-stage123r2-A11/1
+query a: party, e: entity, kr: bitstring, ke: bitstring, n: bitstring, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+  event(CertIssued(a,e,kr,ke,n,id,t,x,body)) ==>
+    event(Confirm(a,x)) && event(ChallengeSent(a,ke,n)) && event(QuoteProduced(ke,n,id,t)) && body = H((ke,kr,H(starBytes(x)))).
+RESULT event(CertIssued(a_3,e_3,kr,ke,n_2,id,t,x,body_3)) ==> event(Confirm(a_3,x)) && event(ChallengeSent(a_3,ke,n_2)) && event(QuoteProduced(ke,n_2,id,t)) && body_3 = H((ke,kr,H(starBytes(x)))) is true.
+Result: proved; wall=66.83s (single query, whole verifier command)
+SHA256: 308ae14af46a75e25f63fb2d82f776f0c4c9d35f41479243ce9875c0db463fa4
+Log: results/stage123r2-aux3-20261028/n3-stage123r2-A11/output.log
+
+stage123r2-aux3-20261028/n3-stage123r2-A12/1
+query a:party,k:bitstring,r:policy,o:bitstring,s:bitstring;
+  event(AuthorizedPolicyDeclared(a,k,r)) ==> event(AuthorizationAccepted(a,k,r,o,s)).
+RESULT event(AuthorizedPolicyDeclared(a_3,k,r)) ==> event(AuthorizationAccepted(a_3,k,r,o,s)) is true.
+Result: proved; wall=45.77s (single query, whole verifier command)
+SHA256: 9c998d9c1b58a17cd9c0aa40a9bd87a667b52a0fd6609d2624615987f7d4a680
+Log: results/stage123r2-aux3-20261028/n3-stage123r2-A12/output.log
+
+stage123r2-aux3-20261028/n3-stage123r2-A13/1
+query a:party,b:party,ka:bitstring,kb:bitstring,r:policy,o:bitstring,s:bitstring;
+  event(PolicyAcceptedKeys(a,b,ka,kb,r)) ==> event(AuthorizationAccepted(b,kb,r,o,s)).
+RESULT event(PolicyAcceptedKeys(a_3,b,ka,kb,r)) ==> event(AuthorizationAccepted(b,kb,r,o,s)) is true.
+Result: proved; wall=54.99s (single query, whole verifier command)
+SHA256: 20c321614c80e30721a97dc914904a3b1302b9f650ccbd44df2e71b88cef620a
+Log: results/stage123r2-aux3-20261028/n3-stage123r2-A13/output.log
+
+stage123r2-aux3-20261028/n3-stage123r2-A14/1
+query o:bitstring,k:bitstring,r:policy,n:bitstring;
+  event(OwnerSigned(o,k,H(policyBytes(r)))) ==> event(OwnerAttested(o,k,r,n)).
+RESULT event(OwnerSigned(o,k,H(policyBytes(r)))) ==> event(OwnerAttested(o,k,r,n_2)) is true.
+Result: proved; wall=44.57s (single query, whole verifier command)
+SHA256: 8fd4cf1f50c2d776804e81cfb451daea303cf190549ae8c8e9986a127a31bf8b
+Log: results/stage123r2-aux3-20261028/n3-stage123r2-A14/output.log
+
+stage123r2-witness-20261028/sras-n3-stage123r2-reachability/1
+query x1:polstar,kr1:bitstring,ke1:bitstring,n1:bitstring,id1:identity,t1:tcbstatus,b1:bitstring,r1:policy,o1:bitstring,s1a:bitstring,x2:polstar,kr2:bitstring,ke2:bitstring,n2:bitstring,id2:identity,t2:tcbstatus,b2:bitstring,r2:policy,o2:bitstring,s2a:bitstring,x3:polstar,kr3:bitstring,ke3:bitstring,n3:bitstring,id3:identity,t3:tcbstatus,b3:bitstring,r3:policy,o3:bitstring,s3a:bitstring;
+  event(AuthorizationAccepted(P1,kr1,r1,o1,s1a)) &&
+  event(Confirm(P1,x1)) &&
+  event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,x1,b1)) &&
+  event(AuthorizationAccepted(P2,kr2,r2,o2,s2a)) &&
+  event(Confirm(P2,x2)) &&
+  event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,x2,b2)) &&
+  event(AuthorizationAccepted(P3,kr3,r3,o3,s3a)) &&
+  event(Confirm(P3,x3)) &&
+  event(CertIssued(P3,E3,kr3,ke3,n3,id3,t3,x3,b3)).
+RESULT not (event(AuthorizationAccepted(P1,kr1,r1,o1,s1a)) && event(Confirm(P1,x1)) && event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,x1,b1)) && event(AuthorizationAccepted(P2,kr2,r2,o2,s2a)) && event(Confirm(P2,x2)) && event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,x2,b2)) && event(AuthorizationAccepted(P3,kr3,r3,o3,s3a)) && event(Confirm(P3,x3)) && event(CertIssued(P3,E3,kr3,ke3,n3,id3,t3,x3,b3))) is false.
+Result: reachable; wall=109.74s (single query, whole verifier command)
+SHA256: bdc3378b3cb04b44f750e90a055b116fcded533efece3f5717c38553bf9c9ee1
+Log: results/stage123r2-witness-20261028/sras-n3-stage123r2-reachability/output.log
+
+stage123r2-witness-20261028/sras-n3-stage123r2-reachability-profile12/1
+query kr1:bitstring,ke1:bitstring,n1:bitstring,id1:identity,t1:tcbstatus,b1:bitstring,r1:policy,o1:bitstring,s1a:bitstring,kr2:bitstring,ke2:bitstring,n2:bitstring,id2:identity,t2:tcbstatus,b2:bitstring,r2:policy,o2:bitstring,s2a:bitstring,kr3:bitstring,ke3:bitstring,n3:bitstring,id3:identity,t3:tcbstatus,b3:bitstring,r3:policy,o3:bitstring,s3a:bitstring;
+  event(AuthorizationAccepted(P1,kr1,r1,o1,s1a)) &&
+  event(Confirm(P1,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) &&
+  event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),b1)) &&
+  event(AuthorizationAccepted(P2,kr2,r2,o2,s2a)) &&
+  event(Confirm(P2,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) &&
+  event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),b2)) &&
+  event(AuthorizationAccepted(P3,kr3,r3,o3,s3a)) &&
+  event(Confirm(P3,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) &&
+  event(CertIssued(P3,E3,kr3,ke3,n3,id3,t3,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),b3)).
+RESULT not (event(AuthorizationAccepted(P1,kr1,r1,o1,s1a)) && event(Confirm(P1,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),b1)) && event(AuthorizationAccepted(P2,kr2,r2,o2,s2a)) && event(Confirm(P2,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),b2)) && event(AuthorizationAccepted(P3,kr3,r3,o3,s3a)) && event(Confirm(P3,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && event(CertIssued(P3,E3,kr3,ke3,n3,id3,t3,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),b3))) is false.
+Result: reachable; wall=93.61s (single query, whole verifier command)
+SHA256: f46b3d6aeb22b020ca18d1536dfdad2414738c70515a9cd8d9f3acfc7e0e8f8b
+Log: results/stage123r2-witness-20261028/sras-n3-stage123r2-reachability-profile12/output.log
+
+stage123r2-witness-20261028/sras-n3-stage123r2-reachability-weak/1
+query x1:polstar,kr1:bitstring,ke1:bitstring,n1:bitstring,id1:identity,t1:tcbstatus,b1:bitstring,r1:policy,o1:bitstring,s1a:bitstring,x2:polstar,kr2:bitstring,ke2:bitstring,n2:bitstring,id2:identity,t2:tcbstatus,b2:bitstring,r2:policy,o2:bitstring,s2a:bitstring,x3:polstar,kr3:bitstring,ke3:bitstring,n3:bitstring,id3:identity,t3:tcbstatus,b3:bitstring,o3:bitstring,s3a:bitstring;
+  event(AuthorizationAccepted(P1,kr1,r1,o1,s1a)) &&
+  event(Confirm(P1,x1)) &&
+  event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,x1,b1)) &&
+  event(AuthorizationAccepted(P2,kr2,r2,o2,s2a)) &&
+  event(Confirm(P2,x2)) &&
+  event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,x2,b2)) &&
+  event(AuthorizationAccepted(P3,kr3,pol(P3, E3, Members3, Both, Both, Both, Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, exact(H(pk(skO3))), Any, V0, Both, Assign(P3))),o3,s3a)) &&
+  event(Confirm(P3,x3)) &&
+  event(CertIssued(P3,E3,kr3,ke3,n3,id3,t3,x3,b3)).
+RESULT not (event(AuthorizationAccepted(P1,kr1,r1,o1,s1a)) && event(Confirm(P1,x1)) && event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,x1,b1)) && event(AuthorizationAccepted(P2,kr2,r2,o2,s2a)) && event(Confirm(P2,x2)) && event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,x2,b2)) && event(AuthorizationAccepted(P3,kr3,pol(P3,E3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(H(pk(skO3))),Any,V0,Both,Assign(P3))),o3,s3a)) && event(Confirm(P3,x3)) && event(CertIssued(P3,E3,kr3,ke3,n3,id3,t3,x3,b3))) is false.
+Result: reachable; wall=81.0s (single query, whole verifier command)
+SHA256: 2fcd015a62177564f6a8b886a418cfb7171707484bd6220ee1bf99266b5ef529
+Log: results/stage123r2-witness-20261028/sras-n3-stage123r2-reachability-weak/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-normal/1
+query x1:polstar,kr1:bitstring,ke1:bitstring,n1:bitstring,id1:identity,t1:tcbstatus,b1:bitstring,r1:policy,o1:bitstring,s1a:bitstring,x2:polstar,kr2:bitstring,ke2:bitstring,n2:bitstring,id2:identity,t2:tcbstatus,b2:bitstring,r2:policy,o2:bitstring,s2a:bitstring,x3:polstar,kr3:bitstring,ke3:bitstring,n3:bitstring,id3:identity,t3:tcbstatus,b3:bitstring,r3:policy,o3:bitstring,s3a:bitstring;
+  event(AuthorizationAccepted(P1,kr1,r1,o1,s1a)) &&
+  event(Confirm(P1,x1)) &&
+  event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,x1,b1)) &&
+  event(AuthorizationAccepted(P2,kr2,r2,o2,s2a)) &&
+  event(Confirm(P2,x2)) &&
+  event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,x2,b2)) &&
+  event(AuthorizationAccepted(P3,kr3,r3,o3,s3a)) &&
+  event(Confirm(P3,x3)) &&
+  event(CertIssued(P3,E3,kr3,ke3,n3,id3,t3,x3,b3)).
+RESULT not (event(AuthorizationAccepted(P1,kr1,r1,o1,s1a)) && event(Confirm(P1,x1)) && event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,x1,b1)) && event(AuthorizationAccepted(P2,kr2,r2,o2,s2a)) && event(Confirm(P2,x2)) && event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,x2,b2)) && event(AuthorizationAccepted(P3,kr3,r3,o3,s3a)) && event(Confirm(P3,x3)) && event(CertIssued(P3,E3,kr3,ke3,n3,id3,t3,x3,b3))) is false.
+Result: reachable; wall=2.46s (single query, whole verifier command)
+SHA256: 85fa7b6dc222c163c863c6703ee65e62cca8b24ad1703645b994b43830855ad5
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-normal/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-missing-policy/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(QuotesComplete(P1)) && event(PolicyAccepted(P1,P2,r)).
+RESULT not (event(ControlAllAuthorized) && event(QuotesComplete(P1)) && event(PolicyAccepted(P1,P2,r_1))) is false.
+Result: reachable; wall=1.75s (whole model, all queries combined)
+SHA256: 8e0c8d14626cdc1d9ec5dd3c9e64865d37700bf6a6accaa770f0db1c72d038f3
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-missing-policy/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-missing-policy/2
+query event(PoliciesComplete(P1)).
+RESULT not event(PoliciesComplete(P1)) is true.
+Result: unreachable; wall=1.75s (whole model, all queries combined)
+SHA256: 8e0c8d14626cdc1d9ec5dd3c9e64865d37700bf6a6accaa770f0db1c72d038f3
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-missing-policy/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-policy-hash-mismatch/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(QuotesComplete(P1)) && event(PolicyAccepted(P1,P2,r)).
+RESULT not (event(ControlAllAuthorized) && event(QuotesComplete(P1)) && event(PolicyAccepted(P1,P2,r_1))) is false.
+Result: reachable; wall=3.21s (whole model, all queries combined)
+SHA256: 6a68c7fce7d0891e85b5cda4426d8eed2fbc3b66b0a837b7e5de70c87366ede3
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-policy-hash-mismatch/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-policy-hash-mismatch/2
+query event(PoliciesComplete(P1)).
+RESULT not event(PoliciesComplete(P1)) is true.
+Result: unreachable; wall=3.21s (whole model, all queries combined)
+SHA256: 6a68c7fce7d0891e85b5cda4426d8eed2fbc3b66b0a837b7e5de70c87366ede3
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-policy-hash-mismatch/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-policy-hash-mismatch/3
+query r:policy; event(PolicyAuthenticated(P1,P3,r)).
+RESULT not event(PolicyAuthenticated(P1,P3,r_1)) is false.
+Result: reachable; wall=3.21s (whole model, all queries combined)
+SHA256: 6a68c7fce7d0891e85b5cda4426d8eed2fbc3b66b0a837b7e5de70c87366ede3
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-policy-hash-mismatch/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-policy-hash-mismatch/4
+query event(ControlInitialHashRequested).
+RESULT not event(ControlInitialHashRequested) is false.
+Result: reachable; wall=3.21s (whole model, all queries combined)
+SHA256: 6a68c7fce7d0891e85b5cda4426d8eed2fbc3b66b0a837b7e5de70c87366ede3
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-policy-hash-mismatch/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-duplicate-confirmation/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(FullJoin(P1,x)) && event(ConfirmationAccepted(P1,P2,H(starBytes(x)))).
+RESULT not (event(ControlAllAuthorized) && event(FullJoin(P1,x)) && event(ConfirmationAccepted(P1,P2,H(starBytes(x))))) is false.
+Result: reachable; wall=2.92s (whole model, all queries combined)
+SHA256: 04b99e1e46dc2f79afbc5f0d321d34d013efd87bbed53c560f531d1a4e0b71d3
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-duplicate-confirmation/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-duplicate-confirmation/2
+query x:polstar; event(Confirm(P1,x)).
+RESULT not event(Confirm(P1,x)) is true.
+Result: unreachable; wall=2.92s (whole model, all queries combined)
+SHA256: 04b99e1e46dc2f79afbc5f0d321d34d013efd87bbed53c560f531d1a4e0b71d3
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-duplicate-confirmation/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-duplicate-confirmation/3
+query event(ControlConfirmationReceived(P1,P3)).
+RESULT not event(ControlConfirmationReceived(P1,P3)) is false.
+Result: reachable; wall=2.92s (whole model, all queries combined)
+SHA256: 04b99e1e46dc2f79afbc5f0d321d34d013efd87bbed53c560f531d1a4e0b71d3
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-duplicate-confirmation/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-measurement/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(PoliciesComplete(P1)).
+RESULT not (event(ControlAllAuthorized) && event(PoliciesComplete(P1))) is false.
+Result: reachable; wall=0.92s (whole model, all queries combined)
+SHA256: dffd5b94b1f65eed8a35aa1a4f5f1410594d25d1c27acdbd8a2189ef0d75b712
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-measurement/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-measurement/2
+query x:polstar; event(FullJoin(P1,x)).
+RESULT not event(FullJoin(P1,x)) is true.
+Result: unreachable; wall=0.92s (whole model, all queries combined)
+SHA256: dffd5b94b1f65eed8a35aa1a4f5f1410594d25d1c27acdbd8a2189ef0d75b712
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-measurement/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-product/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(PoliciesComplete(P1)).
+RESULT not (event(ControlAllAuthorized) && event(PoliciesComplete(P1))) is false.
+Result: reachable; wall=0.92s (whole model, all queries combined)
+SHA256: 08eaab9a1ef48464426ffb6ae112ad94e38fb80c769420379b412218787eac8c
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-product/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-product/2
+query x:polstar; event(FullJoin(P1,x)).
+RESULT not event(FullJoin(P1,x)) is true.
+Result: unreachable; wall=0.92s (whole model, all queries combined)
+SHA256: 08eaab9a1ef48464426ffb6ae112ad94e38fb80c769420379b412218787eac8c
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-product/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-attester/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(PoliciesComplete(P1)).
+RESULT not (event(ControlAllAuthorized) && event(PoliciesComplete(P1))) is false.
+Result: reachable; wall=0.92s (whole model, all queries combined)
+SHA256: f641eda1438fcb2a549189c42c5588a44e7f92e9e742a062d34a589f4b12b3c9
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-attester/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-attester/2
+query x:polstar; event(FullJoin(P1,x)).
+RESULT not event(FullJoin(P1,x)) is true.
+Result: unreachable; wall=0.92s (whole model, all queries combined)
+SHA256: f641eda1438fcb2a549189c42c5588a44e7f92e9e742a062d34a589f4b12b3c9
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-conflict-attester/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-measurement/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(Confirm(P1,x)).
+RESULT not (event(ControlAllAuthorized) && event(Confirm(P1,x))) is false.
+Result: reachable; wall=2.8s (whole model, all queries combined)
+SHA256: bce50a6adfc91aaa7a1388fd3a669af763d86ae95d84ed0bba210d6e92acea68
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-measurement/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-measurement/2
+query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,E1,kr,ke,n,id,t,x,b)).
+RESULT not event(CertIssued(P1,E1,kr,ke,n_3,id,t,x,b_3)) is true.
+Result: unreachable; wall=2.8s (whole model, all queries combined)
+SHA256: bce50a6adfc91aaa7a1388fd3a669af763d86ae95d84ed0bba210d6e92acea68
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-measurement/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-measurement/3
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteVerified(P1,E1,ke,n_3,id,t)) is false.
+Result: reachable; wall=2.8s (whole model, all queries combined)
+SHA256: bce50a6adfc91aaa7a1388fd3a669af763d86ae95d84ed0bba210d6e92acea68
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-measurement/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-product/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(Confirm(P1,x)).
+RESULT not (event(ControlAllAuthorized) && event(Confirm(P1,x))) is false.
+Result: reachable; wall=2.79s (whole model, all queries combined)
+SHA256: 7c7023813379ca35e033199c343cd78d6f9a6abc785d9a386521f2d12e3a54eb
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-product/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-product/2
+query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,E1,kr,ke,n,id,t,x,b)).
+RESULT not event(CertIssued(P1,E1,kr,ke,n_3,id,t,x,b_3)) is true.
+Result: unreachable; wall=2.79s (whole model, all queries combined)
+SHA256: 7c7023813379ca35e033199c343cd78d6f9a6abc785d9a386521f2d12e3a54eb
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-product/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-product/3
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteVerified(P1,E1,ke,n_3,id,t)) is false.
+Result: reachable; wall=2.79s (whole model, all queries combined)
+SHA256: 7c7023813379ca35e033199c343cd78d6f9a6abc785d9a386521f2d12e3a54eb
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-product/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-tcb/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(Confirm(P1,x)).
+RESULT not (event(ControlAllAuthorized) && event(Confirm(P1,x))) is false.
+Result: reachable; wall=2.79s (whole model, all queries combined)
+SHA256: 025d4a3db038567f50641e47d6032837a422ee7e8fa9403f8da111b418f24350
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-tcb/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-tcb/2
+query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,E1,kr,ke,n,id,t,x,b)).
+RESULT not event(CertIssued(P1,E1,kr,ke,n_3,id,t,x,b_3)) is true.
+Result: unreachable; wall=2.79s (whole model, all queries combined)
+SHA256: 025d4a3db038567f50641e47d6032837a422ee7e8fa9403f8da111b418f24350
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-tcb/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-tcb/3
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteVerified(P1,E1,ke,n_3,id,t)) is false.
+Result: reachable; wall=2.79s (whole model, all queries combined)
+SHA256: 025d4a3db038567f50641e47d6032837a422ee7e8fa9403f8da111b418f24350
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-bad-tcb/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-tcb/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(Confirm(P1,x)).
+RESULT not (event(ControlAllAuthorized) && event(Confirm(P1,x))) is false.
+Result: reachable; wall=2.79s (whole model, all queries combined)
+SHA256: dbc0ec4a902738ff954fa1f4214e506fe429a87a8c25f5d84ab219dcca66be96
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-tcb/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-tcb/2
+query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,E1,kr,ke,n,id,t,x,b)).
+RESULT not event(CertIssued(P1,E1,kr,ke,n_3,id,t,x,b_3)) is true.
+Result: unreachable; wall=2.79s (whole model, all queries combined)
+SHA256: dbc0ec4a902738ff954fa1f4214e506fe429a87a8c25f5d84ab219dcca66be96
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-tcb/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-tcb/3
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteVerified(P1,E1,ke,n_3,id,t)) is false.
+Result: reachable; wall=2.79s (whole model, all queries combined)
+SHA256: dbc0ec4a902738ff954fa1f4214e506fe429a87a8c25f5d84ab219dcca66be96
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-tcb/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-wrong-challenge/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(Confirm(P1,x)).
+RESULT not (event(ControlAllAuthorized) && event(Confirm(P1,x))) is false.
+Result: reachable; wall=3.89s (whole model, all queries combined)
+SHA256: cf1b60736e90f622634445242474b581fbabd14205376b75400c8e67969edb23
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-wrong-challenge/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-wrong-challenge/2
+query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,E1,kr,ke,n,id,t,x,b)).
+RESULT not event(CertIssued(P1,E1,kr,ke,n_3,id,t,x,b_3)) is true.
+Result: unreachable; wall=3.89s (whole model, all queries combined)
+SHA256: cf1b60736e90f622634445242474b581fbabd14205376b75400c8e67969edb23
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-wrong-challenge/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-wrong-challenge/3
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteSignatureChecked(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteSignatureChecked(P1,E1,ke,n_3,id,t)) is false.
+Result: reachable; wall=3.89s (whole model, all queries combined)
+SHA256: cf1b60736e90f622634445242474b581fbabd14205376b75400c8e67969edb23
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-wrong-challenge/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-wrong-challenge/4
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteVerified(P1,E1,ke,n_3,id,t)) is true.
+Result: unreachable; wall=3.89s (whole model, all queries combined)
+SHA256: cf1b60736e90f622634445242474b581fbabd14205376b75400c8e67969edb23
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-wrong-challenge/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-signature/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(Confirm(P1,x)).
+RESULT not (event(ControlAllAuthorized) && event(Confirm(P1,x))) is false.
+Result: reachable; wall=3.98s (whole model, all queries combined)
+SHA256: 221af9666f8b7d475cb06d4040502c92c18b1a3fdcfca2854d4208bf1afe126f
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-signature/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-signature/2
+query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,E1,kr,ke,n,id,t,x,b)).
+RESULT not event(CertIssued(P1,E1,kr,ke,n_3,id,t,x,b_3)) is true.
+Result: unreachable; wall=3.98s (whole model, all queries combined)
+SHA256: 221af9666f8b7d475cb06d4040502c92c18b1a3fdcfca2854d4208bf1afe126f
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-signature/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-signature/3
+query ke:bitstring,n:bitstring; event(QuoteReceived(P1,E1,ke,n)).
+RESULT not event(QuoteReceived(P1,E1,ke,n_3)) is false.
+Result: reachable; wall=3.98s (whole model, all queries combined)
+SHA256: 221af9666f8b7d475cb06d4040502c92c18b1a3fdcfca2854d4208bf1afe126f
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-signature/output.log
+
+stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-signature/4
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteSignatureChecked(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteSignatureChecked(P1,E1,ke,n_3,id,t)) is true.
+Result: unreachable; wall=3.98s (whole model, all queries combined)
+SHA256: 221af9666f8b7d475cb06d4040502c92c18b1a3fdcfca2854d4208bf1afe126f
+Log: results/stage123r2-controls1-complete-20261028/n3-stage123r2-control-invalid-signature/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-duplicate-policy/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(QuotesComplete(P1)) && event(PolicyAccepted(P1,P2,r)).
+RESULT not (event(ControlAllAuthorized) && event(QuotesComplete(P1)) && event(PolicyAccepted(P1,P2,r_1))) is false.
+Result: reachable; wall=2.55s (whole model, all queries combined)
+SHA256: 9cd3359bf48cad433967cf3eb49c857058e1ae0c299153c61198585f331f730c
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-duplicate-policy/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-duplicate-policy/2
+query event(PoliciesComplete(P1)).
+RESULT not event(PoliciesComplete(P1)) is true.
+Result: unreachable; wall=2.55s (whole model, all queries combined)
+SHA256: 9cd3359bf48cad433967cf3eb49c857058e1ae0c299153c61198585f331f730c
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-duplicate-policy/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-duplicate-policy/3
+query event(ControlPolicyReceived(P1,P3)).
+RESULT not event(ControlPolicyReceived(P1,P3)) is false.
+Result: reachable; wall=2.55s (whole model, all queries combined)
+SHA256: 9cd3359bf48cad433967cf3eb49c857058e1ae0c299153c61198585f331f730c
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-duplicate-policy/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-missing-confirmation/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(FullJoin(P1,x)) && event(ConfirmationAccepted(P1,P2,H(starBytes(x)))).
+RESULT not (event(ControlAllAuthorized) && event(FullJoin(P1,x)) && event(ConfirmationAccepted(P1,P2,H(starBytes(x))))) is false.
+Result: reachable; wall=1.96s (whole model, all queries combined)
+SHA256: 4954db3ae39c28075a7e68350915f848dbc849bbc17f52eea3436aacc82daf92
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-missing-confirmation/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-missing-confirmation/2
+query x:polstar; event(Confirm(P1,x)).
+RESULT not event(Confirm(P1,x)) is true.
+Result: unreachable; wall=1.96s (whole model, all queries combined)
+SHA256: 4954db3ae39c28075a7e68350915f848dbc849bbc17f52eea3436aacc82daf92
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-missing-confirmation/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-confirmation-mismatch/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(FullJoin(P1,x)) && event(ConfirmationAccepted(P1,P2,H(starBytes(x)))).
+RESULT not (event(ControlAllAuthorized) && event(FullJoin(P1,x)) && event(ConfirmationAccepted(P1,P2,H(starBytes(x))))) is false.
+Result: reachable; wall=3.02s (whole model, all queries combined)
+SHA256: 67e8c7c2ac30a1d8ed52468e8fb494a8d2d59e813978e5d2269cd697eb51e563
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-confirmation-mismatch/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-confirmation-mismatch/2
+query x:polstar; event(Confirm(P1,x)).
+RESULT not event(Confirm(P1,x)) is true.
+Result: unreachable; wall=3.02s (whole model, all queries combined)
+SHA256: 67e8c7c2ac30a1d8ed52468e8fb494a8d2d59e813978e5d2269cd697eb51e563
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-confirmation-mismatch/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-confirmation-mismatch/3
+query event(ConfirmationAuthenticated(P1,P3,badHash)).
+RESULT not event(ConfirmationAuthenticated(P1,P3,badHash[])) is false.
+Result: reachable; wall=3.02s (whole model, all queries combined)
+SHA256: 67e8c7c2ac30a1d8ed52468e8fb494a8d2d59e813978e5d2269cd697eb51e563
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-confirmation-mismatch/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-conflict-signer/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(PoliciesComplete(P1)).
+RESULT not (event(ControlAllAuthorized) && event(PoliciesComplete(P1))) is false.
+Result: reachable; wall=0.91s (whole model, all queries combined)
+SHA256: 7a18d577202f3aa81f9b80abe486e089b67c269151df8d5cc851c00b77d8e0e9
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-conflict-signer/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-conflict-signer/2
+query x:polstar; event(FullJoin(P1,x)).
+RESULT not event(FullJoin(P1,x)) is true.
+Result: unreachable; wall=0.91s (whole model, all queries combined)
+SHA256: 7a18d577202f3aa81f9b80abe486e089b67c269151df8d5cc851c00b77d8e0e9
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-conflict-signer/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-conflict-tcb/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(PoliciesComplete(P1)).
+RESULT not (event(ControlAllAuthorized) && event(PoliciesComplete(P1))) is false.
+Result: reachable; wall=0.92s (whole model, all queries combined)
+SHA256: 9b00a2298f3820f23ae04d6899a8e68ff40ed570bd9d17043a20a9008b79a5c6
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-conflict-tcb/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-conflict-tcb/2
+query x:polstar; event(FullJoin(P1,x)).
+RESULT not event(FullJoin(P1,x)) is true.
+Result: unreachable; wall=0.92s (whole model, all queries combined)
+SHA256: 9b00a2298f3820f23ae04d6899a8e68ff40ed570bd9d17043a20a9008b79a5c6
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-conflict-tcb/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-reject-peer-tcb/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(PolicyDeclared(P3,r)).
+RESULT not (event(ControlAllAuthorized) && event(PolicyDeclared(P3,r_1))) is false.
+Result: reachable; wall=0.81s (whole model, all queries combined)
+SHA256: 346794f295c2f258b14cf5741c419d635d5fc0ba8b1483e0e743612f3accede6
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-reject-peer-tcb/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-reject-peer-tcb/2
+query event(QuotesComplete(P3)).
+RESULT not event(QuotesComplete(P3)) is true.
+Result: unreachable; wall=0.81s (whole model, all queries combined)
+SHA256: 346794f295c2f258b14cf5741c419d635d5fc0ba8b1483e0e743612f3accede6
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-reject-peer-tcb/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-signer/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(Confirm(P1,x)).
+RESULT not (event(ControlAllAuthorized) && event(Confirm(P1,x))) is false.
+Result: reachable; wall=2.76s (whole model, all queries combined)
+SHA256: 952f8dce1c0f6afab8b6ca05eb61b5b94edb8d187ca176067ff514235f06e7cd
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-signer/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-signer/2
+query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,E1,kr,ke,n,id,t,x,b)).
+RESULT not event(CertIssued(P1,E1,kr,ke,n_3,id,t,x,b_3)) is true.
+Result: unreachable; wall=2.76s (whole model, all queries combined)
+SHA256: 952f8dce1c0f6afab8b6ca05eb61b5b94edb8d187ca176067ff514235f06e7cd
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-signer/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-signer/3
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteVerified(P1,E1,ke,n_3,id,t)) is false.
+Result: reachable; wall=2.76s (whole model, all queries combined)
+SHA256: 952f8dce1c0f6afab8b6ca05eb61b5b94edb8d187ca176067ff514235f06e7cd
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-signer/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-svn/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(Confirm(P1,x)).
+RESULT not (event(ControlAllAuthorized) && event(Confirm(P1,x))) is false.
+Result: reachable; wall=2.77s (whole model, all queries combined)
+SHA256: 2dd50d20a7c6d3efec09b0f2782ba9b9075fd2f3bf2bfb265dbbb33b8991e4ab
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-svn/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-svn/2
+query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,E1,kr,ke,n,id,t,x,b)).
+RESULT not event(CertIssued(P1,E1,kr,ke,n_3,id,t,x,b_3)) is true.
+Result: unreachable; wall=2.77s (whole model, all queries combined)
+SHA256: 2dd50d20a7c6d3efec09b0f2782ba9b9075fd2f3bf2bfb265dbbb33b8991e4ab
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-svn/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-svn/3
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteVerified(P1,E1,ke,n_3,id,t)) is false.
+Result: reachable; wall=2.77s (whole model, all queries combined)
+SHA256: 2dd50d20a7c6d3efec09b0f2782ba9b9075fd2f3bf2bfb265dbbb33b8991e4ab
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-bad-svn/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-revoked-tcb/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(Confirm(P1,x)).
+RESULT not (event(ControlAllAuthorized) && event(Confirm(P1,x))) is false.
+Result: reachable; wall=2.79s (whole model, all queries combined)
+SHA256: 17d010f99497d49b33a4aea09c3224d10d2138f326a338f3d148883033160e7e
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-revoked-tcb/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-revoked-tcb/2
+query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,E1,kr,ke,n,id,t,x,b)).
+RESULT not event(CertIssued(P1,E1,kr,ke,n_3,id,t,x,b_3)) is true.
+Result: unreachable; wall=2.79s (whole model, all queries combined)
+SHA256: 17d010f99497d49b33a4aea09c3224d10d2138f326a338f3d148883033160e7e
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-revoked-tcb/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-revoked-tcb/3
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteVerified(P1,E1,ke,n_3,id,t)) is false.
+Result: reachable; wall=2.79s (whole model, all queries combined)
+SHA256: 17d010f99497d49b33a4aea09c3224d10d2138f326a338f3d148883033160e7e
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-revoked-tcb/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-attester/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(Confirm(P1,x)).
+RESULT not (event(ControlAllAuthorized) && event(Confirm(P1,x))) is false.
+Result: reachable; wall=2.76s (whole model, all queries combined)
+SHA256: 658869a1dd492173f69f4a111c2287c784385a7a348e5fdae177977ec6c901cb
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-attester/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-attester/2
+query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,E2,kr,ke,n,id,t,x,b)).
+RESULT not event(CertIssued(P1,E2,kr,ke,n_3,id,t,x,b_3)) is true.
+Result: unreachable; wall=2.76s (whole model, all queries combined)
+SHA256: 658869a1dd492173f69f4a111c2287c784385a7a348e5fdae177977ec6c901cb
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-attester/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-attester/3
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,E2,ke,n,id,t)).
+RESULT not event(QuoteVerified(P1,E2,ke,n_3,id,t)) is false.
+Result: reachable; wall=2.76s (whole model, all queries combined)
+SHA256: 658869a1dd492173f69f4a111c2287c784385a7a348e5fdae177977ec6c901cb
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-attester/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-instance-key/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(Confirm(P1,x)).
+RESULT not (event(ControlAllAuthorized) && event(Confirm(P1,x))) is false.
+Result: reachable; wall=3.83s (whole model, all queries combined)
+SHA256: 541848e61508755d41da6ee75bc473fbc109d8e98be96a2596bd521528f39d0e
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-instance-key/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-instance-key/2
+query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,E1,kr,ke,n,id,t,x,b)).
+RESULT not event(CertIssued(P1,E1,kr,ke,n_3,id,t,x,b_3)) is true.
+Result: unreachable; wall=3.83s (whole model, all queries combined)
+SHA256: 541848e61508755d41da6ee75bc473fbc109d8e98be96a2596bd521528f39d0e
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-instance-key/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-instance-key/3
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteSignatureChecked(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteSignatureChecked(P1,E1,ke,n_3,id,t)) is false.
+Result: reachable; wall=3.83s (whole model, all queries combined)
+SHA256: 541848e61508755d41da6ee75bc473fbc109d8e98be96a2596bd521528f39d0e
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-instance-key/output.log
+
+stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-instance-key/4
+query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,E1,ke,n,id,t)).
+RESULT not event(QuoteVerified(P1,E1,ke,n_3,id,t)) is true.
+Result: unreachable; wall=3.83s (whole model, all queries combined)
+SHA256: 541848e61508755d41da6ee75bc473fbc109d8e98be96a2596bd521528f39d0e
+Log: results/stage123r2-controls2-complete-20261028/n3-stage123r2-control-wrong-instance-key/output.log
+
+stage123r2-quote-delivery-20261028/n3-stage123r2-control-missing-quote/1
+query k:bitstring,h:bitstring; event(EvidenceChecked(P1,P2,k,h)).
+RESULT not event(EvidenceChecked(P1,P2,k_3,h)) is false.
+Result: reachable; wall=0.13s (whole model, all queries combined)
+SHA256: 17fc7ebc693da43c049cb8729081e07412588c8bfc09961c977b61c71d853e8d
+Log: results/stage123r2-quote-delivery-20261028/n3-stage123r2-control-missing-quote/output.log
+
+stage123r2-quote-delivery-20261028/n3-stage123r2-control-missing-quote/2
+query event(QuotesComplete(P1)).
+RESULT not event(QuotesComplete(P1)) is true.
+Result: unreachable; wall=0.13s (whole model, all queries combined)
+SHA256: 17fc7ebc693da43c049cb8729081e07412588c8bfc09961c977b61c71d853e8d
+Log: results/stage123r2-quote-delivery-20261028/n3-stage123r2-control-missing-quote/output.log
+
+stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-code/1
+query k:bitstring,h:bitstring; event(EvidenceChecked(P1,P2,k,h)).
+RESULT not event(EvidenceChecked(P1,P2,k_3,h)) is false.
+Result: reachable; wall=0.87s (whole model, all queries combined)
+SHA256: 416365f107b8f7ea076c9f77cd335e7a7abe330e6c59fe52db63f7443c501063
+Log: results/stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-code/output.log
+
+stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-code/2
+query event(QuotesComplete(P1)).
+RESULT not event(QuotesComplete(P1)) is true.
+Result: unreachable; wall=0.87s (whole model, all queries combined)
+SHA256: 416365f107b8f7ea076c9f77cd335e7a7abe330e6c59fe52db63f7443c501063
+Log: results/stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-code/output.log
+
+stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-code/3
+query event(ControlQuoteReceived(P1,P3)).
+RESULT not event(ControlQuoteReceived(P1,P3)) is false.
+Result: reachable; wall=0.87s (whole model, all queries combined)
+SHA256: 416365f107b8f7ea076c9f77cd335e7a7abe330e6c59fe52db63f7443c501063
+Log: results/stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-code/output.log
+
+stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-tcb/1
+query k:bitstring,h:bitstring; event(EvidenceChecked(P1,P2,k,h)).
+RESULT not event(EvidenceChecked(P1,P2,k_3,h)) is false.
+Result: reachable; wall=0.87s (whole model, all queries combined)
+SHA256: 13deed3d75c64089462a7bdea9e36f8e7925350024f28f85b50869b42cac9572
+Log: results/stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-tcb/output.log
+
+stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-tcb/2
+query event(QuotesComplete(P1)).
+RESULT not event(QuotesComplete(P1)) is true.
+Result: unreachable; wall=0.87s (whole model, all queries combined)
+SHA256: 13deed3d75c64089462a7bdea9e36f8e7925350024f28f85b50869b42cac9572
+Log: results/stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-tcb/output.log
+
+stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-tcb/3
+query event(ControlQuoteReceived(P1,P3)).
+RESULT not event(ControlQuoteReceived(P1,P3)) is false.
+Result: reachable; wall=0.87s (whole model, all queries combined)
+SHA256: 13deed3d75c64089462a7bdea9e36f8e7925350024f28f85b50869b42cac9572
+Log: results/stage123r2-quote-delivery-20261028/n3-stage123r2-control-bad-rpe-tcb/output.log
+
+stage123r2-duplicate-quote-20261028/n3-stage123r2-control-duplicate-quote/1
+query k:bitstring,h:bitstring; event(EvidenceChecked(P1,P2,k,h)).
+RESULT not event(EvidenceChecked(P1,P2,k_3,h)) is false.
+Result: reachable; wall=0.63s (whole model, all queries combined)
+SHA256: 7f2fcf52ba8df2b1bb717ca71716057d652b416c1479056b22e9f119579e0c81
+Log: results/stage123r2-duplicate-quote-20261028/n3-stage123r2-control-duplicate-quote/output.log
+
+stage123r2-duplicate-quote-20261028/n3-stage123r2-control-duplicate-quote/2
+query event(QuotesComplete(P1)).
+RESULT not event(QuotesComplete(P1)) is true.
+Result: unreachable; wall=0.63s (whole model, all queries combined)
+SHA256: 7f2fcf52ba8df2b1bb717ca71716057d652b416c1479056b22e9f119579e0c81
+Log: results/stage123r2-duplicate-quote-20261028/n3-stage123r2-control-duplicate-quote/output.log
+
+stage123r2-duplicate-quote-20261028/n3-stage123r2-control-duplicate-quote/3
+query event(ControlQuoteReceived(P1,P3)).
+RESULT not event(ControlQuoteReceived(P1,P3)) is false.
+Result: reachable; wall=0.63s (whole model, all queries combined)
+SHA256: 7f2fcf52ba8df2b1bb717ca71716057d652b416c1479056b22e9f119579e0c81
+Log: results/stage123r2-duplicate-quote-20261028/n3-stage123r2-control-duplicate-quote/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-normal/1
+query event(FixtureQuoteReady).
+RESULT not event(FixtureQuoteReady) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: b43b03f8e805227bf524c25efa312141f7197a0be7a2b7934162aabd2379c054
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-normal/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-normal/2
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
+RESULT not event(AuthorizationReceived(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: b43b03f8e805227bf524c25efa312141f7197a0be7a2b7934162aabd2379c054
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-normal/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-normal/3
+query event(FixtureAuthorizationCryptoChecked).
+RESULT not event(FixtureAuthorizationCryptoChecked) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: b43b03f8e805227bf524c25efa312141f7197a0be7a2b7934162aabd2379c054
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-normal/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-normal/4
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: b43b03f8e805227bf524c25efa312141f7197a0be7a2b7934162aabd2379c054
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-normal/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-normal/5
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSelfChecked(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: b43b03f8e805227bf524c25efa312141f7197a0be7a2b7934162aabd2379c054
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-normal/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-normal/6
+query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
+RESULT not event(AuthorizationAccepted(P3,k_1,r,o,s)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: b43b03f8e805227bf524c25efa312141f7197a0be7a2b7934162aabd2379c054
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-normal/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/1
+query event(FixtureQuoteReady).
+RESULT not event(FixtureQuoteReady) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 2ab210c48057a78f45655827c64916c9595f98d7a355fc9d4c67e1e7391b678d
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/2
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
+RESULT not event(AuthorizationReceived(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 2ab210c48057a78f45655827c64916c9595f98d7a355fc9d4c67e1e7391b678d
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/3
+query event(FixtureAuthorizationCryptoChecked).
+RESULT not event(FixtureAuthorizationCryptoChecked) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 2ab210c48057a78f45655827c64916c9595f98d7a355fc9d4c67e1e7391b678d
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/4
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 2ab210c48057a78f45655827c64916c9595f98d7a355fc9d4c67e1e7391b678d
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/5
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSelfChecked(P3,k_1,r,o)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 2ab210c48057a78f45655827c64916c9595f98d7a355fc9d4c67e1e7391b678d
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/6
+query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
+RESULT not event(AuthorizationAccepted(P3,k_1,r,o,s)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 2ab210c48057a78f45655827c64916c9595f98d7a355fc9d4c67e1e7391b678d
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-signature/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/1
+query event(FixtureQuoteReady).
+RESULT not event(FixtureQuoteReady) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 85cd78fb0e346053ac6b9b41c795a92ad4445167bc3fc51cd7cbddd045a35403
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/2
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
+RESULT not event(AuthorizationReceived(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 85cd78fb0e346053ac6b9b41c795a92ad4445167bc3fc51cd7cbddd045a35403
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/3
+query event(FixtureAuthorizationCryptoChecked).
+RESULT not event(FixtureAuthorizationCryptoChecked) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 85cd78fb0e346053ac6b9b41c795a92ad4445167bc3fc51cd7cbddd045a35403
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/4
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 85cd78fb0e346053ac6b9b41c795a92ad4445167bc3fc51cd7cbddd045a35403
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/5
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSelfChecked(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 85cd78fb0e346053ac6b9b41c795a92ad4445167bc3fc51cd7cbddd045a35403
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/6
+query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
+RESULT not event(AuthorizationAccepted(P3,k_1,r,o,s)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 85cd78fb0e346053ac6b9b41c795a92ad4445167bc3fc51cd7cbddd045a35403
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-fingerprint-mismatch/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/1
+query event(FixtureQuoteReady).
+RESULT not event(FixtureQuoteReady) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 41c62880707a819f6b1268ba3e52a88645a9dea9848fb50207a3dcce858efae1
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/2
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
+RESULT not event(AuthorizationReceived(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 41c62880707a819f6b1268ba3e52a88645a9dea9848fb50207a3dcce858efae1
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/3
+query event(FixtureAuthorizationCryptoChecked).
+RESULT not event(FixtureAuthorizationCryptoChecked) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 41c62880707a819f6b1268ba3e52a88645a9dea9848fb50207a3dcce858efae1
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/4
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 41c62880707a819f6b1268ba3e52a88645a9dea9848fb50207a3dcce858efae1
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/5
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSelfChecked(P3,k_1,r,o)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 41c62880707a819f6b1268ba3e52a88645a9dea9848fb50207a3dcce858efae1
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/6
+query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
+RESULT not event(AuthorizationAccepted(P3,k_1,r,o,s)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 41c62880707a819f6b1268ba3e52a88645a9dea9848fb50207a3dcce858efae1
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-key-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/1
+query event(FixtureQuoteReady).
+RESULT not event(FixtureQuoteReady) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 6b75e1cb53c4e9a1c3a317285c37ab642dd44e00fcc3e9dcd3dcc0025d7047d5
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/2
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
+RESULT not event(AuthorizationReceived(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 6b75e1cb53c4e9a1c3a317285c37ab642dd44e00fcc3e9dcd3dcc0025d7047d5
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/3
+query event(FixtureAuthorizationCryptoChecked).
+RESULT not event(FixtureAuthorizationCryptoChecked) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 6b75e1cb53c4e9a1c3a317285c37ab642dd44e00fcc3e9dcd3dcc0025d7047d5
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/4
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 6b75e1cb53c4e9a1c3a317285c37ab642dd44e00fcc3e9dcd3dcc0025d7047d5
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/5
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSelfChecked(P3,k_1,r,o)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 6b75e1cb53c4e9a1c3a317285c37ab642dd44e00fcc3e9dcd3dcc0025d7047d5
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/6
+query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
+RESULT not event(AuthorizationAccepted(P3,k_1,r,o,s)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 6b75e1cb53c4e9a1c3a317285c37ab642dd44e00fcc3e9dcd3dcc0025d7047d5
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-policy-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/1
+query event(FixtureQuoteReady).
+RESULT not event(FixtureQuoteReady) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 046bf15f102799d6238671f878ef840f291e0298c4bdaf95157392bab6fe2850
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/2
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
+RESULT not event(AuthorizationReceived(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 046bf15f102799d6238671f878ef840f291e0298c4bdaf95157392bab6fe2850
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/3
+query event(FixtureAuthorizationCryptoChecked).
+RESULT not event(FixtureAuthorizationCryptoChecked) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 046bf15f102799d6238671f878ef840f291e0298c4bdaf95157392bab6fe2850
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/4
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 046bf15f102799d6238671f878ef840f291e0298c4bdaf95157392bab6fe2850
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/5
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSelfChecked(P3,k_1,r,o)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 046bf15f102799d6238671f878ef840f291e0298c4bdaf95157392bab6fe2850
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/6
+query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
+RESULT not event(AuthorizationAccepted(P3,k_1,r,o,s)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 046bf15f102799d6238671f878ef840f291e0298c4bdaf95157392bab6fe2850
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/1
+query event(FixtureQuoteReady).
+RESULT not event(FixtureQuoteReady) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 8e5f1a77ea2d23257094692d619a58becef0bc3e2ffea6bf73af4928ce356f9a
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/2
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
+RESULT not event(AuthorizationReceived(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 8e5f1a77ea2d23257094692d619a58becef0bc3e2ffea6bf73af4928ce356f9a
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/3
+query event(FixtureAuthorizationCryptoChecked).
+RESULT not event(FixtureAuthorizationCryptoChecked) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 8e5f1a77ea2d23257094692d619a58becef0bc3e2ffea6bf73af4928ce356f9a
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/4
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 8e5f1a77ea2d23257094692d619a58becef0bc3e2ffea6bf73af4928ce356f9a
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/5
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSelfChecked(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 8e5f1a77ea2d23257094692d619a58becef0bc3e2ffea6bf73af4928ce356f9a
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/6
+query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
+RESULT not event(AuthorizationAccepted(P3,k_1,r,o,s)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 8e5f1a77ea2d23257094692d619a58becef0bc3e2ffea6bf73af4928ce356f9a
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-attester/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/1
+query event(FixtureQuoteReady).
+RESULT not event(FixtureQuoteReady) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 1efa005a15617b875683a4dc34cb6fad2e353ed5e24511a376824384ff524c40
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/2
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
+RESULT not event(AuthorizationReceived(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 1efa005a15617b875683a4dc34cb6fad2e353ed5e24511a376824384ff524c40
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/3
+query event(FixtureAuthorizationCryptoChecked).
+RESULT not event(FixtureAuthorizationCryptoChecked) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 1efa005a15617b875683a4dc34cb6fad2e353ed5e24511a376824384ff524c40
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/4
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 1efa005a15617b875683a4dc34cb6fad2e353ed5e24511a376824384ff524c40
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/5
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSelfChecked(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: 1efa005a15617b875683a4dc34cb6fad2e353ed5e24511a376824384ff524c40
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/6
+query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
+RESULT not event(AuthorizationAccepted(P3,k_1,r,o,s)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: 1efa005a15617b875683a4dc34cb6fad2e353ed5e24511a376824384ff524c40
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-nonconcrete-signer/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/1
+query event(FixtureQuoteReady).
+RESULT not event(FixtureQuoteReady) is false.
+Result: reachable; wall=0.03s (whole model, all queries combined)
+SHA256: 7d591e5b1ea5aaa78214ffd80269c1222871a11a2f187cc269c143d418924c44
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/2
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
+RESULT not event(AuthorizationReceived(P3,k_1,r,o)) is true.
+Result: unreachable; wall=0.03s (whole model, all queries combined)
+SHA256: 7d591e5b1ea5aaa78214ffd80269c1222871a11a2f187cc269c143d418924c44
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/3
+query event(FixtureAuthorizationCryptoChecked).
+RESULT not event(FixtureAuthorizationCryptoChecked) is true.
+Result: unreachable; wall=0.03s (whole model, all queries combined)
+SHA256: 7d591e5b1ea5aaa78214ffd80269c1222871a11a2f187cc269c143d418924c44
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/4
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is true.
+Result: unreachable; wall=0.03s (whole model, all queries combined)
+SHA256: 7d591e5b1ea5aaa78214ffd80269c1222871a11a2f187cc269c143d418924c44
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/5
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSelfChecked(P3,k_1,r,o)) is true.
+Result: unreachable; wall=0.03s (whole model, all queries combined)
+SHA256: 7d591e5b1ea5aaa78214ffd80269c1222871a11a2f187cc269c143d418924c44
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/6
+query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
+RESULT not event(AuthorizationAccepted(P3,k_1,r,o,s)) is true.
+Result: unreachable; wall=0.03s (whole model, all queries combined)
+SHA256: 7d591e5b1ea5aaa78214ffd80269c1222871a11a2f187cc269c143d418924c44
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-no-authorization/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-normal/1
+query event(FixtureOwnerResponseSent).
+RESULT not event(FixtureOwnerResponseSent) is false.
+Result: reachable; wall=0.02s (whole model, all queries combined)
+SHA256: 8ac7ab1d4d99085fc94ad0904e9498dae22129d6bad48879cdf6a384e5c3aaf7
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-normal/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-normal/2
+query event(FixtureOwnerCryptoChecked).
+RESULT not event(FixtureOwnerCryptoChecked) is false.
+Result: reachable; wall=0.02s (whole model, all queries combined)
+SHA256: 8ac7ab1d4d99085fc94ad0904e9498dae22129d6bad48879cdf6a384e5c3aaf7
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-normal/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-normal/3
+query o:bitstring,k:bitstring,r:policy,n:bitstring; event(OwnerAttested(o,k,r,n)).
+RESULT not event(OwnerAttested(o,k,r,n_2)) is false.
+Result: reachable; wall=0.02s (whole model, all queries combined)
+SHA256: 8ac7ab1d4d99085fc94ad0904e9498dae22129d6bad48879cdf6a384e5c3aaf7
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-normal/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-normal/4
+query o:bitstring,k:bitstring,h:bitstring; event(OwnerSigned(o,k,h)).
+RESULT not event(OwnerSigned(o,k,h)) is false.
+Result: reachable; wall=0.02s (whole model, all queries combined)
+SHA256: 8ac7ab1d4d99085fc94ad0904e9498dae22129d6bad48879cdf6a384e5c3aaf7
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-normal/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-code/1
+query event(FixtureOwnerResponseSent).
+RESULT not event(FixtureOwnerResponseSent) is false.
+Result: reachable; wall=0.02s (whole model, all queries combined)
+SHA256: 683b9713972a569789b48e05bb7fce6956254df84a675f7d366e3deb652ef07f
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-code/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-code/2
+query event(FixtureOwnerCryptoChecked).
+RESULT not event(FixtureOwnerCryptoChecked) is false.
+Result: reachable; wall=0.02s (whole model, all queries combined)
+SHA256: 683b9713972a569789b48e05bb7fce6956254df84a675f7d366e3deb652ef07f
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-code/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-code/3
+query o:bitstring,k:bitstring,r:policy,n:bitstring; event(OwnerAttested(o,k,r,n)).
+RESULT not event(OwnerAttested(o,k,r,n_2)) is true.
+Result: unreachable; wall=0.02s (whole model, all queries combined)
+SHA256: 683b9713972a569789b48e05bb7fce6956254df84a675f7d366e3deb652ef07f
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-code/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-code/4
+query o:bitstring,k:bitstring,h:bitstring; event(OwnerSigned(o,k,h)).
+RESULT not event(OwnerSigned(o,k,h)) is true.
+Result: unreachable; wall=0.02s (whole model, all queries combined)
+SHA256: 683b9713972a569789b48e05bb7fce6956254df84a675f7d366e3deb652ef07f
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-code/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-tcb/1
+query event(FixtureOwnerResponseSent).
+RESULT not event(FixtureOwnerResponseSent) is false.
+Result: reachable; wall=0.02s (whole model, all queries combined)
+SHA256: dc78d9d7a20f94be9e3e84a6a958d693c9572b95cfee580779ff7607603a3680
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-tcb/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-tcb/2
+query event(FixtureOwnerCryptoChecked).
+RESULT not event(FixtureOwnerCryptoChecked) is false.
+Result: reachable; wall=0.02s (whole model, all queries combined)
+SHA256: dc78d9d7a20f94be9e3e84a6a958d693c9572b95cfee580779ff7607603a3680
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-tcb/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-tcb/3
+query o:bitstring,k:bitstring,r:policy,n:bitstring; event(OwnerAttested(o,k,r,n)).
+RESULT not event(OwnerAttested(o,k,r,n_2)) is true.
+Result: unreachable; wall=0.02s (whole model, all queries combined)
+SHA256: dc78d9d7a20f94be9e3e84a6a958d693c9572b95cfee580779ff7607603a3680
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-tcb/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-tcb/4
+query o:bitstring,k:bitstring,h:bitstring; event(OwnerSigned(o,k,h)).
+RESULT not event(OwnerSigned(o,k,h)) is true.
+Result: unreachable; wall=0.02s (whole model, all queries combined)
+SHA256: dc78d9d7a20f94be9e3e84a6a958d693c9572b95cfee580779ff7607603a3680
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-tcb/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-key-rebinding/1
+query event(FixtureOwnerResponseSent).
+RESULT not event(FixtureOwnerResponseSent) is false.
+Result: reachable; wall=0.03s (whole model, all queries combined)
+SHA256: f93ee78e5349a07ffd4c5ede0fcf46115cdecce0028df10610e592e6bd9bfd49
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-key-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-key-rebinding/2
+query event(FixtureOwnerCryptoChecked).
+RESULT not event(FixtureOwnerCryptoChecked) is false.
+Result: reachable; wall=0.03s (whole model, all queries combined)
+SHA256: f93ee78e5349a07ffd4c5ede0fcf46115cdecce0028df10610e592e6bd9bfd49
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-key-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-key-rebinding/3
+query o:bitstring,k:bitstring,r:policy,n:bitstring; event(OwnerAttested(o,k,r,n)).
+RESULT not event(OwnerAttested(o,k,r,n_2)) is true.
+Result: unreachable; wall=0.03s (whole model, all queries combined)
+SHA256: f93ee78e5349a07ffd4c5ede0fcf46115cdecce0028df10610e592e6bd9bfd49
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-key-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-key-rebinding/4
+query o:bitstring,k:bitstring,h:bitstring; event(OwnerSigned(o,k,h)).
+RESULT not event(OwnerSigned(o,k,h)) is true.
+Result: unreachable; wall=0.03s (whole model, all queries combined)
+SHA256: f93ee78e5349a07ffd4c5ede0fcf46115cdecce0028df10610e592e6bd9bfd49
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-key-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-nonce-rebinding/1
+query event(FixtureOwnerResponseSent).
+RESULT not event(FixtureOwnerResponseSent) is false.
+Result: reachable; wall=0.02s (whole model, all queries combined)
+SHA256: 517705fc9f85ef25f89cb98b70eeaca78efb19fd9a1ba7d9fc41ef7f8e0e5b35
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-nonce-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-nonce-rebinding/2
+query event(FixtureOwnerCryptoChecked).
+RESULT not event(FixtureOwnerCryptoChecked) is false.
+Result: reachable; wall=0.02s (whole model, all queries combined)
+SHA256: 517705fc9f85ef25f89cb98b70eeaca78efb19fd9a1ba7d9fc41ef7f8e0e5b35
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-nonce-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-nonce-rebinding/3
+query o:bitstring,k:bitstring,r:policy,n:bitstring; event(OwnerAttested(o,k,r,n)).
+RESULT not event(OwnerAttested(o,k,r,n_2)) is true.
+Result: unreachable; wall=0.02s (whole model, all queries combined)
+SHA256: 517705fc9f85ef25f89cb98b70eeaca78efb19fd9a1ba7d9fc41ef7f8e0e5b35
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-nonce-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-nonce-rebinding/4
+query o:bitstring,k:bitstring,h:bitstring; event(OwnerSigned(o,k,h)).
+RESULT not event(OwnerSigned(o,k,h)) is true.
+Result: unreachable; wall=0.02s (whole model, all queries combined)
+SHA256: 517705fc9f85ef25f89cb98b70eeaca78efb19fd9a1ba7d9fc41ef7f8e0e5b35
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-nonce-rebinding/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-signature/1
+query event(FixtureOwnerResponseSent).
+RESULT not event(FixtureOwnerResponseSent) is false.
+Result: reachable; wall=0.02s (whole model, all queries combined)
+SHA256: eed8996928fac8250b817fbf37e0073836d70c391aa94fa318ea396a0fc1c226
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-signature/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-signature/2
+query event(FixtureOwnerCryptoChecked).
+RESULT not event(FixtureOwnerCryptoChecked) is true.
+Result: unreachable; wall=0.02s (whole model, all queries combined)
+SHA256: eed8996928fac8250b817fbf37e0073836d70c391aa94fa318ea396a0fc1c226
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-signature/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-signature/3
+query o:bitstring,k:bitstring,r:policy,n:bitstring; event(OwnerAttested(o,k,r,n)).
+RESULT not event(OwnerAttested(o,k,r,n_2)) is true.
+Result: unreachable; wall=0.02s (whole model, all queries combined)
+SHA256: eed8996928fac8250b817fbf37e0073836d70c391aa94fa318ea396a0fc1c226
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-signature/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-signature/4
+query o:bitstring,k:bitstring,h:bitstring; event(OwnerSigned(o,k,h)).
+RESULT not event(OwnerSigned(o,k,h)) is true.
+Result: unreachable; wall=0.02s (whole model, all queries combined)
+SHA256: eed8996928fac8250b817fbf37e0073836d70c391aa94fa318ea396a0fc1c226
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-owner-wrong-signature/output.log
+
+stage123r2-local-final-20261028/join-stage123r2-p12-regression/1
+query pr:profile; event(FixtureJoinWrong(pr)).
+RESULT not event(FixtureJoinWrong(pr_12)) is true.
+Result: unreachable; wall=0.72s (whole model, all queries combined)
+SHA256: 97a67e6bd6388518552c6b370789d30399b83b4b9794161ce2c98bf06f3560f0
+Log: results/stage123r2-local-final-20261028/join-stage123r2-p12-regression/output.log
+
+stage123r2-local-final-20261028/join-stage123r2-p12-regression/2
+query event(FixtureJoinPassed(Compatible)) && event(FixtureJoinPassed(Weak)) && event(FixtureJoinPassed(StrongerSVN)) && event(FixtureJoinPassed(ConflictMeasurement)) && event(FixtureJoinPassed(ConflictSigner)) && event(FixtureJoinPassed(ConflictProduct)) && event(FixtureJoinPassed(ConflictTCB)) && event(FixtureJoinPassed(ConflictAttester)) && event(FixtureJoinPassed(RejectPeerTCB)) && event(FixtureJoinPassed(NoAssignments)) && event(FixtureJoinPassed(PermissiveRpeTCB)) && event(FixtureJoinPassed(StrongerSVNE2)).
+RESULT not (event(FixtureJoinPassed(Compatible)) && event(FixtureJoinPassed(Weak)) && event(FixtureJoinPassed(StrongerSVN)) && event(FixtureJoinPassed(ConflictMeasurement)) && event(FixtureJoinPassed(ConflictSigner)) && event(FixtureJoinPassed(ConflictProduct)) && event(FixtureJoinPassed(ConflictTCB)) && event(FixtureJoinPassed(ConflictAttester)) && event(FixtureJoinPassed(RejectPeerTCB)) && event(FixtureJoinPassed(NoAssignments)) && event(FixtureJoinPassed(PermissiveRpeTCB)) && event(FixtureJoinPassed(StrongerSVNE2))) is false.
+Result: reachable; wall=0.72s (whole model, all queries combined)
+SHA256: 97a67e6bd6388518552c6b370789d30399b83b4b9794161ce2c98bf06f3560f0
+Log: results/stage123r2-local-final-20261028/join-stage123r2-p12-regression/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/1
+query event(FixtureQuoteReady).
+RESULT not event(FixtureQuoteReady) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: be77efcbd8a846232b2f354fc9dbfada0214770ba503b4cf92d8621295d249b2
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/2
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
+RESULT not event(AuthorizationReceived(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: be77efcbd8a846232b2f354fc9dbfada0214770ba503b4cf92d8621295d249b2
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/3
+query event(FixtureAuthorizationCryptoChecked).
+RESULT not event(FixtureAuthorizationCryptoChecked) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: be77efcbd8a846232b2f354fc9dbfada0214770ba503b4cf92d8621295d249b2
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/4
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSignatureChecked(P3,k_1,r,o)) is false.
+Result: reachable; wall=0.04s (whole model, all queries combined)
+SHA256: be77efcbd8a846232b2f354fc9dbfada0214770ba503b4cf92d8621295d249b2
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/5
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
+RESULT not event(AuthorizationSelfChecked(P3,k_1,r,o)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: be77efcbd8a846232b2f354fc9dbfada0214770ba503b4cf92d8621295d249b2
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/output.log
+
+stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/6
+query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
+RESULT not event(AuthorizationAccepted(P3,k_1,r,o,s)) is true.
+Result: unreachable; wall=0.04s (whole model, all queries combined)
+SHA256: be77efcbd8a846232b2f354fc9dbfada0214770ba503b4cf92d8621295d249b2
+Log: results/stage123r2-local-final-20261028/n3-stage123r2-auth-wrong-self-tee/output.log
+
+stage123r2-signer-final-20261028/n3-stage123r2-control-authorized-signer-peer-conflict/1
+query k2:bitstring,h:bitstring,r:policy,x:polstar,ke:bitstring,n:bitstring,id:identity,t:tcbstatus;
+  event(ControlAllAuthorized) && event(PoliciesComplete(P1)).
+RESULT not (event(ControlAllAuthorized) && event(PoliciesComplete(P1))) is false.
+Result: reachable; wall=0.86s (whole model, all queries combined)
+SHA256: 55dd7fbcc97d2dd1979648e717207b9f6b127aa35bda51f05b791045a489ed1d
+Log: results/stage123r2-signer-final-20261028/n3-stage123r2-control-authorized-signer-peer-conflict/output.log
+
+stage123r2-signer-final-20261028/n3-stage123r2-control-authorized-signer-peer-conflict/2
+query x:polstar; event(FullJoin(P1,x)).
+RESULT not event(FullJoin(P1,x)) is true.
+Result: unreachable; wall=0.86s (whole model, all queries combined)
+SHA256: 55dd7fbcc97d2dd1979648e717207b9f6b127aa35bda51f05b791045a489ed1d
+Log: results/stage123r2-signer-final-20261028/n3-stage123r2-control-authorized-signer-peer-conflict/output.log
+
+stage123r2-signer-final-20261028/join-stage123r2-control-tables/1
+query x:bitstring; event(ControlTableWrong(x)).
+RESULT not event(ControlTableWrong(x)) is true.
+Result: unreachable; wall=0.45s (whole model, all queries combined)
+SHA256: 635c443f6051fca24ba01a3cf982fddc42403db080280eb7efbfc5fe25aaf7f1
+Log: results/stage123r2-signer-final-20261028/join-stage123r2-control-tables/output.log
+
+stage123r2-signer-final-20261028/join-stage123r2-control-tables/2
+query event(ControlTablePassed(Table0)) && event(ControlTablePassed(Table1)) && event(ControlTablePassed(Table2)) && event(ControlTablePassed(Table3)) && event(ControlTablePassed(Table4)) && event(ControlTablePassed(Table5)) && event(ControlTablePassed(Table6)) && event(ControlTablePassed(Table7)).
+RESULT not (event(ControlTablePassed(Table0)) && event(ControlTablePassed(Table1)) && event(ControlTablePassed(Table2)) && event(ControlTablePassed(Table3)) && event(ControlTablePassed(Table4)) && event(ControlTablePassed(Table5)) && event(ControlTablePassed(Table6)) && event(ControlTablePassed(Table7))) is false.
+Result: reachable; wall=0.45s (whole model, all queries combined)
+SHA256: 635c443f6051fca24ba01a3cf982fddc42403db080280eb7efbfc5fe25aaf7f1
+Log: results/stage123r2-signer-final-20261028/join-stage123r2-control-tables/output.log

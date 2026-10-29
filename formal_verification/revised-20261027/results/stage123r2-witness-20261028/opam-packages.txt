@@ -1,0 +1,21 @@
+# Packages matching: installed
+# Name                # Installed   # Synopsis
+base-bigarray         base
+base-domains          base
+base-effects          base
+base-nnp              base          Naked pointers prohibited in the OCaml heap
+base-threads          base
+base-unix             base
+camlp-streams         5.0.1         The Stream and Genlex libraries for use with Camlp4 and Camlp5
+compiler-cloning      enabled       Relocatable OCaml
+conf-gtk2             1             Virtual package relying on gtk2
+conf-pkg-config       5             Check if pkg-config is installed and create an opam switch local pkgconfig folder
+dune                  3.24.1        Fast, portable, and opinionated build system
+lablgtk               2.18.14       OCaml interface to GTK+
+ocaml                 5.5.0         The OCaml compiler (virtual package)
+ocaml-base-compiler   5.5.0         pinned to version 5.5.0
+ocaml-compiler        5.5.0         Official release of OCaml 5.5.0
+ocaml-options-vanilla 1             Ensure that OCaml is compiled with no special options enabled
+ocamlfind             1.9.9~preview A library manager for OCaml
+opam-depext           1.2.3         Install OS distribution packages
+proverif              2.05          ProVerif: Cryptographic protocol verifier in the symbolic model

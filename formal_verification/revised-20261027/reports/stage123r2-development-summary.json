@@ -1,0 +1,64 @@
+{
+  "interpretation": "Historical development attempts are summarized here; their raw files are retained locally, not part of the published current evidence. Only the 69 jobs in current-selection count toward current results.",
+  "attempts": 57,
+  "parse_exit_counts": {
+    "0": 56,
+    "2": 1
+  },
+  "verification_exit_counts": {
+    "124": 25,
+    "0": 31,
+    "None": 1
+  },
+  "per_batch": [
+    {
+      "batch": "stage123r2-controls-pilot-20261028",
+      "attempts": 4
+    },
+    {
+      "batch": "stage123r2-controls-pilot2-20261028",
+      "attempts": 4
+    },
+    {
+      "batch": "stage123r2-controls1-complete-20261028",
+      "attempts": 2
+    },
+    {
+      "batch": "stage123r2-controls1-final-20261028",
+      "attempts": 15
+    },
+    {
+      "batch": "stage123r2-controls2-complete-20261028",
+      "attempts": 3
+    },
+    {
+      "batch": "stage123r2-controls2-final-20261028",
+      "attempts": 14
+    },
+    {
+      "batch": "stage123r2-early-quotes-20261028",
+      "attempts": 4
+    },
+    {
+      "batch": "stage123r2-pilot-20261028",
+      "attempts": 1
+    },
+    {
+      "batch": "stage123r2-quote-delivery-20261028",
+      "attempts": 1
+    },
+    {
+      "batch": "stage123r2-quote-prefix-20261028",
+      "attempts": 4
+    },
+    {
+      "batch": "stage123r2-quote-schedule-20261028",
+      "attempts": 4
+    },
+    {
+      "batch": "stage123r2-table-audit-20261028",
+      "attempts": 1
+    }
+  ],
+  "counted_as_current": false
+}

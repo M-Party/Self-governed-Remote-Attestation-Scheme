@@ -1,0 +1,1066 @@
+Process 0 (that is, the initial process):
+{1}new akRPE: skey;
+{2}new akTEE: skey;
+{3}new akADV: skey;
+{4}event HonestOwner(pk(skO1));
+{5}event HonestOwner(pk(skO2));
+{6}out(net, (pk(akRPE),pk(akTEE),pk(akADV),akADV,pk(skO1),pk(skO2),pk(skO3),skO3));
+{7}out(net, (pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))));
+(
+    {8}let pkAKR: bitstring = pk(akRPE) in
+    {9}let rho: policy = pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {10}new n: bitstring;
+    {11}event OwnerChallenge(pk(skO1),n);
+    {12}out(net, (P1,n));
+    {13}in(net, (=P1,candidate: bitstring,q: bitstring));
+    {14}let rpeQuote(=mRPE,status: tcbstatus,binding: bitstring) = checksign(q,pkAKR) in
+    {15}if (binding = H((candidate,n))) then
+    {16}let platformOK: bool = matchtcb(rpeTcb1(rho),status) in
+    {17}if (platformOK = true) then
+    {18}event OwnerAttested(pk(skO1),candidate,rho,n);
+    {19}let authorization: bitstring = sign((candidate,H(policyBytes(rho))),skO1) in
+    {20}event OwnerSigned(pk(skO1),candidate,H(policyBytes(rho)));
+    {21}out(net, (P1,candidate,rho,authorization,pk(skO1)))
+) | (
+    {22}let pkAKR_1: bitstring = pk(akRPE) in
+    {23}let rho_1: policy = pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {24}new n_1: bitstring;
+    {25}event OwnerChallenge(pk(skO2),n_1);
+    {26}out(net, (P2,n_1));
+    {27}in(net, (=P2,candidate_1: bitstring,q_1: bitstring));
+    {28}let rpeQuote(=mRPE,status_1: tcbstatus,binding_1: bitstring) = checksign(q_1,pkAKR_1) in
+    {29}if (binding_1 = H((candidate_1,n_1))) then
+    {30}let platformOK_1: bool = matchtcb(rpeTcb2(rho_1),status_1) in
+    {31}if (platformOK_1 = true) then
+    {32}event OwnerAttested(pk(skO2),candidate_1,rho_1,n_1);
+    {33}let authorization_1: bitstring = sign((candidate_1,H(policyBytes(rho_1))),skO2) in
+    {34}event OwnerSigned(pk(skO2),candidate_1,H(policyBytes(rho_1)));
+    {35}out(net, (P2,candidate_1,rho_1,authorization_1,pk(skO2)))
+) | (
+    {36}let akR: skey = akRPE in
+    {37}let pkAKR_2: bitstring = pk(akRPE) in
+    {38}let pkAKE: bitstring = pk(akTEE) in
+    {39}new sk1: skey;
+    {40}let pk1: bitstring = pk(sk1) in
+    {41}out(net, (P1,pk1));
+    (
+        {42}!
+        {43}in(net, (=P1,requested: bitstring));
+        {44}out(net, (P1,pk1,sign(rpeQuote(mRPE,Good,H((pk1,requested))),akR)))
+    ) | (
+        {45}in(net, (=P1,=pk1,rho1: policy,authorization_2: bitstring,ownerKey: bitstring));
+        {46}event AuthorizationReceived(P1,pk1,rho1,ownerKey);
+        {47}let (signedKey: bitstring,signedHash: bitstring) = checksign(authorization_2,ownerKey) in
+        {48}if ((signedKey = pk1) && (signedHash = H(policyBytes(rho1)))) then
+        {49}event AuthorizationSignatureChecked(P1,pk1,rho1,ownerKey);
+        {50}if ((policySelf(rho1) = P1) && (policySelfTEE(rho1) = E1)) then
+        {51}event AuthorizationSelfChecked(P1,pk1,rho1,ownerKey);
+        {52}let Req(cm: ident,exact(selfSigner: bitstring),cp: ident,cv: svn,ct: tcbreq,ca: attreq) = starEntry1(constraints(rho1)) in
+        {53}if ((selfSigner = H(ownerKey)) && (ca = Assign(P1))) then
+        {54}event AuthorizationAccepted(P1,pk1,rho1,ownerKey,selfSigner);
+        {55}event AuthorizedPolicyDeclared(P1,pk1,rho1);
+        {56}event PolicyDeclared(P1,rho1);
+        {57}let q1: bitstring = sign(rpeQuote(mRPE,Good,H((pk1,H(policyBytes(rho1))))),akR) in
+        {58}out(net, (P1,q1,pk1,H(policyBytes(rho1))));
+        {59}in(net, (=P2,q2: bitstring,pk2: bitstring,hb2: bitstring));
+        {60}let rpeQuote(=mRPE,ts2: tcbstatus,d2: bitstring) = checksign(q2,pkAKR_2) in
+        {61}if (d2 = H((pk2,hb2))) then
+        {62}let tcbok2: bool = matchtcb(rpeTcb2(rho1),ts2) in
+        {63}if (tcbok2 = true) then
+        {64}if (pk2 ≠ pk1) then
+        {65}event EvidenceChecked(P1,P2,pk2,hb2);
+        {66}in(net, (=P3,q3: bitstring,pk3: bitstring,hb3: bitstring));
+        {67}let rpeQuote(=mRPE,ts3: tcbstatus,d3: bitstring) = checksign(q3,pkAKR_2) in
+        {68}if (d3 = H((pk3,hb3))) then
+        {69}let tcbok3: bool = matchtcb(rpeTcb3(rho1),ts3) in
+        {70}if (tcbok3 = true) then
+        {71}if ((pk3 ≠ pk1) && (pk3 ≠ pk2)) then
+        {72}event EvidenceChecked(P1,P3,pk3,hb3);
+        {73}event QuotesComplete(P1);
+        {74}event PolicySent(P1,pk2,rho1);
+        {75}out(net, (P1,P2,sign(policyMsg(pk2,rho1),sk1)));
+        {76}event PolicySent(P1,pk3,rho1);
+        {77}out(net, (P1,P3,sign(policyMsg(pk3,rho1),sk1)));
+        {78}in(net, (=P2,=P1,msg2: bitstring));
+        {79}let policyMsg(=pk1,rho2: policy) = checksign(msg2,pk2) in
+        {80}event PolicyAuthenticated(P1,P2,rho2);
+        {81}if (H(policyBytes(rho2)) = hb2) then
+        {82}if (policySelf(rho2) = P2) then
+        {83}event PolicyAccepted(P1,P2,rho2);
+        {84}event PolicyAcceptedKeys(P1,P2,pk1,pk2,rho2);
+        {85}in(net, (=P3,=P1,msg3: bitstring));
+        {86}let policyMsg(=pk1,rho3: policy) = checksign(msg3,pk3) in
+        {87}event PolicyAuthenticated(P1,P3,rho3);
+        {88}if (H(policyBytes(rho3)) = hb3) then
+        {89}if (policySelf(rho3) = P3) then
+        {90}event PolicyAccepted(P1,P3,rho3);
+        {91}event PolicyAcceptedKeys(P1,P3,pk1,pk3,rho3);
+        {92}event PoliciesComplete(P1);
+        {93}let joined12: polstar = joinstar(constraints(rho1),constraints(rho2)) in
+        {94}let pistar: polstar = joinstar(joined12,constraints(rho3)) in
+        {95}event FullJoin(P1,pistar);
+        {96}event ConfirmationSent(P1,P2,H(starBytes(pistar)));
+        {97}out(net, (P1,P2,sign(confirmMsg(pk2,H(starBytes(pistar))),sk1)));
+        {98}event ConfirmationSent(P1,P3,H(starBytes(pistar)));
+        {99}out(net, (P1,P3,sign(confirmMsg(pk3,H(starBytes(pistar))),sk1)));
+        {100}in(net, (=P2,=P1,confirmation2: bitstring));
+        {101}let confirmMsg(=pk1,hs2: bitstring) = checksign(confirmation2,pk2) in
+        {102}event ConfirmationAuthenticated(P1,P2,hs2);
+        {103}if (hs2 = H(starBytes(pistar))) then
+        {104}event ConfirmationAccepted(P1,P2,hs2);
+        {105}in(net, (=P3,=P1,confirmation3: bitstring));
+        {106}let confirmMsg(=pk1,hs3: bitstring) = checksign(confirmation3,pk3) in
+        {107}event ConfirmationAuthenticated(P1,P3,hs3);
+        {108}if (hs3 = H(starBytes(pistar))) then
+        {109}event ConfirmationAccepted(P1,P3,hs3);
+        {110}event Confirm(P1,pistar);
+        {111}let a: party = P1 in
+        {112}let e: entity = E1 in
+        {113}let skR: skey = sk1 in
+        {114}let c: entry = starEntry1(pistar) in
+        {115}in(net, pkE: bitstring);
+        {116}new challenge: bitstring;
+        {117}event ChallengeSent(a,pkE,challenge);
+        {118}out(net, challenge);
+        {119}in(net, qe: bitstring);
+        {120}event QuoteReceived(a,e,pkE,challenge);
+        {121}let teeQuote(actual: identity,status_2: tcbstatus,binding_2: bitstring) = checksign(qe,pkAKE) in
+        {122}event QuoteSignatureChecked(a,e,pkE,challenge,actual,status_2);
+        {123}if (binding_2 = H((pkE,challenge))) then
+        {124}event QuoteVerified(a,e,pkE,challenge,actual,status_2);
+        {125}let v: entry = c in
+        {126}let v_1: bool = success?(1-proj-Req(v)) in
+        {127}let ca_1: attreq = (if v_1 then 6-proj-Req(v) else caught-fail) in
+        {128}let ct_1: tcbreq = (if v_1 then 5-proj-Req(v) else caught-fail) in
+        {129}let cv_1: svn = (if v_1 then 4-proj-Req(v) else caught-fail) in
+        {130}let cp_1: ident = (if v_1 then 3-proj-Req(v) else caught-fail) in
+        {131}let cs: ident = (if v_1 then 2-proj-Req(v) else caught-fail) in
+        {132}let cm_1: ident = (if v_1 then 1-proj-Req(v) else caught-fail) in
+        {133}let v_2: identity = (if v_1 then catch-fail(actual) else caught-fail) in
+        {134}let v_3: bool = (not-caught-fail(v_2) && success?(1-proj-Identity(v_2))) in
+        {135}let av: svn = (if v_3 then 4-proj-Identity(v_2) else caught-fail) in
+        {136}let ap: bitstring = (if v_3 then 3-proj-Identity(v_2) else caught-fail) in
+        {137}let asigner: bitstring = (if v_3 then 2-proj-Identity(v_2) else caught-fail) in
+        {138}let am: bitstring = (if v_3 then 1-proj-Identity(v_2) else caught-fail) in
+        {139}let vm: bool = (if v_3 then catch-fail(matchid(cm_1,am)) else caught-fail) in
+        {140}let v_4: bool = not-caught-fail(vm) in
+        {141}let vs: bool = (if v_4 then catch-fail(matchid(cs,asigner)) else caught-fail) in
+        {142}let v_5: bool = not-caught-fail(vs) in
+        {143}let vp: bool = (if v_5 then catch-fail(matchid(cp_1,ap)) else caught-fail) in
+        {144}let v_6: bool = not-caught-fail(vp) in
+        {145}let vv: bool = (if v_6 then catch-fail(matchv(cv_1,av)) else caught-fail) in
+        {146}let v_7: bool = not-caught-fail(vv) in
+        {147}let vt: bool = (if v_7 then catch-fail(matchtcb(ct_1,status_2)) else caught-fail) in
+        {148}let v_8: bool = not-caught-fail(vt) in
+        {149}let va: bool = (if v_8 then catch-fail(matchatt(ca_1,a)) else caught-fail) in
+        {150}let v_9: bool = not-caught-fail(va) in
+        {151}let allowed: bool = (if v_1 then (if v_3 then (if v_4 then (if v_5 then (if v_6 then (if v_7 then (if v_8 then (if v_9 then (vm && (vs && (vp && (vv && (vt && va))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+        {152}if (allowed = true) then
+        {153}event QuoteSatisfied(a,e,pk(skR),pkE,challenge,actual,status_2,pistar);
+        {154}let body: bitstring = H((pkE,pk(skR),H(starBytes(pistar)))) in
+        {155}let certificate: bitstring = sign(body,skR) in
+        {156}event CertIssued(a,e,pk(skR),pkE,challenge,actual,status_2,pistar,body);
+        {157}out(net, (pkE,pk(skR),H(starBytes(pistar)),certificate))
+    )
+) | (
+    {158}let akR_1: skey = akRPE in
+    {159}let pkAKR_3: bitstring = pk(akRPE) in
+    {160}let pkAKE_1: bitstring = pk(akTEE) in
+    {161}new sk2: skey;
+    {162}let pk2_1: bitstring = pk(sk2) in
+    {163}out(net, (P2,pk2_1));
+    (
+        {164}!
+        {165}in(net, (=P2,requested_1: bitstring));
+        {166}out(net, (P2,pk2_1,sign(rpeQuote(mRPE,Good,H((pk2_1,requested_1))),akR_1)))
+    ) | (
+        {167}in(net, (=P2,=pk2_1,rho2_1: policy,authorization_3: bitstring,ownerKey_1: bitstring));
+        {168}event AuthorizationReceived(P2,pk2_1,rho2_1,ownerKey_1);
+        {169}let (signedKey_1: bitstring,signedHash_1: bitstring) = checksign(authorization_3,ownerKey_1) in
+        {170}if ((signedKey_1 = pk2_1) && (signedHash_1 = H(policyBytes(rho2_1)))) then
+        {171}event AuthorizationSignatureChecked(P2,pk2_1,rho2_1,ownerKey_1);
+        {172}if ((policySelf(rho2_1) = P2) && (policySelfTEE(rho2_1) = E2)) then
+        {173}event AuthorizationSelfChecked(P2,pk2_1,rho2_1,ownerKey_1);
+        {174}let Req(cm_2: ident,exact(selfSigner_1: bitstring),cp_2: ident,cv_2: svn,ct_2: tcbreq,ca_2: attreq) = starEntry2(constraints(rho2_1)) in
+        {175}if ((selfSigner_1 = H(ownerKey_1)) && (ca_2 = Assign(P2))) then
+        {176}event AuthorizationAccepted(P2,pk2_1,rho2_1,ownerKey_1,selfSigner_1);
+        {177}event AuthorizedPolicyDeclared(P2,pk2_1,rho2_1);
+        {178}event PolicyDeclared(P2,rho2_1);
+        {179}let q2_1: bitstring = sign(rpeQuote(mRPE,Good,H((pk2_1,H(policyBytes(rho2_1))))),akR_1) in
+        {180}out(net, (P2,q2_1,pk2_1,H(policyBytes(rho2_1))));
+        {181}in(net, (=P1,q1_1: bitstring,pk1_1: bitstring,hb1: bitstring));
+        {182}let rpeQuote(=mRPE,ts1: tcbstatus,d1: bitstring) = checksign(q1_1,pkAKR_3) in
+        {183}if (d1 = H((pk1_1,hb1))) then
+        {184}let tcbok1: bool = matchtcb(rpeTcb1(rho2_1),ts1) in
+        {185}if (tcbok1 = true) then
+        {186}if (pk1_1 ≠ pk2_1) then
+        {187}event EvidenceChecked(P2,P1,pk1_1,hb1);
+        {188}in(net, (=P3,q3_1: bitstring,pk3_1: bitstring,hb3_1: bitstring));
+        {189}let rpeQuote(=mRPE,ts3_1: tcbstatus,d3_1: bitstring) = checksign(q3_1,pkAKR_3) in
+        {190}if (d3_1 = H((pk3_1,hb3_1))) then
+        {191}let tcbok3_1: bool = matchtcb(rpeTcb3(rho2_1),ts3_1) in
+        {192}if (tcbok3_1 = true) then
+        {193}if ((pk3_1 ≠ pk2_1) && (pk3_1 ≠ pk1_1)) then
+        {194}event EvidenceChecked(P2,P3,pk3_1,hb3_1);
+        {195}event QuotesComplete(P2);
+        {196}event PolicySent(P2,pk1_1,rho2_1);
+        {197}out(net, (P2,P1,sign(policyMsg(pk1_1,rho2_1),sk2)));
+        {198}event PolicySent(P2,pk3_1,rho2_1);
+        {199}out(net, (P2,P3,sign(policyMsg(pk3_1,rho2_1),sk2)));
+        {200}in(net, (=P1,=P2,msg1: bitstring));
+        {201}let policyMsg(=pk2_1,rho1_1: policy) = checksign(msg1,pk1_1) in
+        {202}event PolicyAuthenticated(P2,P1,rho1_1);
+        {203}if (H(policyBytes(rho1_1)) = hb1) then
+        {204}if (policySelf(rho1_1) = P1) then
+        {205}event PolicyAccepted(P2,P1,rho1_1);
+        {206}event PolicyAcceptedKeys(P2,P1,pk2_1,pk1_1,rho1_1);
+        {207}in(net, (=P3,=P2,msg3_1: bitstring));
+        {208}let policyMsg(=pk2_1,rho3_1: policy) = checksign(msg3_1,pk3_1) in
+        {209}event PolicyAuthenticated(P2,P3,rho3_1);
+        {210}if (H(policyBytes(rho3_1)) = hb3_1) then
+        {211}if (policySelf(rho3_1) = P3) then
+        {212}event PolicyAccepted(P2,P3,rho3_1);
+        {213}event PolicyAcceptedKeys(P2,P3,pk2_1,pk3_1,rho3_1);
+        {214}event PoliciesComplete(P2);
+        {215}let joined12_1: polstar = joinstar(constraints(rho1_1),constraints(rho2_1)) in
+        {216}let pistar_1: polstar = joinstar(joined12_1,constraints(rho3_1)) in
+        {217}event FullJoin(P2,pistar_1);
+        {218}event ConfirmationSent(P2,P1,H(starBytes(pistar_1)));
+        {219}out(net, (P2,P1,sign(confirmMsg(pk1_1,H(starBytes(pistar_1))),sk2)));
+        {220}event ConfirmationSent(P2,P3,H(starBytes(pistar_1)));
+        {221}out(net, (P2,P3,sign(confirmMsg(pk3_1,H(starBytes(pistar_1))),sk2)));
+        {222}in(net, (=P1,=P2,confirmation1: bitstring));
+        {223}let confirmMsg(=pk2_1,hs1: bitstring) = checksign(confirmation1,pk1_1) in
+        {224}event ConfirmationAuthenticated(P2,P1,hs1);
+        {225}if (hs1 = H(starBytes(pistar_1))) then
+        {226}event ConfirmationAccepted(P2,P1,hs1);
+        {227}in(net, (=P3,=P2,confirmation3_1: bitstring));
+        {228}let confirmMsg(=pk2_1,hs3_1: bitstring) = checksign(confirmation3_1,pk3_1) in
+        {229}event ConfirmationAuthenticated(P2,P3,hs3_1);
+        {230}if (hs3_1 = H(starBytes(pistar_1))) then
+        {231}event ConfirmationAccepted(P2,P3,hs3_1);
+        {232}event Confirm(P2,pistar_1);
+        {233}let a_1: party = P2 in
+        {234}let e_1: entity = E2 in
+        {235}let skR_1: skey = sk2 in
+        {236}let c_1: entry = starEntry2(pistar_1) in
+        {237}in(net, pkE_1: bitstring);
+        {238}new challenge_1: bitstring;
+        {239}event ChallengeSent(a_1,pkE_1,challenge_1);
+        {240}out(net, challenge_1);
+        {241}in(net, qe_1: bitstring);
+        {242}event QuoteReceived(a_1,e_1,pkE_1,challenge_1);
+        {243}let teeQuote(actual_1: identity,status_3: tcbstatus,binding_3: bitstring) = checksign(qe_1,pkAKE_1) in
+        {244}event QuoteSignatureChecked(a_1,e_1,pkE_1,challenge_1,actual_1,status_3);
+        {245}if (binding_3 = H((pkE_1,challenge_1))) then
+        {246}event QuoteVerified(a_1,e_1,pkE_1,challenge_1,actual_1,status_3);
+        {247}let v_10: entry = c_1 in
+        {248}let v_11: bool = success?(1-proj-Req(v_10)) in
+        {249}let ca_3: attreq = (if v_11 then 6-proj-Req(v_10) else caught-fail) in
+        {250}let ct_3: tcbreq = (if v_11 then 5-proj-Req(v_10) else caught-fail) in
+        {251}let cv_3: svn = (if v_11 then 4-proj-Req(v_10) else caught-fail) in
+        {252}let cp_3: ident = (if v_11 then 3-proj-Req(v_10) else caught-fail) in
+        {253}let cs_1: ident = (if v_11 then 2-proj-Req(v_10) else caught-fail) in
+        {254}let cm_3: ident = (if v_11 then 1-proj-Req(v_10) else caught-fail) in
+        {255}let v_12: identity = (if v_11 then catch-fail(actual_1) else caught-fail) in
+        {256}let v_13: bool = (not-caught-fail(v_12) && success?(1-proj-Identity(v_12))) in
+        {257}let av_1: svn = (if v_13 then 4-proj-Identity(v_12) else caught-fail) in
+        {258}let ap_1: bitstring = (if v_13 then 3-proj-Identity(v_12) else caught-fail) in
+        {259}let asigner_1: bitstring = (if v_13 then 2-proj-Identity(v_12) else caught-fail) in
+        {260}let am_1: bitstring = (if v_13 then 1-proj-Identity(v_12) else caught-fail) in
+        {261}let vm_1: bool = (if v_13 then catch-fail(matchid(cm_3,am_1)) else caught-fail) in
+        {262}let v_14: bool = not-caught-fail(vm_1) in
+        {263}let vs_1: bool = (if v_14 then catch-fail(matchid(cs_1,asigner_1)) else caught-fail) in
+        {264}let v_15: bool = not-caught-fail(vs_1) in
+        {265}let vp_1: bool = (if v_15 then catch-fail(matchid(cp_3,ap_1)) else caught-fail) in
+        {266}let v_16: bool = not-caught-fail(vp_1) in
+        {267}let vv_1: bool = (if v_16 then catch-fail(matchv(cv_3,av_1)) else caught-fail) in
+        {268}let v_17: bool = not-caught-fail(vv_1) in
+        {269}let vt_1: bool = (if v_17 then catch-fail(matchtcb(ct_3,status_3)) else caught-fail) in
+        {270}let v_18: bool = not-caught-fail(vt_1) in
+        {271}let va_1: bool = (if v_18 then catch-fail(matchatt(ca_3,a_1)) else caught-fail) in
+        {272}let v_19: bool = not-caught-fail(va_1) in
+        {273}let allowed_1: bool = (if v_11 then (if v_13 then (if v_14 then (if v_15 then (if v_16 then (if v_17 then (if v_18 then (if v_19 then (vm_1 && (vs_1 && (vp_1 && (vv_1 && (vt_1 && va_1))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+        {274}if (allowed_1 = true) then
+        {275}event QuoteSatisfied(a_1,e_1,pk(skR_1),pkE_1,challenge_1,actual_1,status_3,pistar_1);
+        {276}let body_1: bitstring = H((pkE_1,pk(skR_1),H(starBytes(pistar_1)))) in
+        {277}let certificate_1: bitstring = sign(body_1,skR_1) in
+        {278}event CertIssued(a_1,e_1,pk(skR_1),pkE_1,challenge_1,actual_1,status_3,pistar_1,body_1);
+        {279}out(net, (pkE_1,pk(skR_1),H(starBytes(pistar_1)),certificate_1))
+    )
+) | (
+    {280}let akR_2: skey = akRPE in
+    {281}let pkAKR_4: bitstring = pk(akRPE) in
+    {282}let pkAKE_2: bitstring = pk(akTEE) in
+    {283}new sk3: skey;
+    {284}let pk3_2: bitstring = pk(sk3) in
+    {285}out(net, (P3,pk3_2));
+    (
+        {286}!
+        {287}in(net, (=P3,requested_2: bitstring));
+        {288}out(net, (P3,pk3_2,sign(rpeQuote(mRPE,Good,H((pk3_2,requested_2))),akR_2)))
+    ) | (
+        {289}in(net, (=P3,=pk3_2,rho3_2: policy,authorization_4: bitstring,ownerKey_2: bitstring));
+        {290}event AuthorizationReceived(P3,pk3_2,rho3_2,ownerKey_2);
+        {291}let (signedKey_2: bitstring,signedHash_2: bitstring) = checksign(authorization_4,ownerKey_2) in
+        {292}if ((signedKey_2 = pk3_2) && (signedHash_2 = H(policyBytes(rho3_2)))) then
+        {293}event AuthorizationSignatureChecked(P3,pk3_2,rho3_2,ownerKey_2);
+        {294}if ((policySelf(rho3_2) = P3) && (policySelfTEE(rho3_2) = E3)) then
+        {295}event AuthorizationSelfChecked(P3,pk3_2,rho3_2,ownerKey_2);
+        {296}let Req(cm_4: ident,exact(selfSigner_2: bitstring),cp_4: ident,cv_4: svn,ct_4: tcbreq,ca_4: attreq) = starEntry3(constraints(rho3_2)) in
+        {297}if ((selfSigner_2 = H(ownerKey_2)) && (ca_4 = Assign(P3))) then
+        {298}event AuthorizationAccepted(P3,pk3_2,rho3_2,ownerKey_2,selfSigner_2);
+        {299}event AuthorizedPolicyDeclared(P3,pk3_2,rho3_2);
+        {300}event PolicyDeclared(P3,rho3_2);
+        {301}let q3_2: bitstring = sign(rpeQuote(mRPE,Good,H((pk3_2,H(policyBytes(rho3_2))))),akR_2) in
+        {302}out(net, (P3,q3_2,pk3_2,H(policyBytes(rho3_2))));
+        {303}in(net, (=P1,q1_2: bitstring,pk1_2: bitstring,hb1_1: bitstring));
+        {304}let rpeQuote(=mRPE,ts1_1: tcbstatus,d1_1: bitstring) = checksign(q1_2,pkAKR_4) in
+        {305}if (d1_1 = H((pk1_2,hb1_1))) then
+        {306}let tcbok1_1: bool = matchtcb(rpeTcb1(rho3_2),ts1_1) in
+        {307}if (tcbok1_1 = true) then
+        {308}if (pk1_2 ≠ pk3_2) then
+        {309}event EvidenceChecked(P3,P1,pk1_2,hb1_1);
+        {310}in(net, (=P2,q2_2: bitstring,pk2_2: bitstring,hb2_1: bitstring));
+        {311}let rpeQuote(=mRPE,ts2_1: tcbstatus,d2_1: bitstring) = checksign(q2_2,pkAKR_4) in
+        {312}if (d2_1 = H((pk2_2,hb2_1))) then
+        {313}let tcbok2_1: bool = matchtcb(rpeTcb2(rho3_2),ts2_1) in
+        {314}if (tcbok2_1 = true) then
+        {315}if ((pk2_2 ≠ pk3_2) && (pk2_2 ≠ pk1_2)) then
+        {316}event EvidenceChecked(P3,P2,pk2_2,hb2_1);
+        {317}event QuotesComplete(P3);
+        {318}event PolicySent(P3,pk1_2,rho3_2);
+        {319}out(net, (P3,P1,sign(policyMsg(pk1_2,rho3_2),sk3)));
+        {320}event PolicySent(P3,pk2_2,rho3_2);
+        {321}out(net, (P3,P2,sign(policyMsg(pk2_2,rho3_2),sk3)));
+        {322}in(net, (=P1,=P3,msg1_1: bitstring));
+        {323}let policyMsg(=pk3_2,rho1_2: policy) = checksign(msg1_1,pk1_2) in
+        {324}event PolicyAuthenticated(P3,P1,rho1_2);
+        {325}if (H(policyBytes(rho1_2)) = hb1_1) then
+        {326}if (policySelf(rho1_2) = P1) then
+        {327}event PolicyAccepted(P3,P1,rho1_2);
+        {328}event PolicyAcceptedKeys(P3,P1,pk3_2,pk1_2,rho1_2);
+        {329}in(net, (=P2,=P3,msg2_1: bitstring));
+        {330}let policyMsg(=pk3_2,rho2_2: policy) = checksign(msg2_1,pk2_2) in
+        {331}event PolicyAuthenticated(P3,P2,rho2_2);
+        {332}if (H(policyBytes(rho2_2)) = hb2_1) then
+        {333}if (policySelf(rho2_2) = P2) then
+        {334}event PolicyAccepted(P3,P2,rho2_2);
+        {335}event PolicyAcceptedKeys(P3,P2,pk3_2,pk2_2,rho2_2);
+        {336}event PoliciesComplete(P3);
+        {337}let joined12_2: polstar = joinstar(constraints(rho1_2),constraints(rho2_2)) in
+        {338}let pistar_2: polstar = joinstar(joined12_2,constraints(rho3_2)) in
+        {339}event FullJoin(P3,pistar_2);
+        {340}event ConfirmationSent(P3,P1,H(starBytes(pistar_2)));
+        {341}out(net, (P3,P1,sign(confirmMsg(pk1_2,H(starBytes(pistar_2))),sk3)));
+        {342}event ConfirmationSent(P3,P2,H(starBytes(pistar_2)));
+        {343}out(net, (P3,P2,sign(confirmMsg(pk2_2,H(starBytes(pistar_2))),sk3)));
+        {344}in(net, (=P1,=P3,confirmation1_1: bitstring));
+        {345}let confirmMsg(=pk3_2,hs1_1: bitstring) = checksign(confirmation1_1,pk1_2) in
+        {346}event ConfirmationAuthenticated(P3,P1,hs1_1);
+        {347}if (hs1_1 = H(starBytes(pistar_2))) then
+        {348}event ConfirmationAccepted(P3,P1,hs1_1);
+        {349}in(net, (=P2,=P3,confirmation2_1: bitstring));
+        {350}let confirmMsg(=pk3_2,hs2_1: bitstring) = checksign(confirmation2_1,pk2_2) in
+        {351}event ConfirmationAuthenticated(P3,P2,hs2_1);
+        {352}if (hs2_1 = H(starBytes(pistar_2))) then
+        {353}event ConfirmationAccepted(P3,P2,hs2_1);
+        {354}event Confirm(P3,pistar_2);
+        {355}let a_2: party = P3 in
+        {356}let e_2: entity = E3 in
+        {357}let skR_2: skey = sk3 in
+        {358}let c_2: entry = starEntry3(pistar_2) in
+        {359}in(net, pkE_2: bitstring);
+        {360}new challenge_2: bitstring;
+        {361}event ChallengeSent(a_2,pkE_2,challenge_2);
+        {362}out(net, challenge_2);
+        {363}in(net, qe_2: bitstring);
+        {364}event QuoteReceived(a_2,e_2,pkE_2,challenge_2);
+        {365}let teeQuote(actual_2: identity,status_4: tcbstatus,binding_4: bitstring) = checksign(qe_2,pkAKE_2) in
+        {366}event QuoteSignatureChecked(a_2,e_2,pkE_2,challenge_2,actual_2,status_4);
+        {367}if (binding_4 = H((pkE_2,challenge_2))) then
+        {368}event QuoteVerified(a_2,e_2,pkE_2,challenge_2,actual_2,status_4);
+        {369}let v_20: entry = c_2 in
+        {370}let v_21: bool = success?(1-proj-Req(v_20)) in
+        {371}let ca_5: attreq = (if v_21 then 6-proj-Req(v_20) else caught-fail) in
+        {372}let ct_5: tcbreq = (if v_21 then 5-proj-Req(v_20) else caught-fail) in
+        {373}let cv_5: svn = (if v_21 then 4-proj-Req(v_20) else caught-fail) in
+        {374}let cp_5: ident = (if v_21 then 3-proj-Req(v_20) else caught-fail) in
+        {375}let cs_2: ident = (if v_21 then 2-proj-Req(v_20) else caught-fail) in
+        {376}let cm_5: ident = (if v_21 then 1-proj-Req(v_20) else caught-fail) in
+        {377}let v_22: identity = (if v_21 then catch-fail(actual_2) else caught-fail) in
+        {378}let v_23: bool = (not-caught-fail(v_22) && success?(1-proj-Identity(v_22))) in
+        {379}let av_2: svn = (if v_23 then 4-proj-Identity(v_22) else caught-fail) in
+        {380}let ap_2: bitstring = (if v_23 then 3-proj-Identity(v_22) else caught-fail) in
+        {381}let asigner_2: bitstring = (if v_23 then 2-proj-Identity(v_22) else caught-fail) in
+        {382}let am_2: bitstring = (if v_23 then 1-proj-Identity(v_22) else caught-fail) in
+        {383}let vm_2: bool = (if v_23 then catch-fail(matchid(cm_5,am_2)) else caught-fail) in
+        {384}let v_24: bool = not-caught-fail(vm_2) in
+        {385}let vs_2: bool = (if v_24 then catch-fail(matchid(cs_2,asigner_2)) else caught-fail) in
+        {386}let v_25: bool = not-caught-fail(vs_2) in
+        {387}let vp_2: bool = (if v_25 then catch-fail(matchid(cp_5,ap_2)) else caught-fail) in
+        {388}let v_26: bool = not-caught-fail(vp_2) in
+        {389}let vv_2: bool = (if v_26 then catch-fail(matchv(cv_5,av_2)) else caught-fail) in
+        {390}let v_27: bool = not-caught-fail(vv_2) in
+        {391}let vt_2: bool = (if v_27 then catch-fail(matchtcb(ct_5,status_4)) else caught-fail) in
+        {392}let v_28: bool = not-caught-fail(vt_2) in
+        {393}let va_2: bool = (if v_28 then catch-fail(matchatt(ca_5,a_2)) else caught-fail) in
+        {394}let v_29: bool = not-caught-fail(va_2) in
+        {395}let allowed_2: bool = (if v_21 then (if v_23 then (if v_24 then (if v_25 then (if v_26 then (if v_27 then (if v_28 then (if v_29 then (vm_2 && (vs_2 && (vp_2 && (vv_2 && (vt_2 && va_2))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+        {396}if (allowed_2 = true) then
+        {397}event QuoteSatisfied(a_2,e_2,pk(skR_2),pkE_2,challenge_2,actual_2,status_4,pistar_2);
+        {398}let body_2: bitstring = H((pkE_2,pk(skR_2),H(starBytes(pistar_2)))) in
+        {399}let certificate_2: bitstring = sign(body_2,skR_2) in
+        {400}event CertIssued(a_2,e_2,pk(skR_2),pkE_2,challenge_2,actual_2,status_4,pistar_2,body_2);
+        {401}out(net, (pkE_2,pk(skR_2),H(starBytes(pistar_2)),certificate_2))
+    )
+) | (
+    {402}!
+    {403}let ak: skey = akTEE in
+    {404}in(net, (actual_3: identity,status_5: tcbstatus));
+    {405}new skE: skey;
+    {406}out(net, pk(skE));
+    {407}in(net, challenge_3: bitstring);
+    {408}event QuoteProduced(pk(skE),challenge_3,actual_3,status_5);
+    {409}out(net, sign(teeQuote(actual_3,status_5,H((pk(skE),challenge_3))),ak))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new akRPE: skey;
+{2}new akTEE: skey;
+{3}new akADV: skey;
+{4}event HonestOwner(pk(skO1));
+{5}event HonestOwner(pk(skO2));
+{6}out(net, (pk(akRPE),pk(akTEE),pk(akADV),akADV,pk(skO1),pk(skO2),pk(skO3),skO3));
+{7}out(net, (pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))));
+(
+    {10}new n: bitstring;
+    {11}event OwnerChallenge(pk(skO1),n);
+    {12}out(net, (P1,n));
+    {13}in(net, (=P1,candidate: bitstring,q: bitstring));
+    {8}let pkAKR: bitstring = pk(akRPE) in
+    {14}let rpeQuote(=mRPE,status: tcbstatus,binding: bitstring) = checksign(q,pkAKR) in
+    {15}if (binding = H((candidate,n))) then
+    {9}let rho: policy = pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {16}let platformOK: bool = matchtcb(rpeTcb1(rho),status) in
+    {17}if (platformOK = true) then
+    {18}event OwnerAttested(pk(skO1),candidate,rho,n);
+    {20}event OwnerSigned(pk(skO1),candidate,H(policyBytes(rho)));
+    {19}let authorization: bitstring = sign((candidate,H(policyBytes(rho))),skO1) in
+    {21}out(net, (P1,candidate,rho,authorization,pk(skO1)))
+) | (
+    {24}new n_1: bitstring;
+    {25}event OwnerChallenge(pk(skO2),n_1);
+    {26}out(net, (P2,n_1));
+    {27}in(net, (=P2,candidate_1: bitstring,q_1: bitstring));
+    {22}let pkAKR_1: bitstring = pk(akRPE) in
+    {28}let rpeQuote(=mRPE,status_1: tcbstatus,binding_1: bitstring) = checksign(q_1,pkAKR_1) in
+    {29}if (binding_1 = H((candidate_1,n_1))) then
+    {23}let rho_1: policy = pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {30}let platformOK_1: bool = matchtcb(rpeTcb2(rho_1),status_1) in
+    {31}if (platformOK_1 = true) then
+    {32}event OwnerAttested(pk(skO2),candidate_1,rho_1,n_1);
+    {34}event OwnerSigned(pk(skO2),candidate_1,H(policyBytes(rho_1)));
+    {33}let authorization_1: bitstring = sign((candidate_1,H(policyBytes(rho_1))),skO2) in
+    {35}out(net, (P2,candidate_1,rho_1,authorization_1,pk(skO2)))
+) | (
+    {39}new sk1: skey;
+    {40}let pk1: bitstring = pk(sk1) in
+    {41}out(net, (P1,pk1));
+    {36}let akR: skey = akRPE in
+    (
+        {42}!
+        {43}in(net, (=P1,requested: bitstring));
+        {44}out(net, (P1,pk1,sign(rpeQuote(mRPE,Good,H((pk1,requested))),akR)))
+    ) | (
+        {45}in(net, (=P1,=pk1,rho1: policy,authorization_2: bitstring,ownerKey: bitstring));
+        {46}event AuthorizationReceived(P1,pk1,rho1,ownerKey);
+        {47}let (signedKey: bitstring,signedHash: bitstring) = checksign(authorization_2,ownerKey) in
+        {48}if ((signedKey = pk1) && (signedHash = H(policyBytes(rho1)))) then
+        {49}event AuthorizationSignatureChecked(P1,pk1,rho1,ownerKey);
+        {50}if ((policySelf(rho1) = P1) && (policySelfTEE(rho1) = E1)) then
+        {51}event AuthorizationSelfChecked(P1,pk1,rho1,ownerKey);
+        {52}let Req(cm: ident,exact(selfSigner: bitstring),cp: ident,cv: svn,ct: tcbreq,ca: attreq) = starEntry1(constraints(rho1)) in
+        {53}if ((selfSigner = H(ownerKey)) && (ca = Assign(P1))) then
+        {54}event AuthorizationAccepted(P1,pk1,rho1,ownerKey,selfSigner);
+        {55}event AuthorizedPolicyDeclared(P1,pk1,rho1);
+        {56}event PolicyDeclared(P1,rho1);
+        {57}let q1: bitstring = sign(rpeQuote(mRPE,Good,H((pk1,H(policyBytes(rho1))))),akR) in
+        {58}out(net, (P1,q1,pk1,H(policyBytes(rho1))));
+        {59}in(net, (=P2,q2: bitstring,pk2: bitstring,hb2: bitstring));
+        {37}let pkAKR_2: bitstring = pk(akRPE) in
+        {60}let rpeQuote(=mRPE,ts2: tcbstatus,d2: bitstring) = checksign(q2,pkAKR_2) in
+        {61}if (d2 = H((pk2,hb2))) then
+        {62}let tcbok2: bool = matchtcb(rpeTcb2(rho1),ts2) in
+        {63}if (tcbok2 = true) then
+        {64}if (pk2 ≠ pk1) then
+        {65}event EvidenceChecked(P1,P2,pk2,hb2);
+        {66}in(net, (=P3,q3: bitstring,pk3: bitstring,hb3: bitstring));
+        {67}let rpeQuote(=mRPE,ts3: tcbstatus,d3: bitstring) = checksign(q3,pkAKR_2) in
+        {68}if (d3 = H((pk3,hb3))) then
+        {69}let tcbok3: bool = matchtcb(rpeTcb3(rho1),ts3) in
+        {70}if (tcbok3 = true) then
+        {71}if ((pk3 ≠ pk1) && (pk3 ≠ pk2)) then
+        {72}event EvidenceChecked(P1,P3,pk3,hb3);
+        {73}event QuotesComplete(P1);
+        {74}event PolicySent(P1,pk2,rho1);
+        {75}out(net, (P1,P2,sign(policyMsg(pk2,rho1),sk1)));
+        {76}event PolicySent(P1,pk3,rho1);
+        {77}out(net, (P1,P3,sign(policyMsg(pk3,rho1),sk1)));
+        {78}in(net, (=P2,=P1,msg2: bitstring));
+        {79}let policyMsg(=pk1,rho2: policy) = checksign(msg2,pk2) in
+        {80}event PolicyAuthenticated(P1,P2,rho2);
+        {81}if (H(policyBytes(rho2)) = hb2) then
+        {82}if (policySelf(rho2) = P2) then
+        {83}event PolicyAccepted(P1,P2,rho2);
+        {84}event PolicyAcceptedKeys(P1,P2,pk1,pk2,rho2);
+        {85}in(net, (=P3,=P1,msg3: bitstring));
+        {86}let policyMsg(=pk1,rho3: policy) = checksign(msg3,pk3) in
+        {87}event PolicyAuthenticated(P1,P3,rho3);
+        {88}if (H(policyBytes(rho3)) = hb3) then
+        {89}if (policySelf(rho3) = P3) then
+        {90}event PolicyAccepted(P1,P3,rho3);
+        {91}event PolicyAcceptedKeys(P1,P3,pk1,pk3,rho3);
+        {92}event PoliciesComplete(P1);
+        {93}let joined12: polstar = joinstar(constraints(rho1),constraints(rho2)) in
+        {94}let pistar: polstar = joinstar(joined12,constraints(rho3)) in
+        {95}event FullJoin(P1,pistar);
+        {96}event ConfirmationSent(P1,P2,H(starBytes(pistar)));
+        {97}out(net, (P1,P2,sign(confirmMsg(pk2,H(starBytes(pistar))),sk1)));
+        {98}event ConfirmationSent(P1,P3,H(starBytes(pistar)));
+        {99}out(net, (P1,P3,sign(confirmMsg(pk3,H(starBytes(pistar))),sk1)));
+        {100}in(net, (=P2,=P1,confirmation2: bitstring));
+        {101}let confirmMsg(=pk1,hs2: bitstring) = checksign(confirmation2,pk2) in
+        {102}event ConfirmationAuthenticated(P1,P2,hs2);
+        {103}if (hs2 = H(starBytes(pistar))) then
+        {104}event ConfirmationAccepted(P1,P2,hs2);
+        {105}in(net, (=P3,=P1,confirmation3: bitstring));
+        {106}let confirmMsg(=pk1,hs3: bitstring) = checksign(confirmation3,pk3) in
+        {107}event ConfirmationAuthenticated(P1,P3,hs3);
+        {108}if (hs3 = H(starBytes(pistar))) then
+        {109}event ConfirmationAccepted(P1,P3,hs3);
+        {110}event Confirm(P1,pistar);
+        {114}let c: entry = starEntry1(pistar) in
+        {115}in(net, pkE: bitstring);
+        {116}new challenge: bitstring;
+        {111}let a: party = P1 in
+        {117}event ChallengeSent(a,pkE,challenge);
+        {118}out(net, challenge);
+        {119}in(net, qe: bitstring);
+        {112}let e: entity = E1 in
+        {120}event QuoteReceived(a,e,pkE,challenge);
+        {38}let pkAKE: bitstring = pk(akTEE) in
+        {121}let teeQuote(actual: identity,status_2: tcbstatus,binding_2: bitstring) = checksign(qe,pkAKE) in
+        {122}event QuoteSignatureChecked(a,e,pkE,challenge,actual,status_2);
+        {123}if (binding_2 = H((pkE,challenge))) then
+        {124}event QuoteVerified(a,e,pkE,challenge,actual,status_2);
+        {125}let v: entry = c in
+        {126}let v_1: bool = success?(1-proj-Req(v)) in
+        {127}let ca_1: attreq = (if v_1 then 6-proj-Req(v) else caught-fail) in
+        {128}let ct_1: tcbreq = (if v_1 then 5-proj-Req(v) else caught-fail) in
+        {129}let cv_1: svn = (if v_1 then 4-proj-Req(v) else caught-fail) in
+        {130}let cp_1: ident = (if v_1 then 3-proj-Req(v) else caught-fail) in
+        {131}let cs: ident = (if v_1 then 2-proj-Req(v) else caught-fail) in
+        {132}let cm_1: ident = (if v_1 then 1-proj-Req(v) else caught-fail) in
+        {133}let v_2: identity = (if v_1 then catch-fail(actual) else caught-fail) in
+        {134}let v_3: bool = (not-caught-fail(v_2) && success?(1-proj-Identity(v_2))) in
+        {135}let av: svn = (if v_3 then 4-proj-Identity(v_2) else caught-fail) in
+        {136}let ap: bitstring = (if v_3 then 3-proj-Identity(v_2) else caught-fail) in
+        {137}let asigner: bitstring = (if v_3 then 2-proj-Identity(v_2) else caught-fail) in
+        {138}let am: bitstring = (if v_3 then 1-proj-Identity(v_2) else caught-fail) in
+        {139}let vm: bool = (if v_3 then catch-fail(matchid(cm_1,am)) else caught-fail) in
+        {140}let v_4: bool = not-caught-fail(vm) in
+        {141}let vs: bool = (if v_4 then catch-fail(matchid(cs,asigner)) else caught-fail) in
+        {142}let v_5: bool = not-caught-fail(vs) in
+        {143}let vp: bool = (if v_5 then catch-fail(matchid(cp_1,ap)) else caught-fail) in
+        {144}let v_6: bool = not-caught-fail(vp) in
+        {145}let vv: bool = (if v_6 then catch-fail(matchv(cv_1,av)) else caught-fail) in
+        {146}let v_7: bool = not-caught-fail(vv) in
+        {147}let vt: bool = (if v_7 then catch-fail(matchtcb(ct_1,status_2)) else caught-fail) in
+        {148}let v_8: bool = not-caught-fail(vt) in
+        {149}let va: bool = (if v_8 then catch-fail(matchatt(ca_1,a)) else caught-fail) in
+        {150}let v_9: bool = not-caught-fail(va) in
+        {151}let allowed: bool = (if v_1 then (if v_3 then (if v_4 then (if v_5 then (if v_6 then (if v_7 then (if v_8 then (if v_9 then (vm && (vs && (vp && (vv && (vt && va))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+        {152}if (allowed = true) then
+        {113}let skR: skey = sk1 in
+        {153}event QuoteSatisfied(a,e,pk(skR),pkE,challenge,actual,status_2,pistar);
+        {154}let body: bitstring = H((pkE,pk(skR),H(starBytes(pistar)))) in
+        {156}event CertIssued(a,e,pk(skR),pkE,challenge,actual,status_2,pistar,body);
+        {155}let certificate: bitstring = sign(body,skR) in
+        {157}out(net, (pkE,pk(skR),H(starBytes(pistar)),certificate))
+    )
+) | (
+    {161}new sk2: skey;
+    {162}let pk2_1: bitstring = pk(sk2) in
+    {163}out(net, (P2,pk2_1));
+    {158}let akR_1: skey = akRPE in
+    (
+        {164}!
+        {165}in(net, (=P2,requested_1: bitstring));
+        {166}out(net, (P2,pk2_1,sign(rpeQuote(mRPE,Good,H((pk2_1,requested_1))),akR_1)))
+    ) | (
+        {167}in(net, (=P2,=pk2_1,rho2_1: policy,authorization_3: bitstring,ownerKey_1: bitstring));
+        {168}event AuthorizationReceived(P2,pk2_1,rho2_1,ownerKey_1);
+        {169}let (signedKey_1: bitstring,signedHash_1: bitstring) = checksign(authorization_3,ownerKey_1) in
+        {170}if ((signedKey_1 = pk2_1) && (signedHash_1 = H(policyBytes(rho2_1)))) then
+        {171}event AuthorizationSignatureChecked(P2,pk2_1,rho2_1,ownerKey_1);
+        {172}if ((policySelf(rho2_1) = P2) && (policySelfTEE(rho2_1) = E2)) then
+        {173}event AuthorizationSelfChecked(P2,pk2_1,rho2_1,ownerKey_1);
+        {174}let Req(cm_2: ident,exact(selfSigner_1: bitstring),cp_2: ident,cv_2: svn,ct_2: tcbreq,ca_2: attreq) = starEntry2(constraints(rho2_1)) in
+        {175}if ((selfSigner_1 = H(ownerKey_1)) && (ca_2 = Assign(P2))) then
+        {176}event AuthorizationAccepted(P2,pk2_1,rho2_1,ownerKey_1,selfSigner_1);
+        {177}event AuthorizedPolicyDeclared(P2,pk2_1,rho2_1);
+        {178}event PolicyDeclared(P2,rho2_1);
+        {179}let q2_1: bitstring = sign(rpeQuote(mRPE,Good,H((pk2_1,H(policyBytes(rho2_1))))),akR_1) in
+        {180}out(net, (P2,q2_1,pk2_1,H(policyBytes(rho2_1))));
+        {181}in(net, (=P1,q1_1: bitstring,pk1_1: bitstring,hb1: bitstring));
+        {159}let pkAKR_3: bitstring = pk(akRPE) in
+        {182}let rpeQuote(=mRPE,ts1: tcbstatus,d1: bitstring) = checksign(q1_1,pkAKR_3) in
+        {183}if (d1 = H((pk1_1,hb1))) then
+        {184}let tcbok1: bool = matchtcb(rpeTcb1(rho2_1),ts1) in
+        {185}if (tcbok1 = true) then
+        {186}if (pk1_1 ≠ pk2_1) then
+        {187}event EvidenceChecked(P2,P1,pk1_1,hb1);
+        {188}in(net, (=P3,q3_1: bitstring,pk3_1: bitstring,hb3_1: bitstring));
+        {189}let rpeQuote(=mRPE,ts3_1: tcbstatus,d3_1: bitstring) = checksign(q3_1,pkAKR_3) in
+        {190}if (d3_1 = H((pk3_1,hb3_1))) then
+        {191}let tcbok3_1: bool = matchtcb(rpeTcb3(rho2_1),ts3_1) in
+        {192}if (tcbok3_1 = true) then
+        {193}if ((pk3_1 ≠ pk2_1) && (pk3_1 ≠ pk1_1)) then
+        {194}event EvidenceChecked(P2,P3,pk3_1,hb3_1);
+        {195}event QuotesComplete(P2);
+        {196}event PolicySent(P2,pk1_1,rho2_1);
+        {197}out(net, (P2,P1,sign(policyMsg(pk1_1,rho2_1),sk2)));
+        {198}event PolicySent(P2,pk3_1,rho2_1);
+        {199}out(net, (P2,P3,sign(policyMsg(pk3_1,rho2_1),sk2)));
+        {200}in(net, (=P1,=P2,msg1: bitstring));
+        {201}let policyMsg(=pk2_1,rho1_1: policy) = checksign(msg1,pk1_1) in
+        {202}event PolicyAuthenticated(P2,P1,rho1_1);
+        {203}if (H(policyBytes(rho1_1)) = hb1) then
+        {204}if (policySelf(rho1_1) = P1) then
+        {205}event PolicyAccepted(P2,P1,rho1_1);
+        {206}event PolicyAcceptedKeys(P2,P1,pk2_1,pk1_1,rho1_1);
+        {207}in(net, (=P3,=P2,msg3_1: bitstring));
+        {208}let policyMsg(=pk2_1,rho3_1: policy) = checksign(msg3_1,pk3_1) in
+        {209}event PolicyAuthenticated(P2,P3,rho3_1);
+        {210}if (H(policyBytes(rho3_1)) = hb3_1) then
+        {211}if (policySelf(rho3_1) = P3) then
+        {212}event PolicyAccepted(P2,P3,rho3_1);
+        {213}event PolicyAcceptedKeys(P2,P3,pk2_1,pk3_1,rho3_1);
+        {214}event PoliciesComplete(P2);
+        {215}let joined12_1: polstar = joinstar(constraints(rho1_1),constraints(rho2_1)) in
+        {216}let pistar_1: polstar = joinstar(joined12_1,constraints(rho3_1)) in
+        {217}event FullJoin(P2,pistar_1);
+        {218}event ConfirmationSent(P2,P1,H(starBytes(pistar_1)));
+        {219}out(net, (P2,P1,sign(confirmMsg(pk1_1,H(starBytes(pistar_1))),sk2)));
+        {220}event ConfirmationSent(P2,P3,H(starBytes(pistar_1)));
+        {221}out(net, (P2,P3,sign(confirmMsg(pk3_1,H(starBytes(pistar_1))),sk2)));
+        {222}in(net, (=P1,=P2,confirmation1: bitstring));
+        {223}let confirmMsg(=pk2_1,hs1: bitstring) = checksign(confirmation1,pk1_1) in
+        {224}event ConfirmationAuthenticated(P2,P1,hs1);
+        {225}if (hs1 = H(starBytes(pistar_1))) then
+        {226}event ConfirmationAccepted(P2,P1,hs1);
+        {227}in(net, (=P3,=P2,confirmation3_1: bitstring));
+        {228}let confirmMsg(=pk2_1,hs3_1: bitstring) = checksign(confirmation3_1,pk3_1) in
+        {229}event ConfirmationAuthenticated(P2,P3,hs3_1);
+        {230}if (hs3_1 = H(starBytes(pistar_1))) then
+        {231}event ConfirmationAccepted(P2,P3,hs3_1);
+        {232}event Confirm(P2,pistar_1);
+        {236}let c_1: entry = starEntry2(pistar_1) in
+        {237}in(net, pkE_1: bitstring);
+        {238}new challenge_1: bitstring;
+        {233}let a_1: party = P2 in
+        {239}event ChallengeSent(a_1,pkE_1,challenge_1);
+        {240}out(net, challenge_1);
+        {241}in(net, qe_1: bitstring);
+        {234}let e_1: entity = E2 in
+        {242}event QuoteReceived(a_1,e_1,pkE_1,challenge_1);
+        {160}let pkAKE_1: bitstring = pk(akTEE) in
+        {243}let teeQuote(actual_1: identity,status_3: tcbstatus,binding_3: bitstring) = checksign(qe_1,pkAKE_1) in
+        {244}event QuoteSignatureChecked(a_1,e_1,pkE_1,challenge_1,actual_1,status_3);
+        {245}if (binding_3 = H((pkE_1,challenge_1))) then
+        {246}event QuoteVerified(a_1,e_1,pkE_1,challenge_1,actual_1,status_3);
+        {247}let v_10: entry = c_1 in
+        {248}let v_11: bool = success?(1-proj-Req(v_10)) in
+        {249}let ca_3: attreq = (if v_11 then 6-proj-Req(v_10) else caught-fail) in
+        {250}let ct_3: tcbreq = (if v_11 then 5-proj-Req(v_10) else caught-fail) in
+        {251}let cv_3: svn = (if v_11 then 4-proj-Req(v_10) else caught-fail) in
+        {252}let cp_3: ident = (if v_11 then 3-proj-Req(v_10) else caught-fail) in
+        {253}let cs_1: ident = (if v_11 then 2-proj-Req(v_10) else caught-fail) in
+        {254}let cm_3: ident = (if v_11 then 1-proj-Req(v_10) else caught-fail) in
+        {255}let v_12: identity = (if v_11 then catch-fail(actual_1) else caught-fail) in
+        {256}let v_13: bool = (not-caught-fail(v_12) && success?(1-proj-Identity(v_12))) in
+        {257}let av_1: svn = (if v_13 then 4-proj-Identity(v_12) else caught-fail) in
+        {258}let ap_1: bitstring = (if v_13 then 3-proj-Identity(v_12) else caught-fail) in
+        {259}let asigner_1: bitstring = (if v_13 then 2-proj-Identity(v_12) else caught-fail) in
+        {260}let am_1: bitstring = (if v_13 then 1-proj-Identity(v_12) else caught-fail) in
+        {261}let vm_1: bool = (if v_13 then catch-fail(matchid(cm_3,am_1)) else caught-fail) in
+        {262}let v_14: bool = not-caught-fail(vm_1) in
+        {263}let vs_1: bool = (if v_14 then catch-fail(matchid(cs_1,asigner_1)) else caught-fail) in
+        {264}let v_15: bool = not-caught-fail(vs_1) in
+        {265}let vp_1: bool = (if v_15 then catch-fail(matchid(cp_3,ap_1)) else caught-fail) in
+        {266}let v_16: bool = not-caught-fail(vp_1) in
+        {267}let vv_1: bool = (if v_16 then catch-fail(matchv(cv_3,av_1)) else caught-fail) in
+        {268}let v_17: bool = not-caught-fail(vv_1) in
+        {269}let vt_1: bool = (if v_17 then catch-fail(matchtcb(ct_3,status_3)) else caught-fail) in
+        {270}let v_18: bool = not-caught-fail(vt_1) in
+        {271}let va_1: bool = (if v_18 then catch-fail(matchatt(ca_3,a_1)) else caught-fail) in
+        {272}let v_19: bool = not-caught-fail(va_1) in
+        {273}let allowed_1: bool = (if v_11 then (if v_13 then (if v_14 then (if v_15 then (if v_16 then (if v_17 then (if v_18 then (if v_19 then (vm_1 && (vs_1 && (vp_1 && (vv_1 && (vt_1 && va_1))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+        {274}if (allowed_1 = true) then
+        {235}let skR_1: skey = sk2 in
+        {275}event QuoteSatisfied(a_1,e_1,pk(skR_1),pkE_1,challenge_1,actual_1,status_3,pistar_1);
+        {276}let body_1: bitstring = H((pkE_1,pk(skR_1),H(starBytes(pistar_1)))) in
+        {278}event CertIssued(a_1,e_1,pk(skR_1),pkE_1,challenge_1,actual_1,status_3,pistar_1,body_1);
+        {277}let certificate_1: bitstring = sign(body_1,skR_1) in
+        {279}out(net, (pkE_1,pk(skR_1),H(starBytes(pistar_1)),certificate_1))
+    )
+) | (
+    {283}new sk3: skey;
+    {284}let pk3_2: bitstring = pk(sk3) in
+    {285}out(net, (P3,pk3_2));
+    {280}let akR_2: skey = akRPE in
+    (
+        {286}!
+        {287}in(net, (=P3,requested_2: bitstring));
+        {288}out(net, (P3,pk3_2,sign(rpeQuote(mRPE,Good,H((pk3_2,requested_2))),akR_2)))
+    ) | (
+        {289}in(net, (=P3,=pk3_2,rho3_2: policy,authorization_4: bitstring,ownerKey_2: bitstring));
+        {290}event AuthorizationReceived(P3,pk3_2,rho3_2,ownerKey_2);
+        {291}let (signedKey_2: bitstring,signedHash_2: bitstring) = checksign(authorization_4,ownerKey_2) in
+        {292}if ((signedKey_2 = pk3_2) && (signedHash_2 = H(policyBytes(rho3_2)))) then
+        {293}event AuthorizationSignatureChecked(P3,pk3_2,rho3_2,ownerKey_2);
+        {294}if ((policySelf(rho3_2) = P3) && (policySelfTEE(rho3_2) = E3)) then
+        {295}event AuthorizationSelfChecked(P3,pk3_2,rho3_2,ownerKey_2);
+        {296}let Req(cm_4: ident,exact(selfSigner_2: bitstring),cp_4: ident,cv_4: svn,ct_4: tcbreq,ca_4: attreq) = starEntry3(constraints(rho3_2)) in
+        {297}if ((selfSigner_2 = H(ownerKey_2)) && (ca_4 = Assign(P3))) then
+        {298}event AuthorizationAccepted(P3,pk3_2,rho3_2,ownerKey_2,selfSigner_2);
+        {299}event AuthorizedPolicyDeclared(P3,pk3_2,rho3_2);
+        {300}event PolicyDeclared(P3,rho3_2);
+        {301}let q3_2: bitstring = sign(rpeQuote(mRPE,Good,H((pk3_2,H(policyBytes(rho3_2))))),akR_2) in
+        {302}out(net, (P3,q3_2,pk3_2,H(policyBytes(rho3_2))));
+        {303}in(net, (=P1,q1_2: bitstring,pk1_2: bitstring,hb1_1: bitstring));
+        {281}let pkAKR_4: bitstring = pk(akRPE) in
+        {304}let rpeQuote(=mRPE,ts1_1: tcbstatus,d1_1: bitstring) = checksign(q1_2,pkAKR_4) in
+        {305}if (d1_1 = H((pk1_2,hb1_1))) then
+        {306}let tcbok1_1: bool = matchtcb(rpeTcb1(rho3_2),ts1_1) in
+        {307}if (tcbok1_1 = true) then
+        {308}if (pk1_2 ≠ pk3_2) then
+        {309}event EvidenceChecked(P3,P1,pk1_2,hb1_1);
+        {310}in(net, (=P2,q2_2: bitstring,pk2_2: bitstring,hb2_1: bitstring));
+        {311}let rpeQuote(=mRPE,ts2_1: tcbstatus,d2_1: bitstring) = checksign(q2_2,pkAKR_4) in
+        {312}if (d2_1 = H((pk2_2,hb2_1))) then
+        {313}let tcbok2_1: bool = matchtcb(rpeTcb2(rho3_2),ts2_1) in
+        {314}if (tcbok2_1 = true) then
+        {315}if ((pk2_2 ≠ pk3_2) && (pk2_2 ≠ pk1_2)) then
+        {316}event EvidenceChecked(P3,P2,pk2_2,hb2_1);
+        {317}event QuotesComplete(P3);
+        {318}event PolicySent(P3,pk1_2,rho3_2);
+        {319}out(net, (P3,P1,sign(policyMsg(pk1_2,rho3_2),sk3)));
+        {320}event PolicySent(P3,pk2_2,rho3_2);
+        {321}out(net, (P3,P2,sign(policyMsg(pk2_2,rho3_2),sk3)));
+        {322}in(net, (=P1,=P3,msg1_1: bitstring));
+        {323}let policyMsg(=pk3_2,rho1_2: policy) = checksign(msg1_1,pk1_2) in
+        {324}event PolicyAuthenticated(P3,P1,rho1_2);
+        {325}if (H(policyBytes(rho1_2)) = hb1_1) then
+        {326}if (policySelf(rho1_2) = P1) then
+        {327}event PolicyAccepted(P3,P1,rho1_2);
+        {328}event PolicyAcceptedKeys(P3,P1,pk3_2,pk1_2,rho1_2);
+        {329}in(net, (=P2,=P3,msg2_1: bitstring));
+        {330}let policyMsg(=pk3_2,rho2_2: policy) = checksign(msg2_1,pk2_2) in
+        {331}event PolicyAuthenticated(P3,P2,rho2_2);
+        {332}if (H(policyBytes(rho2_2)) = hb2_1) then
+        {333}if (policySelf(rho2_2) = P2) then
+        {334}event PolicyAccepted(P3,P2,rho2_2);
+        {335}event PolicyAcceptedKeys(P3,P2,pk3_2,pk2_2,rho2_2);
+        {336}event PoliciesComplete(P3);
+        {337}let joined12_2: polstar = joinstar(constraints(rho1_2),constraints(rho2_2)) in
+        {338}let pistar_2: polstar = joinstar(joined12_2,constraints(rho3_2)) in
+        {339}event FullJoin(P3,pistar_2);
+        {340}event ConfirmationSent(P3,P1,H(starBytes(pistar_2)));
+        {341}out(net, (P3,P1,sign(confirmMsg(pk1_2,H(starBytes(pistar_2))),sk3)));
+        {342}event ConfirmationSent(P3,P2,H(starBytes(pistar_2)));
+        {343}out(net, (P3,P2,sign(confirmMsg(pk2_2,H(starBytes(pistar_2))),sk3)));
+        {344}in(net, (=P1,=P3,confirmation1_1: bitstring));
+        {345}let confirmMsg(=pk3_2,hs1_1: bitstring) = checksign(confirmation1_1,pk1_2) in
+        {346}event ConfirmationAuthenticated(P3,P1,hs1_1);
+        {347}if (hs1_1 = H(starBytes(pistar_2))) then
+        {348}event ConfirmationAccepted(P3,P1,hs1_1);
+        {349}in(net, (=P2,=P3,confirmation2_1: bitstring));
+        {350}let confirmMsg(=pk3_2,hs2_1: bitstring) = checksign(confirmation2_1,pk2_2) in
+        {351}event ConfirmationAuthenticated(P3,P2,hs2_1);
+        {352}if (hs2_1 = H(starBytes(pistar_2))) then
+        {353}event ConfirmationAccepted(P3,P2,hs2_1);
+        {354}event Confirm(P3,pistar_2);
+        {358}let c_2: entry = starEntry3(pistar_2) in
+        {359}in(net, pkE_2: bitstring);
+        {360}new challenge_2: bitstring;
+        {355}let a_2: party = P3 in
+        {361}event ChallengeSent(a_2,pkE_2,challenge_2);
+        {362}out(net, challenge_2);
+        {363}in(net, qe_2: bitstring);
+        {356}let e_2: entity = E3 in
+        {364}event QuoteReceived(a_2,e_2,pkE_2,challenge_2);
+        {282}let pkAKE_2: bitstring = pk(akTEE) in
+        {365}let teeQuote(actual_2: identity,status_4: tcbstatus,binding_4: bitstring) = checksign(qe_2,pkAKE_2) in
+        {366}event QuoteSignatureChecked(a_2,e_2,pkE_2,challenge_2,actual_2,status_4);
+        {367}if (binding_4 = H((pkE_2,challenge_2))) then
+        {368}event QuoteVerified(a_2,e_2,pkE_2,challenge_2,actual_2,status_4);
+        {369}let v_20: entry = c_2 in
+        {370}let v_21: bool = success?(1-proj-Req(v_20)) in
+        {371}let ca_5: attreq = (if v_21 then 6-proj-Req(v_20) else caught-fail) in
+        {372}let ct_5: tcbreq = (if v_21 then 5-proj-Req(v_20) else caught-fail) in
+        {373}let cv_5: svn = (if v_21 then 4-proj-Req(v_20) else caught-fail) in
+        {374}let cp_5: ident = (if v_21 then 3-proj-Req(v_20) else caught-fail) in
+        {375}let cs_2: ident = (if v_21 then 2-proj-Req(v_20) else caught-fail) in
+        {376}let cm_5: ident = (if v_21 then 1-proj-Req(v_20) else caught-fail) in
+        {377}let v_22: identity = (if v_21 then catch-fail(actual_2) else caught-fail) in
+        {378}let v_23: bool = (not-caught-fail(v_22) && success?(1-proj-Identity(v_22))) in
+        {379}let av_2: svn = (if v_23 then 4-proj-Identity(v_22) else caught-fail) in
+        {380}let ap_2: bitstring = (if v_23 then 3-proj-Identity(v_22) else caught-fail) in
+        {381}let asigner_2: bitstring = (if v_23 then 2-proj-Identity(v_22) else caught-fail) in
+        {382}let am_2: bitstring = (if v_23 then 1-proj-Identity(v_22) else caught-fail) in
+        {383}let vm_2: bool = (if v_23 then catch-fail(matchid(cm_5,am_2)) else caught-fail) in
+        {384}let v_24: bool = not-caught-fail(vm_2) in
+        {385}let vs_2: bool = (if v_24 then catch-fail(matchid(cs_2,asigner_2)) else caught-fail) in
+        {386}let v_25: bool = not-caught-fail(vs_2) in
+        {387}let vp_2: bool = (if v_25 then catch-fail(matchid(cp_5,ap_2)) else caught-fail) in
+        {388}let v_26: bool = not-caught-fail(vp_2) in
+        {389}let vv_2: bool = (if v_26 then catch-fail(matchv(cv_5,av_2)) else caught-fail) in
+        {390}let v_27: bool = not-caught-fail(vv_2) in
+        {391}let vt_2: bool = (if v_27 then catch-fail(matchtcb(ct_5,status_4)) else caught-fail) in
+        {392}let v_28: bool = not-caught-fail(vt_2) in
+        {393}let va_2: bool = (if v_28 then catch-fail(matchatt(ca_5,a_2)) else caught-fail) in
+        {394}let v_29: bool = not-caught-fail(va_2) in
+        {395}let allowed_2: bool = (if v_21 then (if v_23 then (if v_24 then (if v_25 then (if v_26 then (if v_27 then (if v_28 then (if v_29 then (vm_2 && (vs_2 && (vp_2 && (vv_2 && (vt_2 && va_2))))) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) else fail-any_type) in
+        {396}if (allowed_2 = true) then
+        {357}let skR_2: skey = sk3 in
+        {397}event QuoteSatisfied(a_2,e_2,pk(skR_2),pkE_2,challenge_2,actual_2,status_4,pistar_2);
+        {398}let body_2: bitstring = H((pkE_2,pk(skR_2),H(starBytes(pistar_2)))) in
+        {400}event CertIssued(a_2,e_2,pk(skR_2),pkE_2,challenge_2,actual_2,status_4,pistar_2,body_2);
+        {399}let certificate_2: bitstring = sign(body_2,skR_2) in
+        {401}out(net, (pkE_2,pk(skR_2),H(starBytes(pistar_2)),certificate_2))
+    )
+) | (
+    {402}!
+    {404}in(net, (actual_3: identity,status_5: tcbstatus));
+    {405}new skE: skey;
+    {406}out(net, pk(skE));
+    {407}in(net, challenge_3: bitstring);
+    {408}event QuoteProduced(pk(skE),challenge_3,actual_3,status_5);
+    {403}let ak: skey = akTEE in
+    {409}out(net, sign(teeQuote(actual_3,status_5,H((pk(skE),challenge_3))),ak))
+)
+
+-- Query event(FullJoin(P2,x)) ==> event(PolicyAccepted(P2,P1,r1)) && event(PolicyAccepted(P2,P3,r3)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 200 rules (95 with conclusion selected). Queue: 908 rules.
+400 rules inserted. Base: 400 rules (97 with conclusion selected). Queue: 967 rules.
+600 rules inserted. Base: 600 rules (97 with conclusion selected). Queue: 953 rules.
+800 rules inserted. Base: 800 rules (99 with conclusion selected). Queue: 1208 rules.
+1000 rules inserted. Base: 1000 rules (99 with conclusion selected). Queue: 1200 rules.
+1200 rules inserted. Base: 1182 rules (101 with conclusion selected). Queue: 1729 rules.
+1400 rules inserted. Base: 1344 rules (101 with conclusion selected). Queue: 1839 rules.
+1600 rules inserted. Base: 1524 rules (101 with conclusion selected). Queue: 1890 rules.
+1800 rules inserted. Base: 1709 rules (101 with conclusion selected). Queue: 2004 rules.
+2000 rules inserted. Base: 1906 rules (101 with conclusion selected). Queue: 2164 rules.
+2200 rules inserted. Base: 2084 rules (101 with conclusion selected). Queue: 2194 rules.
+2400 rules inserted. Base: 2283 rules (101 with conclusion selected). Queue: 2107 rules.
+2600 rules inserted. Base: 2483 rules (101 with conclusion selected). Queue: 1907 rules.
+2800 rules inserted. Base: 2673 rules (101 with conclusion selected). Queue: 1801 rules.
+3000 rules inserted. Base: 2852 rules (101 with conclusion selected). Queue: 1749 rules.
+3200 rules inserted. Base: 3050 rules (101 with conclusion selected). Queue: 1735 rules.
+3400 rules inserted. Base: 3241 rules (101 with conclusion selected). Queue: 1679 rules.
+3600 rules inserted. Base: 3441 rules (101 with conclusion selected). Queue: 1659 rules.
+3800 rules inserted. Base: 3639 rules (101 with conclusion selected). Queue: 1665 rules.
+4000 rules inserted. Base: 3839 rules (101 with conclusion selected). Queue: 1651 rules.
+4200 rules inserted. Base: 4021 rules (101 with conclusion selected). Queue: 1608 rules.
+4400 rules inserted. Base: 4200 rules (101 with conclusion selected). Queue: 1563 rules.
+4600 rules inserted. Base: 4336 rules (103 with conclusion selected). Queue: 2024 rules.
+4800 rules inserted. Base: 4482 rules (103 with conclusion selected). Queue: 1990 rules.
+5000 rules inserted. Base: 4622 rules (105 with conclusion selected). Queue: 2102 rules.
+5200 rules inserted. Base: 4786 rules (105 with conclusion selected). Queue: 2102 rules.
+5400 rules inserted. Base: 4914 rules (107 with conclusion selected). Queue: 2140 rules.
+5600 rules inserted. Base: 5047 rules (107 with conclusion selected). Queue: 2140 rules.
+5800 rules inserted. Base: 5155 rules (107 with conclusion selected). Queue: 2130 rules.
+6000 rules inserted. Base: 5347 rules (107 with conclusion selected). Queue: 2120 rules.
+6200 rules inserted. Base: 5487 rules (107 with conclusion selected). Queue: 2120 rules.
+6400 rules inserted. Base: 5554 rules (107 with conclusion selected). Queue: 2120 rules.
+6600 rules inserted. Base: 5603 rules (107 with conclusion selected). Queue: 2121 rules.
+6800 rules inserted. Base: 5755 rules (107 with conclusion selected). Queue: 2130 rules.
+7000 rules inserted. Base: 5832 rules (107 with conclusion selected). Queue: 2120 rules.
+7200 rules inserted. Base: 5950 rules (107 with conclusion selected). Queue: 2090 rules.
+7400 rules inserted. Base: 6124 rules (107 with conclusion selected). Queue: 2059 rules.
+7600 rules inserted. Base: 6216 rules (107 with conclusion selected). Queue: 2038 rules.
+7800 rules inserted. Base: 6272 rules (107 with conclusion selected). Queue: 2021 rules.
+8000 rules inserted. Base: 6398 rules (107 with conclusion selected). Queue: 2004 rules.
+8200 rules inserted. Base: 6523 rules (107 with conclusion selected). Queue: 1968 rules.
+8400 rules inserted. Base: 6579 rules (107 with conclusion selected). Queue: 1959 rules.
+8600 rules inserted. Base: 6659 rules (107 with conclusion selected). Queue: 1940 rules.
+8800 rules inserted. Base: 6787 rules (107 with conclusion selected). Queue: 1922 rules.
+9000 rules inserted. Base: 6859 rules (107 with conclusion selected). Queue: 1902 rules.
+9200 rules inserted. Base: 6966 rules (107 with conclusion selected). Queue: 1876 rules.
+9400 rules inserted. Base: 7017 rules (107 with conclusion selected). Queue: 1811 rules.
+9600 rules inserted. Base: 7112 rules (107 with conclusion selected). Queue: 1769 rules.
+9800 rules inserted. Base: 7200 rules (107 with conclusion selected). Queue: 1740 rules.
+10000 rules inserted. Base: 7311 rules (107 with conclusion selected). Queue: 1740 rules.
+10200 rules inserted. Base: 7362 rules (107 with conclusion selected). Queue: 1658 rules.
+10400 rules inserted. Base: 7395 rules (107 with conclusion selected). Queue: 1620 rules.
+10600 rules inserted. Base: 7452 rules (107 with conclusion selected). Queue: 1603 rules.
+10800 rules inserted. Base: 7527 rules (107 with conclusion selected). Queue: 1569 rules.
+11000 rules inserted. Base: 7563 rules (107 with conclusion selected). Queue: 1552 rules.
+11200 rules inserted. Base: 7605 rules (107 with conclusion selected). Queue: 1536 rules.
+11400 rules inserted. Base: 7691 rules (107 with conclusion selected). Queue: 1528 rules.
+11600 rules inserted. Base: 7739 rules (107 with conclusion selected). Queue: 1522 rules.
+11800 rules inserted. Base: 7832 rules (107 with conclusion selected). Queue: 1510 rules.
+12000 rules inserted. Base: 7896 rules (107 with conclusion selected). Queue: 1481 rules.
+12200 rules inserted. Base: 7965 rules (107 with conclusion selected). Queue: 1452 rules.
+12400 rules inserted. Base: 8022 rules (107 with conclusion selected). Queue: 1439 rules.
+12600 rules inserted. Base: 8065 rules (107 with conclusion selected). Queue: 1439 rules.
+12800 rules inserted. Base: 8139 rules (107 with conclusion selected). Queue: 1461 rules.
+13000 rules inserted. Base: 8222 rules (107 with conclusion selected). Queue: 1460 rules.
+13200 rules inserted. Base: 8248 rules (107 with conclusion selected). Queue: 1454 rules.
+13400 rules inserted. Base: 8316 rules (107 with conclusion selected). Queue: 1463 rules.
+13600 rules inserted. Base: 8379 rules (107 with conclusion selected). Queue: 1437 rules.
+13800 rules inserted. Base: 8433 rules (107 with conclusion selected). Queue: 1418 rules.
+14000 rules inserted. Base: 8485 rules (107 with conclusion selected). Queue: 1403 rules.
+14200 rules inserted. Base: 8555 rules (107 with conclusion selected). Queue: 1410 rules.
+14400 rules inserted. Base: 8632 rules (107 with conclusion selected). Queue: 1407 rules.
+14600 rules inserted. Base: 8689 rules (107 with conclusion selected). Queue: 1390 rules.
+14800 rules inserted. Base: 8766 rules (107 with conclusion selected). Queue: 1379 rules.
+15000 rules inserted. Base: 8855 rules (107 with conclusion selected). Queue: 1364 rules.
+15200 rules inserted. Base: 8923 rules (107 with conclusion selected). Queue: 1326 rules.
+15400 rules inserted. Base: 9008 rules (107 with conclusion selected). Queue: 1313 rules.
+15600 rules inserted. Base: 9060 rules (107 with conclusion selected). Queue: 1267 rules.
+15800 rules inserted. Base: 9157 rules (107 with conclusion selected). Queue: 1247 rules.
+16000 rules inserted. Base: 9188 rules (107 with conclusion selected). Queue: 1227 rules.
+16200 rules inserted. Base: 9206 rules (107 with conclusion selected). Queue: 1177 rules.
+16400 rules inserted. Base: 9298 rules (107 with conclusion selected). Queue: 1135 rules.
+16600 rules inserted. Base: 9412 rules (125 with conclusion selected). Queue: 1508 rules.
+16800 rules inserted. Base: 9521 rules (125 with conclusion selected). Queue: 1480 rules.
+17000 rules inserted. Base: 9621 rules (129 with conclusion selected). Queue: 1576 rules.
+17200 rules inserted. Base: 9676 rules (129 with conclusion selected). Queue: 1526 rules.
+17400 rules inserted. Base: 9776 rules (131 with conclusion selected). Queue: 1847 rules.
+17600 rules inserted. Base: 9866 rules (133 with conclusion selected). Queue: 1983 rules.
+17800 rules inserted. Base: 10027 rules (133 with conclusion selected). Queue: 1941 rules.
+18000 rules inserted. Base: 10214 rules (133 with conclusion selected). Queue: 1913 rules.
+18200 rules inserted. Base: 10311 rules (133 with conclusion selected). Queue: 1872 rules.
+18400 rules inserted. Base: 10459 rules (133 with conclusion selected). Queue: 1838 rules.
+18600 rules inserted. Base: 10541 rules (133 with conclusion selected). Queue: 1798 rules.
+18800 rules inserted. Base: 10655 rules (133 with conclusion selected). Queue: 1759 rules.
+19000 rules inserted. Base: 10855 rules (133 with conclusion selected). Queue: 1698 rules.
+19200 rules inserted. Base: 10967 rules (133 with conclusion selected). Queue: 1679 rules.
+19400 rules inserted. Base: 11125 rules (133 with conclusion selected). Queue: 1658 rules.
+19600 rules inserted. Base: 11239 rules (133 with conclusion selected). Queue: 1622 rules.
+19800 rules inserted. Base: 11405 rules (133 with conclusion selected). Queue: 1587 rules.
+20000 rules inserted. Base: 11492 rules (133 with conclusion selected). Queue: 1547 rules.
+20200 rules inserted. Base: 11613 rules (133 with conclusion selected). Queue: 1513 rules.
+20400 rules inserted. Base: 11670 rules (133 with conclusion selected). Queue: 1474 rules.
+20600 rules inserted. Base: 11682 rules (133 with conclusion selected). Queue: 1446 rules.
+20800 rules inserted. Base: 11712 rules (133 with conclusion selected). Queue: 1438 rules.
+21000 rules inserted. Base: 11805 rules (133 with conclusion selected). Queue: 1419 rules.
+21200 rules inserted. Base: 11859 rules (133 with conclusion selected). Queue: 1380 rules.
+21400 rules inserted. Base: 11880 rules (133 with conclusion selected). Queue: 1354 rules.
+21600 rules inserted. Base: 11913 rules (133 with conclusion selected). Queue: 1327 rules.
+21800 rules inserted. Base: 11960 rules (133 with conclusion selected). Queue: 1272 rules.
+22000 rules inserted. Base: 11942 rules (133 with conclusion selected). Queue: 1256 rules.
+22200 rules inserted. Base: 11928 rules (133 with conclusion selected). Queue: 1236 rules.
+22400 rules inserted. Base: 11937 rules (133 with conclusion selected). Queue: 1220 rules.
+22600 rules inserted. Base: 11936 rules (133 with conclusion selected). Queue: 1189 rules.
+22800 rules inserted. Base: 11927 rules (133 with conclusion selected). Queue: 1172 rules.
+23000 rules inserted. Base: 11941 rules (133 with conclusion selected). Queue: 1119 rules.
+23200 rules inserted. Base: 11959 rules (133 with conclusion selected). Queue: 1050 rules.
+23400 rules inserted. Base: 11964 rules (133 with conclusion selected). Queue: 1030 rules.
+23600 rules inserted. Base: 11955 rules (133 with conclusion selected). Queue: 1003 rules.
+23800 rules inserted. Base: 11982 rules (133 with conclusion selected). Queue: 967 rules.
+24000 rules inserted. Base: 12042 rules (133 with conclusion selected). Queue: 903 rules.
+24200 rules inserted. Base: 12109 rules (133 with conclusion selected). Queue: 844 rules.
+24400 rules inserted. Base: 12270 rules (133 with conclusion selected). Queue: 800 rules.
+24600 rules inserted. Base: 12368 rules (133 with conclusion selected). Queue: 741 rules.
+24800 rules inserted. Base: 12459 rules (133 with conclusion selected). Queue: 660 rules.
+25000 rules inserted. Base: 12541 rules (133 with conclusion selected). Queue: 592 rules.
+25200 rules inserted. Base: 12654 rules (133 with conclusion selected). Queue: 548 rules.
+25400 rules inserted. Base: 12730 rules (133 with conclusion selected). Queue: 509 rules.
+25600 rules inserted. Base: 12796 rules (133 with conclusion selected). Queue: 442 rules.
+25800 rules inserted. Base: 12828 rules (133 with conclusion selected). Queue: 424 rules.
+26000 rules inserted. Base: 12864 rules (133 with conclusion selected). Queue: 396 rules.
+26200 rules inserted. Base: 12891 rules (133 with conclusion selected). Queue: 357 rules.
+26400 rules inserted. Base: 12908 rules (133 with conclusion selected). Queue: 337 rules.
+26600 rules inserted. Base: 12909 rules (133 with conclusion selected). Queue: 319 rules.
+26800 rules inserted. Base: 12902 rules (133 with conclusion selected). Queue: 300 rules.
+27000 rules inserted. Base: 12976 rules (151 with conclusion selected). Queue: 513 rules.
+27200 rules inserted. Base: 13026 rules (163 with conclusion selected). Queue: 835 rules.
+27400 rules inserted. Base: 13214 rules (163 with conclusion selected). Queue: 784 rules.
+27600 rules inserted. Base: 13335 rules (163 with conclusion selected). Queue: 765 rules.
+27800 rules inserted. Base: 13459 rules (166 with conclusion selected). Queue: 829 rules.
+28000 rules inserted. Base: 13617 rules (169 with conclusion selected). Queue: 835 rules.
+28200 rules inserted. Base: 13765 rules (169 with conclusion selected). Queue: 789 rules.
+28400 rules inserted. Base: 13915 rules (169 with conclusion selected). Queue: 702 rules.
+28600 rules inserted. Base: 14067 rules (184 with conclusion selected). Queue: 1118 rules.
+28800 rules inserted. Base: 14199 rules (184 with conclusion selected). Queue: 1102 rules.
+29000 rules inserted. Base: 14337 rules (184 with conclusion selected). Queue: 1077 rules.
+29200 rules inserted. Base: 14479 rules (184 with conclusion selected). Queue: 1015 rules.
+29400 rules inserted. Base: 14665 rules (184 with conclusion selected). Queue: 962 rules.
+29600 rules inserted. Base: 14834 rules (187 with conclusion selected). Queue: 1059 rules.
+29800 rules inserted. Base: 14937 rules (187 with conclusion selected). Queue: 1038 rules.
+30000 rules inserted. Base: 15042 rules (187 with conclusion selected). Queue: 1027 rules.
+30200 rules inserted. Base: 15195 rules (187 with conclusion selected). Queue: 992 rules.
+30400 rules inserted. Base: 15355 rules (187 with conclusion selected). Queue: 938 rules.
+30600 rules inserted. Base: 15517 rules (187 with conclusion selected). Queue: 906 rules.
+30800 rules inserted. Base: 15592 rules (187 with conclusion selected). Queue: 887 rules.
+31000 rules inserted. Base: 15680 rules (187 with conclusion selected). Queue: 873 rules.
+31200 rules inserted. Base: 15781 rules (187 with conclusion selected). Queue: 879 rules.
+31400 rules inserted. Base: 15909 rules (187 with conclusion selected). Queue: 872 rules.
+31600 rules inserted. Base: 15978 rules (187 with conclusion selected). Queue: 842 rules.
+31800 rules inserted. Base: 16020 rules (187 with conclusion selected). Queue: 830 rules.
+32000 rules inserted. Base: 16118 rules (187 with conclusion selected). Queue: 813 rules.
+32200 rules inserted. Base: 16213 rules (187 with conclusion selected). Queue: 801 rules.
+32400 rules inserted. Base: 16302 rules (187 with conclusion selected). Queue: 799 rules.
+32600 rules inserted. Base: 16328 rules (187 with conclusion selected). Queue: 782 rules.
+32800 rules inserted. Base: 16401 rules (187 with conclusion selected). Queue: 752 rules.
+33000 rules inserted. Base: 16468 rules (187 with conclusion selected). Queue: 740 rules.
+33200 rules inserted. Base: 16542 rules (187 with conclusion selected). Queue: 725 rules.
+33400 rules inserted. Base: 16601 rules (187 with conclusion selected). Queue: 698 rules.
+33600 rules inserted. Base: 16660 rules (187 with conclusion selected). Queue: 667 rules.
+33800 rules inserted. Base: 16710 rules (187 with conclusion selected). Queue: 650 rules.
+34000 rules inserted. Base: 16810 rules (187 with conclusion selected). Queue: 610 rules.
+34200 rules inserted. Base: 16899 rules (187 with conclusion selected). Queue: 560 rules.
+34400 rules inserted. Base: 16991 rules (187 with conclusion selected). Queue: 497 rules.
+34600 rules inserted. Base: 17104 rules (187 with conclusion selected). Queue: 476 rules.
+34800 rules inserted. Base: 17222 rules (187 with conclusion selected). Queue: 419 rules.
+35000 rules inserted. Base: 17355 rules (187 with conclusion selected). Queue: 340 rules.
+35200 rules inserted. Base: 17490 rules (187 with conclusion selected). Queue: 289 rules.
+35400 rules inserted. Base: 17604 rules (187 with conclusion selected). Queue: 237 rules.
+35600 rules inserted. Base: 17693 rules (187 with conclusion selected). Queue: 203 rules.
+35800 rules inserted. Base: 17714 rules (187 with conclusion selected). Queue: 190 rules.
+36000 rules inserted. Base: 17738 rules (187 with conclusion selected). Queue: 183 rules.
+36200 rules inserted. Base: 17712 rules (201 with conclusion selected). Queue: 228 rules.
+36400 rules inserted. Base: 17629 rules (204 with conclusion selected). Queue: 236 rules.
+36600 rules inserted. Base: 17589 rules (205 with conclusion selected). Queue: 240 rules.
+36800 rules inserted. Base: 17619 rules (205 with conclusion selected). Queue: 219 rules.
+37000 rules inserted. Base: 17628 rules (205 with conclusion selected). Queue: 190 rules.
+37200 rules inserted. Base: 17657 rules (205 with conclusion selected). Queue: 160 rules.
+37400 rules inserted. Base: 17697 rules (205 with conclusion selected). Queue: 128 rules.
+37600 rules inserted. Base: 17759 rules (205 with conclusion selected). Queue: 112 rules.
+37800 rules inserted. Base: 17899 rules (205 with conclusion selected). Queue: 104 rules.
+38000 rules inserted. Base: 17785 rules (205 with conclusion selected). Queue: 104 rules.
+38200 rules inserted. Base: 17731 rules (205 with conclusion selected). Queue: 92 rules.
+38400 rules inserted. Base: 17731 rules (205 with conclusion selected). Queue: 88 rules.
+38600 rules inserted. Base: 17725 rules (205 with conclusion selected). Queue: 51 rules.
+Starting query event(FullJoin(P2,x)) ==> event(PolicyAccepted(P2,P1,r1)) && event(PolicyAccepted(P2,P3,r3))
+goal reachable: b-event(PolicyAccepted(P2,P3,pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ289[],(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO3),pk(skO3)))) && b-event(PolicyAccepted(P2,P1,pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ45[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)))) && b-event(@p_act(@occ167[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)))) -> event(FullJoin(P2,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyAccepted(P2,P3,pol(P3,E3,Members3,Both,Both,Both,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ289[],(P3,pk(sk3[]),pol(P3,E3,Members3,Both,Both,Both,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,Both,Both,Both,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO3),pk(skO3)))) && b-event(PolicyAccepted(P2,P1,pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ45[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)))) && b-event(@p_act(@occ167[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)))) -> event(FullJoin(P2,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyAccepted(P2,P3,pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ289[],(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO3),pk(skO3)))) && b-event(PolicyAccepted(P2,P1,pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ45[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)))) && b-event(@p_act(@occ167[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)))) -> event(FullJoin(P2,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyAccepted(P2,P3,pol(P3,E3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(H(pk(skO3))),Any,V0,Both,Assign(P3))))) && b-event(@p_act(@occ289[],(P3,pk(sk3[]),pol(P3,E3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(H(pk(skO3))),Any,V0,Both,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(H(pk(skO3))),Any,V0,Both,Assign(P3)))))),skO3),pk(skO3)))) && b-event(PolicyAccepted(P2,P1,pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ45[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)))) && b-event(@p_act(@occ167[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)))) -> event(FullJoin(P2,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyAccepted(P2,P3,pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ289[],(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO3),pk(skO3)))) && b-event(PolicyAccepted(P2,P1,pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ45[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)))) && b-event(@p_act(@occ167[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)))) -> event(FullJoin(P2,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))
+goal reachable: b-event(PolicyAccepted(P2,P3,pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ289[],(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO3),pk(skO3)))) && b-event(PolicyAccepted(P2,P1,pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))) && b-event(@p_act(@occ45[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)))) && b-event(@p_act(@occ167[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)))) -> event(FullJoin(P2,mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))
+RESULT event(FullJoin(P2,x)) ==> event(PolicyAccepted(P2,P1,r1)) && event(PolicyAccepted(P2,P3,r3)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query event(FullJoin(P2,x)) ==> event(PolicyAccepted(P2,P1,r1)) && event(PolicyAccepted(P2,P3,r3)) is true.
+
+--------------------------------------------------------------
+

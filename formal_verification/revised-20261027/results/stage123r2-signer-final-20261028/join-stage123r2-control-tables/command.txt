@@ -1,0 +1,1 @@
+timeout 20 proverif /out/join-stage123r2-control-tables/model.pv

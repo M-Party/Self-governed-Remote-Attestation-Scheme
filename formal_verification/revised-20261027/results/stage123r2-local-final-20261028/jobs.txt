@@ -1,0 +1,17 @@
+n3-stage123r2-auth-normal|scenarios/n3-stage123r2-auth-normal.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-auth-wrong-signature|scenarios/n3-stage123r2-auth-wrong-signature.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-auth-fingerprint-mismatch|scenarios/n3-stage123r2-auth-fingerprint-mismatch.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-auth-key-rebinding|scenarios/n3-stage123r2-auth-key-rebinding.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-auth-policy-rebinding|scenarios/n3-stage123r2-auth-policy-rebinding.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-auth-wrong-self|scenarios/n3-stage123r2-auth-wrong-self.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-auth-wrong-attester|scenarios/n3-stage123r2-auth-wrong-attester.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-auth-nonconcrete-signer|scenarios/n3-stage123r2-auth-nonconcrete-signer.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-auth-no-authorization|scenarios/n3-stage123r2-auth-no-authorization.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-owner-normal|scenarios/n3-stage123r2-owner-normal.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-owner-wrong-code|scenarios/n3-stage123r2-owner-wrong-code.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-owner-wrong-tcb|scenarios/n3-stage123r2-owner-wrong-tcb.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-owner-key-rebinding|scenarios/n3-stage123r2-owner-key-rebinding.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-owner-nonce-rebinding|scenarios/n3-stage123r2-owner-nonce-rebinding.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-owner-wrong-signature|scenarios/n3-stage123r2-owner-wrong-signature.pv|local-r2-Stage1-or-algebra|3
+join-stage123r2-p12-regression|models/join-stage123r2-p12-regression.pv|local-r2-Stage1-or-algebra|3
+n3-stage123r2-auth-wrong-self-tee|scenarios/n3-stage123r2-auth-wrong-self-tee.pv|local-r2-Stage1-or-algebra|3

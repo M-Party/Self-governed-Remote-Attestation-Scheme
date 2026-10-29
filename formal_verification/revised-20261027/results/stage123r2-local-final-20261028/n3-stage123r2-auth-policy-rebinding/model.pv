@@ -1,0 +1,352 @@
+(* N3 Stage 1-3; extension of 3766338 with twelve explicit P3 profiles.
+   Two honest owner keys; O3's signing key is public, RPE keys protected.
+   One initialization; three fixed role/instance pairs P1/E1, P2/E2, P3/E3.
+   Stage 1 and Stage 2 use the SAME rpeQuote/hardware key/report-data format.
+   The finite policy domain is a scope restriction, not a new wire check.
+   Stage 3 retains the baseline distinct TEE hardware-key abstraction.
+*)
+type skey.
+fun pk(skey):bitstring.
+const skO1,skO2,skO3:skey [private].
+fun H(bitstring):bitstring.
+(* Shared policy algebra for the revised SRAS models, ProVerif 2.05.
+ * Exact identity attributes are symbolic atoms. SVN and TCB are finite.
+ * Joins return only normalized constraints; no source-policy history is kept.
+ * A failed destructor represents an unsatisfiable/ill-formed component.
+ *)
+
+type party.
+type ident.
+type svn.
+type tcbstatus.
+type tcbreq.
+type attreq.
+type entry.
+type identity.
+
+const P1: party [data].
+const P2: party [data].
+const P3: party [data].
+const mRPE: bitstring [data].
+const mE1: bitstring [data].
+const mE2: bitstring [data].
+const mE3: bitstring [data].
+const mBad: bitstring [data].
+const sBad: bitstring [data].
+const prodA: bitstring [data].
+const prodB: bitstring [data].
+
+const Any: ident [data].
+fun exact(bitstring): ident [data].
+
+(* V0 is both the least represented version and the unrestricted lower bound.
+ * The represented order is V0 < V1 < V2; unbounded integer SVN is not modeled.
+ *)
+const V0: svn [data].
+const V1: svn [data].
+const V2: svn [data].
+
+const Good: tcbstatus [data].
+const Outdated: tcbstatus [data].
+const Revoked: tcbstatus [data].
+const Invalid: tcbstatus [data].
+const Both: tcbreq [data].
+const OnlyGood: tcbreq [data].
+const OnlyOutdated: tcbreq [data].
+
+const NoAtt: attreq [data].
+fun Assign(party): attreq [data].
+
+(* Canonical order: measurement, signer, product, minimum SVN, TCB, attester. *)
+fun Req(ident, ident, ident, svn, tcbreq, attreq): entry [data].
+fun Identity(bitstring, bitstring, bitstring, svn): identity [data].
+
+(* Shape-aware rules reject arbitrary names of type ident/attreq rather than
+ * returning them unchanged through a wildcard rule. Exact atoms are symbolic.
+ *)
+fun joinid(ident, ident): ident
+reduc joinid(Any, Any) = Any
+otherwise forall a: bitstring; joinid(Any, exact(a)) = exact(a)
+otherwise forall a: bitstring; joinid(exact(a), Any) = exact(a)
+otherwise forall a: bitstring; joinid(exact(a), exact(a)) = exact(a).
+
+fun joinv(svn, svn): svn
+reduc joinv(V0, V0) = V0
+otherwise joinv(V0, V1) = V1
+otherwise joinv(V0, V2) = V2
+otherwise joinv(V1, V0) = V1
+otherwise joinv(V1, V1) = V1
+otherwise joinv(V1, V2) = V2
+otherwise joinv(V2, V0) = V2
+otherwise joinv(V2, V1) = V2
+otherwise joinv(V2, V2) = V2.
+
+(* Intersection of nonempty acceptable-status sets. The disjoint pair
+ * OnlyGood/OnlyOutdated has no rule and therefore aborts the local join.
+ *)
+fun jointcb(tcbreq, tcbreq): tcbreq
+reduc jointcb(Both, Both) = Both
+otherwise jointcb(Both, OnlyGood) = OnlyGood
+otherwise jointcb(Both, OnlyOutdated) = OnlyOutdated
+otherwise jointcb(OnlyGood, Both) = OnlyGood
+otherwise jointcb(OnlyOutdated, Both) = OnlyOutdated
+otherwise jointcb(OnlyGood, OnlyGood) = OnlyGood
+otherwise jointcb(OnlyOutdated, OnlyOutdated) = OnlyOutdated.
+
+fun joinatt(attreq, attreq): attreq
+reduc joinatt(NoAtt, NoAtt) = NoAtt
+otherwise forall a: party; joinatt(NoAtt, Assign(a)) = Assign(a)
+otherwise forall a: party; joinatt(Assign(a), NoAtt) = Assign(a)
+otherwise forall a: party; joinatt(Assign(a), Assign(a)) = Assign(a).
+
+(* Satisfaction destructors return true only for accepted values. *)
+fun matchid(ident, bitstring): bool
+reduc forall a: bitstring; matchid(Any, a) = true
+otherwise forall a: bitstring; matchid(exact(a), a) = true.
+
+fun matchv(svn, svn): bool
+reduc matchv(V0, V0) = true
+otherwise matchv(V0, V1) = true
+otherwise matchv(V0, V2) = true
+otherwise matchv(V1, V1) = true
+otherwise matchv(V1, V2) = true
+otherwise matchv(V2, V2) = true.
+
+fun matchtcb(tcbreq, tcbstatus): bool
+reduc matchtcb(Both, Good) = true
+otherwise matchtcb(Both, Outdated) = true
+otherwise matchtcb(OnlyGood, Good) = true
+otherwise matchtcb(OnlyOutdated, Outdated) = true.
+
+(* NoAtt contributes no assignment; it never authorizes an arbitrary RPE. *)
+fun matchatt(attreq, party): bool
+reduc forall a: party; matchatt(Assign(a), a) = true.
+
+(* Initialization checks for adversary-selected policy components. *)
+fun validid(ident): bool
+reduc validid(Any) = true
+otherwise forall a: bitstring; validid(exact(a)) = true.
+
+fun validv(svn): bool
+reduc validv(V0) = true
+otherwise validv(V1) = true
+otherwise validv(V2) = true.
+
+fun validtcbreq(tcbreq): bool
+reduc validtcbreq(Both) = true
+otherwise validtcbreq(OnlyGood) = true
+otherwise validtcbreq(OnlyOutdated) = true.
+
+fun validatt(attreq): bool
+reduc validatt(NoAtt) = true
+otherwise forall a: party; validatt(Assign(a)) = true.
+
+letfun validentry(c: entry) =
+  let Req(cm: ident, cs: ident, cp: ident, cv: svn, ct: tcbreq, ca: attreq) = c in
+  let vm = validid(cm) in
+  let vs = validid(cs) in
+  let vp = validid(cp) in
+  let vv = validv(cv) in
+  let vt = validtcbreq(ct) in
+  let va = validatt(ca) in
+  vm && vs && vp && vv && vt && va.
+
+letfun joinentry(x: entry, y: entry) =
+  let Req(xm: ident, xs: ident, xp: ident, xv: svn, xt: tcbreq, xa: attreq) = x in
+  let Req(ym: ident, ys: ident, yp: ident, yv: svn, yt: tcbreq, ya: attreq) = y in
+  let jm = joinid(xm, ym) in
+  let js = joinid(xs, ys) in
+  let jp = joinid(xp, yp) in
+  let jv = joinv(xv, yv) in
+  let jt = jointcb(xt, yt) in
+  let ja = joinatt(xa, ya) in
+  Req(jm, js, jp, jv, jt, ja).
+
+letfun checkentry(c: entry, who: party, actual: identity, ts: tcbstatus) =
+  let Req(cm: ident, cs: ident, cp: ident, cv: svn, ct: tcbreq, ca: attreq) = c in
+  let Identity(am: bitstring, asigner: bitstring, ap: bitstring, av: svn) = actual in
+  let vm = matchid(cm, am) in
+  let vs = matchid(cs, asigner) in
+  let vp = matchid(cp, ap) in
+  let vv = matchv(cv, av) in
+  let vt = matchtcb(ct, ts) in
+  let va = matchatt(ca, who) in
+  vm && vs && vp && vv && vt && va.
+
+type policy.
+type polstar.
+type roster.
+type profile.
+type entity.
+free net: channel [private].
+const E1, E2, E3: entity [data].
+const Members3: roster [data].
+free badHash: bitstring.
+fun pol(party, entity, roster, tcbreq, tcbreq, tcbreq, entry, entry, entry): policy [private].
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  policySelfTEE(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = selfTEE.
+(* mkstar now stores only normalized joined constraints, NOT source policies. *)
+fun mkstar(tcbreq, tcbreq, tcbreq, entry, entry, entry): polstar [data].
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  policySelf(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = a.
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  constraints(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = mkstar(t1, t2, t3, e1, e2, e3).
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  rpeTcb1(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = t1.
+reduc forall t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  starEntry1(mkstar(t1, t2, t3, e1, e2, e3)) = e1.
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  rpeTcb2(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = t2.
+reduc forall t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  starEntry2(mkstar(t1, t2, t3, e1, e2, e3)) = e2.
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  rpeTcb3(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = t3.
+reduc forall t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  starEntry3(mkstar(t1, t2, t3, e1, e2, e3)) = e3.
+
+(* Exact finite-domain specialization of the componentwise join.
+ * Conflicting tuples have no rule. No input history enters mkstar.
+ * Generic scalar/entry semantics are checked in join-regression.pv. *)
+fun joinstar(polstar, polstar): polstar
+reduc joinstar(mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))), mkstar(Both,Both,Both,Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,Any,Any,V0,Both,NoAtt),Req(Any,exact(H(pk(skO3))),Any,V0,Both,Assign(P3)))) = mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))
+otherwise joinstar(mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))), mkstar(Both,Both,Both,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))) = mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))
+otherwise joinstar(mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))), mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))) = mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))
+otherwise joinstar(mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))), mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))) = mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V2,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))
+otherwise joinstar(mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))), mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,NoAtt),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))) = mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))
+otherwise joinstar(mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))), mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))) = mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V2,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))).
+const Compatible: profile [data].
+const Weak: profile [data].
+const StrongerSVN: profile [data].
+const ConflictMeasurement: profile [data].
+const ConflictSigner: profile [data].
+const ConflictProduct: profile [data].
+const ConflictTCB: profile [data].
+const ConflictAttester: profile [data].
+const RejectPeerTCB: profile [data].
+const NoAssignments: profile [data].
+const PermissiveRpeTCB: profile [data].
+const StrongerSVNE2: profile [data].
+
+(* Explicit finite policy domain for the adversarial owner; see policy-catalog.json. *)
+fun choosePolicy(profile): policy
+reduc choosePolicy(Compatible) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(Weak) = pol(P3, E3, Members3, Both, Both, Both, Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, exact(H(pk(skO3))), Any, V0, Both, Assign(P3)))
+otherwise choosePolicy(StrongerSVN) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V2, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(ConflictMeasurement) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mBad), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(ConflictSigner) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(sBad), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(ConflictProduct) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodB), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(ConflictTCB) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyOutdated, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(ConflictAttester) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P3)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(RejectPeerTCB) = pol(P3, E3, Members3, OnlyOutdated, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(NoAssignments) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, NoAtt), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, NoAtt), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(PermissiveRpeTCB) = pol(P3, E3, Members3, Both, Both, Both, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(StrongerSVNE2) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V2, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3))).
+
+(* Perfect signatures/hashes. All communication remains on public net.
+ * Receiver-key arguments encode authentication-channel endpoint association,
+ * not new SRAS fields, a new round, or a session identifier.
+ * Confidentiality/TLS internals are deliberately not proved by this model.
+ *)
+fun policyBytes(policy):bitstring [data].
+fun starBytes(polstar):bitstring [data].
+fun sign(bitstring, skey): bitstring.
+reduc forall m: bitstring, k: skey; getmess(sign(m,k)) = m.
+reduc forall m: bitstring, k: skey; checksign(sign(m,k), pk(k)) = m.
+fun rpeQuote(bitstring, tcbstatus, bitstring): bitstring [data].
+fun teeQuote(identity, tcbstatus, bitstring): bitstring [data].
+fun policyMsg(bitstring, policy): bitstring [data].
+fun confirmMsg(bitstring, bitstring): bitstring [data].
+
+event PolicyDeclared(party, policy).
+(* EvidenceChecked labels a collection slot, not authenticated policy Self. *)
+event EvidenceChecked(party, party, bitstring, bitstring).
+event QuotesComplete(party).
+event PolicySent(party, bitstring, policy).
+event PolicyAuthenticated(party, party, policy).
+event PolicyAccepted(party, party, policy).
+event PolicyAcceptedKeys(party, party, bitstring, bitstring, policy).
+event PoliciesComplete(party).
+event FullJoin(party, polstar).
+event ConfirmationSent(party, party, bitstring).
+event ConfirmationAuthenticated(party, party, bitstring).
+event ConfirmationAccepted(party, party, bitstring).
+event Confirm(party, polstar).
+event QuoteProduced(bitstring, bitstring, identity, tcbstatus).
+event ChallengeSent(party, bitstring, bitstring).
+event QuoteReceived(party, entity, bitstring, bitstring).
+event QuoteSignatureChecked(party, entity, bitstring, bitstring, identity, tcbstatus).
+event QuoteVerified(party, entity, bitstring, bitstring, identity, tcbstatus).
+event QuoteSatisfied(party, entity, bitstring, bitstring, bitstring, identity, tcbstatus, polstar).
+event CertIssued(party, entity, bitstring, bitstring, bitstring, identity, tcbstatus, polstar, bitstring).
+
+(* HonestOwner specifies the uncompromised keys covered by Authorization. *)
+event HonestOwner(bitstring).
+event OwnerChallenge(bitstring,bitstring).
+event OwnerAttested(bitstring,bitstring,policy,bitstring).
+event OwnerSigned(bitstring,bitstring,bitstring).
+event AuthorizationReceived(party,bitstring,policy,bitstring).
+event AuthorizationSignatureChecked(party,bitstring,policy,bitstring).
+event AuthorizationSelfChecked(party,bitstring,policy,bitstring).
+event AuthorizationAccepted(party,bitstring,policy,bitstring,bitstring).
+event AuthorizedPolicyDeclared(party,bitstring,policy).
+
+(* The policy's claimed self signer, not an assumed owner identity, selects
+   the honest authority. A malicious owner signing with its own key is allowed. *)
+
+
+(* Q1 Agreement: same collaboration, distinct completed RPEs. *)
+
+(* Q2 Authenticity: original correspondence, now after endpoint authentication. *)
+
+(* Q3 Completeness: original query and names retained. *)
+
+
+(* Q4 Issuance: same correspondence with explicit subject/key/challenge/attributes. *)
+
+
+event FixtureQuoteReady.
+event FixtureAuthorizationCryptoChecked.
+query event(FixtureQuoteReady).
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
+query event(FixtureAuthorizationCryptoChecked).
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
+query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
+query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
+
+let rpe3(akR:skey,pkAKR:bitstring,pkAKE:bitstring) =
+  new sk3:skey;
+  let pk3=pk(sk3) in
+  out(net,(P3,pk3));
+  (
+    (* An initial Quote is obtainable for any requested bitstring, even after
+       authorization. Its payload is NOT separated from Stage 2 by a tag. *)
+    (!in(net,(=P3,requested:bitstring));
+      out(net,(P3,pk3,sign(rpeQuote(mRPE,Good,H((pk3,requested))),akR))))
+  |
+    in(net,(=P3,=pk3,rho3:policy,authorization:bitstring,ownerKey:bitstring)) [precise];
+    event AuthorizationReceived(P3,pk3,rho3,ownerKey);
+    let (signedKey:bitstring,signedHash:bitstring)=checksign(authorization,ownerKey) in
+    event FixtureAuthorizationCryptoChecked;
+    if signedKey=pk3 && signedHash=H(policyBytes(rho3)) then
+    event AuthorizationSignatureChecked(P3,pk3,rho3,ownerKey);
+    if policySelf(rho3)=P3 && policySelfTEE(rho3)=E3 then
+    event AuthorizationSelfChecked(P3,pk3,rho3,ownerKey);
+    let Req(cm:ident,exact(selfSigner:bitstring),cp:ident,cv:svn,ct:tcbreq,ca:attreq)=starEntry3(constraints(rho3)) in
+    if selfSigner=H(ownerKey) && ca=Assign(P3) then
+    event AuthorizationAccepted(P3,pk3,rho3,ownerKey,selfSigner);
+    0
+  ).
+
+let fixture(akR:skey)=
+  new wrong:skey;
+  new n:bitstring;
+  in(net,(=P3,k:bitstring));
+  out(net,(P3,n));
+  in(net,(=P3,=k,q:bitstring));
+  let rpeQuote(=mRPE,=Good,=H((k,n)))=checksign(q,pk(akR)) in
+  event FixtureQuoteReady;
+  out(net,(P3,k,pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3))),sign((k,H(policyBytes(pol(P3, E3, Members3, Both, Both, Both, Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, exact(H(pk(skO3))), Any, V0, Both, Assign(P3)))))),skO3),pk(skO3))).
+process
+  new akR:skey;
+  new akE:skey;
+  (rpe3(akR,pk(akR),pk(akE)) | fixture(akR))

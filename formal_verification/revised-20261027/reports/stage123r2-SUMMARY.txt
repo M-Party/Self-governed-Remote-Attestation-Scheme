@@ -1,0 +1,109 @@
+SRAS 三方 Stage 1–3：补齐专项检查后的结果（r2，2026-10-28）
+
+基线仍为 3766338d5301d543434a57fdcb3aea037aea512a。本轮在既有
+revised-20261027 目录内继续修改、验证，没有使用已放弃的一般策略模型。
+按后续直接指令保留 12 个 P3 完整 profile；未恢复第二份说明原文要求的
+任意策略字段组合。本次提交直接提供当前模型、选中原始日志、联合轨迹
+和复现材料；Docker镜像、交付压缩包及解压副本不重复提交。未修改论文。
+以前的模型、运行日志、失败尝试和 stage123（r1）报告继续留存在本地；
+原3766338材料也可从Git历史读取。
+
+五项主性质在相同公开 Dolev–Yao 网络过程、策略域及腐化配置下分别成立：
+
+  Authorization  true  36.13 s
+  Agreement      true  57.89 s
+  Authenticity   true  48.31 s
+  Completeness   true  47.68 s
+  Issuance       true  35.81 s
+
+以上各为一条主查询的单独运行耗时，含 ProVerif 内部解析、转换、求解及
+请求的绘图开销，不含单独 parse-only 和 Docker 启动。它们是记录主机上的
+单次观察，不能当作均值、协议延迟或新旧版本性能差异的受控比较。
+
+当前证据共 69 个作业、189 条确定结果；未决结果为 0：
+
+  5 条公开网络主性质，均 proved。
+  14 条公开网络辅助对应关系，均 proved。
+  3 条公开网络三方联合可达查询，均有实际重建轨迹：
+    通用见证实际采用 PermissiveRpeTCB；109.74 s。
+    E2-SVN 强化见证实际采用 StrongerSVNE2；93.61 s。
+    Weak 见证实际采用 Weak；81.00 s。
+    每条轨迹都包含三方授权接受、共识确认及合规实例证书签发。
+  29 个三方控制场景，79 条查询，前序可达/目标拒绝均符合逐项预期。
+  17 个局部或目录模型，86 条查询：16 个 Stage1 守卫控制模型，
+    加 1 个 12-profile 专门化 join 与通用 ProVerif join 的对照模型。
+  另 1 个代数模型，2 条查询：8 种控制配置的专门化表与通用 PV join
+    同时对照成功/冲突行为及成功输出。
+
+模型修改与补齐范围
+
+Stage1 的 Owner 挑战、初始 Quote 验证、授权签名及 RPE 实际验签继续保留；
+接受后沿用同一 RPE 私钥和 policy 执行 Stage2、Stage3。初始 Quote 与
+Evidence Quote 共用 rpeQuote、硬件密钥和 H(key,bytes) 形状；没有增加
+阶段标签、不同 hash 或 nonce/key 类型隔离。
+
+r2 将 Self TEE designation 加入 policy 序列化，并在 Stage1 同时检查
+Self RPE=Pi 和 Self TEE=Ei。独立篡改 SelfTEE 的局部测试在有效签名和
+key/hash 检查后被拒绝。Stage2 的全员收集、join、确认及 Stage3 原有
+检查体保持基线逻辑；聚合输出仍仅为 21 个规范约束字段，没有来源历史。
+原始 N3 主入口 sras-n3.pv 已更新为这份 r2 五查询模型。
+
+新增专项证据覆盖：无授权、坏签名/指纹、key/policy 换绑、Self RPE/TEE、
+own attester；合法自授权但 peer signer 期望冲突；Weak 通配符正常执行；
+Quote/policy/确认缺失或重复；真实初始 Quote 承诺与后续实际授权 policy
+不符；五类策略冲突及 peer TCB 拒绝；实例签名、key/挑战和 appraisal
+拒绝等。准确前序、查询、耗时、模型 hash 与日志逐条列在结果表中。
+
+证据层级与故障分类
+
+五项主性质、14 辅助和 3 联合见证使用相同公开网络过程。29 个针对性
+控制场景使用私有缓冲交付来固定输入或交付顺序，不替代公开网络证明。
+其中 25 个保留完整 Stage2–3 过程体；4 个早期 Quote 场景保留真实三方
+授权和精确 Evidence 检查前缀，省略不相关后续，目标为 QuotesComplete。
+每个前缀场景交付 Evidence 之前，都已实际完成三方 Owner/RPE 授权，
+没有直接注入已授权状态。初始 Quote 服务仍保留，缺失场景明确不交付
+可作为替代的 Quote。
+
+signer 冲突控制配置中，P3 使用自己的 O3 key 与 H(pk(skO3)) 正常授权；
+诚实 peer 对 E3 的预期改为另一个真实指纹 H(pk(skO1))。授权/策略收齐
+可达，join 拒绝；这一不同的诚实配置没有代入主五性质。
+
+policy-hash-mismatch 使用真实 P3 初始 Quote 请求服务承诺 Weak hash，
+随后交付真实授权 Compatible 的 RPE policy 签名，没有伪造硬件或修改
+受保护 RPE 的 policy 签名内容。
+bad-rpe-code、bad-rpe-tcb 和 confirmation-mismatch 则明确属于受保护
+发送端/硬件故障注入；不能称为正常网络攻击者能伪造的消息。
+实例及本地授权负例按各自控制输入分类。所有正向可达结论均有重建轨迹。
+
+12-profile 的准确范围
+
+可以表述为：“覆盖 measurement、signer、product、最低 SVN、TCB 接受
+集合及 attester 六类主要字段，以及通配符、相容、强化、冲突和冗余输入
+等代表性语义情形。”不能据此表述为“基本覆盖 policy 字段自由组合”。
+
+可复核反例：只让 P3 对 E1/E2/E3 的最低 SVN 在 V0/V1/V2 中自由组合，
+其余字段固定为 Compatible，即有 27 个合法输入。与诚实方 (V1,V1,V1)
+聚合后可得到 8 种成功结果；现有目录覆盖其中 3 种。E3 单独强化以及
+若干同时强化结果仍缺失。3/8 只是该 SVN 切片，不是整个策略域的覆盖率。
+这项枚举未扩大主实验输入域；具体枚举见 stage123r2-profile-coverage.json。
+
+其余边界保持公开：单次初始化、静态共同三方成员、固定 P1/P2 诚实配置、
+仅 O3 key 泄露且全部 RPE 受保护；Stage3 保留基线的独立 TEE Quote/
+硬件 key 抽象。未证明任意 N/诚实配置/腐化集合、重复初始化、真实 collateral
+实现、TLS 或保密性。联合可达性不是恶意网络下的活性保证。
+可选确认轮消融未重跑；旧不完整输入消融不作为本轮确认必要性的证据。
+
+复核入口
+
+stage123r2-second-instructions-coverage.txt/csv/json：第二份说明逐项对照。
+stage123r2-results-table.csv：准确查询、结果、hash、单次耗时和日志路径。
+stage123r2-results.json：69 作业及189条结果；当前未决数、源匹配与退出码。
+stage123r2-control-expectations.json：控制输入、预期、过程范围与故障分类。
+stage123r2-executed-witnesses.json：三条实际执行的 policy 与日志行号。
+stage123r2-source-audit.json：447项源码、冻结证据及确定性再生成核对。
+stage123r2-development-summary.json：未选入当前结果的开发状态摘要；原始文件留本地。
+stage123r2-REPRODUCE.txt：完整复现方式。SHA256SUMS.stage123r2.public.txt：当前公开清单。
+
+原始日志从未改写。原始 raw “not event(...) is false” 有实际轨迹时表示
+正常可达；只有安全对应关系的可确认 false 才是该性质的反例。开发阶段
+的解析错误、超时和无法证明单独保留，未混作当前证明或协议攻击。

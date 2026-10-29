@@ -1,0 +1,95 @@
+{
+  "stage123r2-pilot2-20261028": [
+    "n3-stage123r2-Authorization"
+  ],
+  "stage123r2-main-20261028": [
+    "n3-stage123r2-Agreement",
+    "n3-stage123r2-Authenticity",
+    "n3-stage123r2-Completeness",
+    "n3-stage123r2-Issuance"
+  ],
+  "stage123r2-aux1-20261028": [
+    "n3-stage123r2-A01",
+    "n3-stage123r2-A02",
+    "n3-stage123r2-A03",
+    "n3-stage123r2-A04",
+    "n3-stage123r2-A05"
+  ],
+  "stage123r2-aux2-20261028": [
+    "n3-stage123r2-A06",
+    "n3-stage123r2-A07",
+    "n3-stage123r2-A08",
+    "n3-stage123r2-A09",
+    "n3-stage123r2-A10"
+  ],
+  "stage123r2-aux3-20261028": [
+    "n3-stage123r2-A11",
+    "n3-stage123r2-A12",
+    "n3-stage123r2-A13",
+    "n3-stage123r2-A14"
+  ],
+  "stage123r2-witness-20261028": [
+    "sras-n3-stage123r2-reachability",
+    "sras-n3-stage123r2-reachability-profile12",
+    "sras-n3-stage123r2-reachability-weak"
+  ],
+  "stage123r2-controls1-complete-20261028": [
+    "n3-stage123r2-control-normal",
+    "n3-stage123r2-control-missing-policy",
+    "n3-stage123r2-control-policy-hash-mismatch",
+    "n3-stage123r2-control-duplicate-confirmation",
+    "n3-stage123r2-control-conflict-measurement",
+    "n3-stage123r2-control-conflict-product",
+    "n3-stage123r2-control-conflict-attester",
+    "n3-stage123r2-control-bad-measurement",
+    "n3-stage123r2-control-bad-product",
+    "n3-stage123r2-control-bad-tcb",
+    "n3-stage123r2-control-invalid-tcb",
+    "n3-stage123r2-control-wrong-challenge",
+    "n3-stage123r2-control-invalid-signature"
+  ],
+  "stage123r2-controls2-complete-20261028": [
+    "n3-stage123r2-control-duplicate-policy",
+    "n3-stage123r2-control-missing-confirmation",
+    "n3-stage123r2-control-confirmation-mismatch",
+    "n3-stage123r2-control-conflict-signer",
+    "n3-stage123r2-control-conflict-tcb",
+    "n3-stage123r2-control-reject-peer-tcb",
+    "n3-stage123r2-control-bad-signer",
+    "n3-stage123r2-control-bad-svn",
+    "n3-stage123r2-control-revoked-tcb",
+    "n3-stage123r2-control-wrong-attester",
+    "n3-stage123r2-control-wrong-instance-key"
+  ],
+  "stage123r2-quote-delivery-20261028": [
+    "n3-stage123r2-control-missing-quote",
+    "n3-stage123r2-control-bad-rpe-code",
+    "n3-stage123r2-control-bad-rpe-tcb"
+  ],
+  "stage123r2-duplicate-quote-20261028": [
+    "n3-stage123r2-control-duplicate-quote"
+  ],
+  "stage123r2-local-final-20261028": [
+    "n3-stage123r2-auth-normal",
+    "n3-stage123r2-auth-wrong-signature",
+    "n3-stage123r2-auth-fingerprint-mismatch",
+    "n3-stage123r2-auth-key-rebinding",
+    "n3-stage123r2-auth-policy-rebinding",
+    "n3-stage123r2-auth-wrong-self",
+    "n3-stage123r2-auth-wrong-attester",
+    "n3-stage123r2-auth-nonconcrete-signer",
+    "n3-stage123r2-auth-no-authorization",
+    "n3-stage123r2-owner-normal",
+    "n3-stage123r2-owner-wrong-code",
+    "n3-stage123r2-owner-wrong-tcb",
+    "n3-stage123r2-owner-key-rebinding",
+    "n3-stage123r2-owner-nonce-rebinding",
+    "n3-stage123r2-owner-wrong-signature",
+    "join-stage123r2-p12-regression",
+    "n3-stage123r2-auth-wrong-self-tee"
+  ],
+  "stage123r2-signer-final-20261028": [
+    "n3-stage123r2-control-authorized-signer-peer-conflict",
+    "join-stage123r2-control-tables"
+  ]
+}

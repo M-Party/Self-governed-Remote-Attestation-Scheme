@@ -1,0 +1,1004 @@
+Process 0 (that is, the initial process):
+{1}new akRPE: skey;
+{2}new akTEE: skey;
+{3}new akADV: skey;
+{4}event HonestOwner(pk(skO1));
+{5}event HonestOwner(pk(skO2));
+(
+    {6}let pkAKR: bitstring = pk(akRPE) in
+    {7}let rho: policy = pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {8}new n: bitstring;
+    {9}event OwnerChallenge(pk(skO1),n);
+    {10}out(initTo1, (P1,n));
+    {11}in(initFrom1, (=P1,candidate: bitstring,q: bitstring));
+    {12}let rpeQuote(=mRPE,status: tcbstatus,binding: bitstring) = checksign(q,pkAKR) in
+    {13}if (binding = H((candidate,n))) then
+    {14}let platformOK: bool = matchtcb(rpeTcb1(rho),status) in
+    {15}if (platformOK = true) then
+    {16}event OwnerAttested(pk(skO1),candidate,rho,n);
+    {17}let authorization: bitstring = sign((candidate,H(policyBytes(rho))),skO1) in
+    {18}event OwnerSigned(pk(skO1),candidate,H(policyBytes(rho)));
+    {19}out(initTo1, (P1,candidate,rho,authorization,pk(skO1)));
+    {20}in(ready1, =P1);
+    {21}let rho_1: policy = pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {22}new n_1: bitstring;
+    {23}event OwnerChallenge(pk(skO2),n_1);
+    {24}out(initTo2, (P2,n_1));
+    {25}in(initFrom2, (=P2,candidate_1: bitstring,q_1: bitstring));
+    {26}let rpeQuote(=mRPE,status_1: tcbstatus,binding_1: bitstring) = checksign(q_1,pkAKR) in
+    {27}if (binding_1 = H((candidate_1,n_1))) then
+    {28}let platformOK_1: bool = matchtcb(rpeTcb2(rho_1),status_1) in
+    {29}if (platformOK_1 = true) then
+    {30}event OwnerAttested(pk(skO2),candidate_1,rho_1,n_1);
+    {31}let authorization_1: bitstring = sign((candidate_1,H(policyBytes(rho_1))),skO2) in
+    {32}event OwnerSigned(pk(skO2),candidate_1,H(policyBytes(rho_1)));
+    {33}out(initTo2, (P2,candidate_1,rho_1,authorization_1,pk(skO2)));
+    {34}in(ready2, =P2);
+    {35}let rho_2: policy = pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {36}new n_2: bitstring;
+    {37}event OwnerChallenge(pk(skO3),n_2);
+    {38}out(initTo3, (P3,n_2));
+    {39}in(initFrom3, (=P3,candidate_2: bitstring,q_2: bitstring));
+    {40}let rpeQuote(=mRPE,status_2: tcbstatus,binding_2: bitstring) = checksign(q_2,pkAKR) in
+    {41}if (binding_2 = H((candidate_2,n_2))) then
+    {42}let platformOK_2: bool = matchtcb(rpeTcb3(rho_2),status_2) in
+    {43}if (platformOK_2 = true) then
+    {44}event OwnerAttested(pk(skO3),candidate_2,rho_2,n_2);
+    {45}let authorization_2: bitstring = sign((candidate_2,H(policyBytes(rho_2))),skO3) in
+    {46}event OwnerSigned(pk(skO3),candidate_2,H(policyBytes(rho_2)));
+    {47}out(initTo3, (P3,candidate_2,rho_2,authorization_2,pk(skO3)));
+    {48}in(ready3, =P3);
+    {49}event ControlAllAuthorized;
+    {50}in(quoteFrom1, ownEvidence: bitstring);
+    {51}in(quoteFrom2, peerEvidence: bitstring);
+    {52}out(quoteInbox, peerEvidence)
+) | (
+    {53}let akR: skey = akRPE in
+    {54}let pkAKR_1: bitstring = pk(akRPE) in
+    {55}let pkAKE: bitstring = pk(akTEE) in
+    {56}new sk1: skey;
+    {57}let pk1: bitstring = pk(sk1) in
+    {58}out(initFrom1, (P1,pk1));
+    (
+        {59}!
+        {60}in(initTo1, (=P1,requested: bitstring));
+        {61}out(initFrom1, (P1,pk1,sign(rpeQuote(mRPE,Good,H((pk1,requested))),akR)))
+    ) | (
+        {62}in(initTo1, (=P1,=pk1,rho1: policy,authorization_3: bitstring,ownerKey: bitstring));
+        {63}event AuthorizationReceived(P1,pk1,rho1,ownerKey);
+        {64}let (signedKey: bitstring,signedHash: bitstring) = checksign(authorization_3,ownerKey) in
+        {65}if ((signedKey = pk1) && (signedHash = H(policyBytes(rho1)))) then
+        {66}event AuthorizationSignatureChecked(P1,pk1,rho1,ownerKey);
+        {67}if ((policySelf(rho1) = P1) && (policySelfTEE(rho1) = E1)) then
+        {68}event AuthorizationSelfChecked(P1,pk1,rho1,ownerKey);
+        {69}let Req(cm: ident,exact(selfSigner: bitstring),cp: ident,cv: svn,ct: tcbreq,ca: attreq) = starEntry1(constraints(rho1)) in
+        {70}if ((selfSigner = H(ownerKey)) && (ca = Assign(P1))) then
+        {71}event AuthorizationAccepted(P1,pk1,rho1,ownerKey,selfSigner);
+        {72}out(ready1, P1);
+        {73}event AuthorizedPolicyDeclared(P1,pk1,rho1);
+        {74}event PolicyDeclared(P1,rho1);
+        {75}let q1: bitstring = sign(rpeQuote(mRPE,Good,H((pk1,H(policyBytes(rho1))))),akR) in
+        {76}out(quoteFrom1, (P1,q1,pk1,H(policyBytes(rho1))));
+        {77}in(quoteInbox, (=P2,q2: bitstring,pk2: bitstring,hb2: bitstring));
+        {78}let rpeQuote(=mRPE,ts2: tcbstatus,d2: bitstring) = checksign(q2,pkAKR_1) in
+        {79}if (d2 = H((pk2,hb2))) then
+        {80}let tcbok2: bool = matchtcb(rpeTcb2(rho1),ts2) in
+        {81}if (tcbok2 = true) then
+        {82}if (pk2 ≠ pk1) then
+        {83}event EvidenceChecked(P1,P2,pk2,hb2);
+        {84}in(quoteInbox, (=P3,q3: bitstring,pk3: bitstring,hb3: bitstring));
+        {85}event ControlQuoteReceived(P1,P3);
+        {86}let rpeQuote(=mRPE,ts3: tcbstatus,d3: bitstring) = checksign(q3,pkAKR_1) in
+        {87}if (d3 = H((pk3,hb3))) then
+        {88}let tcbok3: bool = matchtcb(rpeTcb3(rho1),ts3) in
+        {89}if (tcbok3 = true) then
+        {90}if ((pk3 ≠ pk1) && (pk3 ≠ pk2)) then
+        {91}event EvidenceChecked(P1,P3,pk3,hb3);
+        {92}event QuotesComplete(P1)
+    )
+) | (
+    {93}in(initFrom1, (=P1,k: bitstring))
+) | (
+    {94}in(ceCert1, (a: bitstring,b: bitstring,c: bitstring,d: bitstring))
+) | (
+    {95}let akR_1: skey = akRPE in
+    {96}let pkAKR_2: bitstring = pk(akRPE) in
+    {97}let pkAKE_1: bitstring = pk(akTEE) in
+    {98}new sk2: skey;
+    {99}let pk2_1: bitstring = pk(sk2) in
+    {100}out(initFrom2, (P2,pk2_1));
+    (
+        {101}!
+        {102}in(initTo2, (=P2,requested_1: bitstring));
+        {103}out(initFrom2, (P2,pk2_1,sign(rpeQuote(mRPE,Good,H((pk2_1,requested_1))),akR_1)))
+    ) | (
+        {104}in(initTo2, (=P2,=pk2_1,rho2: policy,authorization_4: bitstring,ownerKey_1: bitstring));
+        {105}event AuthorizationReceived(P2,pk2_1,rho2,ownerKey_1);
+        {106}let (signedKey_1: bitstring,signedHash_1: bitstring) = checksign(authorization_4,ownerKey_1) in
+        {107}if ((signedKey_1 = pk2_1) && (signedHash_1 = H(policyBytes(rho2)))) then
+        {108}event AuthorizationSignatureChecked(P2,pk2_1,rho2,ownerKey_1);
+        {109}if ((policySelf(rho2) = P2) && (policySelfTEE(rho2) = E2)) then
+        {110}event AuthorizationSelfChecked(P2,pk2_1,rho2,ownerKey_1);
+        {111}let Req(cm_1: ident,exact(selfSigner_1: bitstring),cp_1: ident,cv_1: svn,ct_1: tcbreq,ca_1: attreq) = starEntry2(constraints(rho2)) in
+        {112}if ((selfSigner_1 = H(ownerKey_1)) && (ca_1 = Assign(P2))) then
+        {113}event AuthorizationAccepted(P2,pk2_1,rho2,ownerKey_1,selfSigner_1);
+        {114}out(ready2, P2);
+        {115}event AuthorizedPolicyDeclared(P2,pk2_1,rho2);
+        {116}event PolicyDeclared(P2,rho2);
+        {117}let q2_1: bitstring = sign(rpeQuote(mRPE,Good,H((pk2_1,H(policyBytes(rho2))))),akR_1) in
+        {118}out(quoteFrom2, (P2,q2_1,pk2_1,H(policyBytes(rho2))))
+    )
+) | (
+    {119}in(initFrom2, (=P2,k_1: bitstring))
+) | (
+    {120}in(ceCert2, (a_1: bitstring,b_1: bitstring,c_1: bitstring,d_1: bitstring))
+) | (
+    {121}let akR_2: skey = akRPE in
+    {122}let pkAKR_3: bitstring = pk(akRPE) in
+    {123}let pkAKE_2: bitstring = pk(akTEE) in
+    {124}new sk3: skey;
+    {125}let pk3_1: bitstring = pk(sk3) in
+    {126}out(initFrom3, (P3,pk3_1));
+    (
+        {127}!
+        {128}in(initTo3, (=P3,requested_2: bitstring));
+        {129}out(initFrom3, (P3,pk3_1,sign(rpeQuote(mRPE,Good,H((pk3_1,requested_2))),akR_2)))
+    ) | (
+        {130}in(initTo3, (=P3,=pk3_1,rho3: policy,authorization_5: bitstring,ownerKey_2: bitstring));
+        {131}event AuthorizationReceived(P3,pk3_1,rho3,ownerKey_2);
+        {132}let (signedKey_2: bitstring,signedHash_2: bitstring) = checksign(authorization_5,ownerKey_2) in
+        {133}if ((signedKey_2 = pk3_1) && (signedHash_2 = H(policyBytes(rho3)))) then
+        {134}event AuthorizationSignatureChecked(P3,pk3_1,rho3,ownerKey_2);
+        {135}if ((policySelf(rho3) = P3) && (policySelfTEE(rho3) = E3)) then
+        {136}event AuthorizationSelfChecked(P3,pk3_1,rho3,ownerKey_2);
+        {137}let Req(cm_2: ident,exact(selfSigner_2: bitstring),cp_2: ident,cv_2: svn,ct_2: tcbreq,ca_2: attreq) = starEntry3(constraints(rho3)) in
+        {138}if ((selfSigner_2 = H(ownerKey_2)) && (ca_2 = Assign(P3))) then
+        {139}event AuthorizationAccepted(P3,pk3_1,rho3,ownerKey_2,selfSigner_2);
+        {140}out(ready3, P3);
+        {141}event AuthorizedPolicyDeclared(P3,pk3_1,rho3);
+        {142}event PolicyDeclared(P3,rho3);
+        {143}let q3_1: bitstring = sign(rpeQuote(mRPE,Good,H((pk3_1,H(policyBytes(rho3))))),akR_2) in
+        0
+    )
+) | (
+    {144}in(initFrom3, (=P3,k_2: bitstring))
+) | (
+    {145}in(ceCert3, (a_2: bitstring,b_2: bitstring,c_2: bitstring,d_2: bitstring))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}new akRPE: skey;
+{2}new akTEE: skey;
+{3}new akADV: skey;
+{4}event HonestOwner(pk(skO1));
+{5}event HonestOwner(pk(skO2));
+(
+    {8}new n: bitstring;
+    {9}event OwnerChallenge(pk(skO1),n);
+    {10}out(initTo1, (P1,n));
+    {11}in(initFrom1, (=P1,candidate: bitstring,q: bitstring));
+    {6}let pkAKR: bitstring = pk(akRPE) in
+    {12}let rpeQuote(=mRPE,status: tcbstatus,binding: bitstring) = checksign(q,pkAKR) in
+    {13}if (binding = H((candidate,n))) then
+    {7}let rho: policy = pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {14}let platformOK: bool = matchtcb(rpeTcb1(rho),status) in
+    {15}if (platformOK = true) then
+    {16}event OwnerAttested(pk(skO1),candidate,rho,n);
+    {18}event OwnerSigned(pk(skO1),candidate,H(policyBytes(rho)));
+    {17}let authorization: bitstring = sign((candidate,H(policyBytes(rho))),skO1) in
+    {19}out(initTo1, (P1,candidate,rho,authorization,pk(skO1)));
+    {20}in(ready1, =P1);
+    {22}new n_1: bitstring;
+    {23}event OwnerChallenge(pk(skO2),n_1);
+    {24}out(initTo2, (P2,n_1));
+    {25}in(initFrom2, (=P2,candidate_1: bitstring,q_1: bitstring));
+    {26}let rpeQuote(=mRPE,status_1: tcbstatus,binding_1: bitstring) = checksign(q_1,pkAKR) in
+    {27}if (binding_1 = H((candidate_1,n_1))) then
+    {21}let rho_1: policy = pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {28}let platformOK_1: bool = matchtcb(rpeTcb2(rho_1),status_1) in
+    {29}if (platformOK_1 = true) then
+    {30}event OwnerAttested(pk(skO2),candidate_1,rho_1,n_1);
+    {32}event OwnerSigned(pk(skO2),candidate_1,H(policyBytes(rho_1)));
+    {31}let authorization_1: bitstring = sign((candidate_1,H(policyBytes(rho_1))),skO2) in
+    {33}out(initTo2, (P2,candidate_1,rho_1,authorization_1,pk(skO2)));
+    {34}in(ready2, =P2);
+    {36}new n_2: bitstring;
+    {37}event OwnerChallenge(pk(skO3),n_2);
+    {38}out(initTo3, (P3,n_2));
+    {39}in(initFrom3, (=P3,candidate_2: bitstring,q_2: bitstring));
+    {40}let rpeQuote(=mRPE,status_2: tcbstatus,binding_2: bitstring) = checksign(q_2,pkAKR) in
+    {41}if (binding_2 = H((candidate_2,n_2))) then
+    {35}let rho_2: policy = pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))) in
+    {42}let platformOK_2: bool = matchtcb(rpeTcb3(rho_2),status_2) in
+    {43}if (platformOK_2 = true) then
+    {44}event OwnerAttested(pk(skO3),candidate_2,rho_2,n_2);
+    {46}event OwnerSigned(pk(skO3),candidate_2,H(policyBytes(rho_2)));
+    {45}let authorization_2: bitstring = sign((candidate_2,H(policyBytes(rho_2))),skO3) in
+    {47}out(initTo3, (P3,candidate_2,rho_2,authorization_2,pk(skO3)));
+    {48}in(ready3, =P3);
+    {49}event ControlAllAuthorized;
+    {50}in(quoteFrom1, ownEvidence: bitstring);
+    {51}in(quoteFrom2, peerEvidence: bitstring);
+    {52}out(quoteInbox, peerEvidence)
+) | (
+    {56}new sk1: skey;
+    {57}let pk1: bitstring = pk(sk1) in
+    {58}out(initFrom1, (P1,pk1));
+    {53}let akR: skey = akRPE in
+    (
+        {59}!
+        {60}in(initTo1, (=P1,requested: bitstring));
+        {61}out(initFrom1, (P1,pk1,sign(rpeQuote(mRPE,Good,H((pk1,requested))),akR)))
+    ) | (
+        {62}in(initTo1, (=P1,=pk1,rho1: policy,authorization_3: bitstring,ownerKey: bitstring));
+        {63}event AuthorizationReceived(P1,pk1,rho1,ownerKey);
+        {64}let (signedKey: bitstring,signedHash: bitstring) = checksign(authorization_3,ownerKey) in
+        {65}if ((signedKey = pk1) && (signedHash = H(policyBytes(rho1)))) then
+        {66}event AuthorizationSignatureChecked(P1,pk1,rho1,ownerKey);
+        {67}if ((policySelf(rho1) = P1) && (policySelfTEE(rho1) = E1)) then
+        {68}event AuthorizationSelfChecked(P1,pk1,rho1,ownerKey);
+        {69}let Req(cm: ident,exact(selfSigner: bitstring),cp: ident,cv: svn,ct: tcbreq,ca: attreq) = starEntry1(constraints(rho1)) in
+        {70}if ((selfSigner = H(ownerKey)) && (ca = Assign(P1))) then
+        {71}event AuthorizationAccepted(P1,pk1,rho1,ownerKey,selfSigner);
+        {72}out(ready1, P1);
+        {73}event AuthorizedPolicyDeclared(P1,pk1,rho1);
+        {74}event PolicyDeclared(P1,rho1);
+        {75}let q1: bitstring = sign(rpeQuote(mRPE,Good,H((pk1,H(policyBytes(rho1))))),akR) in
+        {76}out(quoteFrom1, (P1,q1,pk1,H(policyBytes(rho1))));
+        {77}in(quoteInbox, (=P2,q2: bitstring,pk2: bitstring,hb2: bitstring));
+        {54}let pkAKR_1: bitstring = pk(akRPE) in
+        {78}let rpeQuote(=mRPE,ts2: tcbstatus,d2: bitstring) = checksign(q2,pkAKR_1) in
+        {79}if (d2 = H((pk2,hb2))) then
+        {80}let tcbok2: bool = matchtcb(rpeTcb2(rho1),ts2) in
+        {81}if (tcbok2 = true) then
+        {82}if (pk2 ≠ pk1) then
+        {83}event EvidenceChecked(P1,P2,pk2,hb2);
+        {84}in(quoteInbox, (=P3,q3: bitstring,pk3: bitstring,hb3: bitstring));
+        {85}event ControlQuoteReceived(P1,P3);
+        {86}let rpeQuote(=mRPE,ts3: tcbstatus,d3: bitstring) = checksign(q3,pkAKR_1) in
+        {87}if (d3 = H((pk3,hb3))) then
+        {88}let tcbok3: bool = matchtcb(rpeTcb3(rho1),ts3) in
+        {89}if (tcbok3 = true) then
+        {90}if ((pk3 ≠ pk1) && (pk3 ≠ pk2)) then
+        {91}event EvidenceChecked(P1,P3,pk3,hb3);
+        {92}event QuotesComplete(P1)
+    )
+) | (
+    {93}in(initFrom1, (=P1,k: bitstring))
+) | (
+    {94}in(ceCert1, (a: bitstring,b: bitstring,c: bitstring,d: bitstring))
+) | (
+    {98}new sk2: skey;
+    {99}let pk2_1: bitstring = pk(sk2) in
+    {100}out(initFrom2, (P2,pk2_1));
+    {95}let akR_1: skey = akRPE in
+    (
+        {101}!
+        {102}in(initTo2, (=P2,requested_1: bitstring));
+        {103}out(initFrom2, (P2,pk2_1,sign(rpeQuote(mRPE,Good,H((pk2_1,requested_1))),akR_1)))
+    ) | (
+        {104}in(initTo2, (=P2,=pk2_1,rho2: policy,authorization_4: bitstring,ownerKey_1: bitstring));
+        {105}event AuthorizationReceived(P2,pk2_1,rho2,ownerKey_1);
+        {106}let (signedKey_1: bitstring,signedHash_1: bitstring) = checksign(authorization_4,ownerKey_1) in
+        {107}if ((signedKey_1 = pk2_1) && (signedHash_1 = H(policyBytes(rho2)))) then
+        {108}event AuthorizationSignatureChecked(P2,pk2_1,rho2,ownerKey_1);
+        {109}if ((policySelf(rho2) = P2) && (policySelfTEE(rho2) = E2)) then
+        {110}event AuthorizationSelfChecked(P2,pk2_1,rho2,ownerKey_1);
+        {111}let Req(cm_1: ident,exact(selfSigner_1: bitstring),cp_1: ident,cv_1: svn,ct_1: tcbreq,ca_1: attreq) = starEntry2(constraints(rho2)) in
+        {112}if ((selfSigner_1 = H(ownerKey_1)) && (ca_1 = Assign(P2))) then
+        {113}event AuthorizationAccepted(P2,pk2_1,rho2,ownerKey_1,selfSigner_1);
+        {114}out(ready2, P2);
+        {115}event AuthorizedPolicyDeclared(P2,pk2_1,rho2);
+        {116}event PolicyDeclared(P2,rho2);
+        {117}let q2_1: bitstring = sign(rpeQuote(mRPE,Good,H((pk2_1,H(policyBytes(rho2))))),akR_1) in
+        {118}out(quoteFrom2, (P2,q2_1,pk2_1,H(policyBytes(rho2))))
+    )
+) | (
+    {119}in(initFrom2, (=P2,k_1: bitstring))
+) | (
+    {120}in(ceCert2, (a_1: bitstring,b_1: bitstring,c_1: bitstring,d_1: bitstring))
+) | (
+    {124}new sk3: skey;
+    {125}let pk3_1: bitstring = pk(sk3) in
+    {126}out(initFrom3, (P3,pk3_1));
+    (
+        {127}!
+        {128}in(initTo3, (=P3,requested_2: bitstring));
+        {121}let akR_2: skey = akRPE in
+        {129}out(initFrom3, (P3,pk3_1,sign(rpeQuote(mRPE,Good,H((pk3_1,requested_2))),akR_2)))
+    ) | (
+        {130}in(initTo3, (=P3,=pk3_1,rho3: policy,authorization_5: bitstring,ownerKey_2: bitstring));
+        {131}event AuthorizationReceived(P3,pk3_1,rho3,ownerKey_2);
+        {132}let (signedKey_2: bitstring,signedHash_2: bitstring) = checksign(authorization_5,ownerKey_2) in
+        {133}if ((signedKey_2 = pk3_1) && (signedHash_2 = H(policyBytes(rho3)))) then
+        {134}event AuthorizationSignatureChecked(P3,pk3_1,rho3,ownerKey_2);
+        {135}if ((policySelf(rho3) = P3) && (policySelfTEE(rho3) = E3)) then
+        {136}event AuthorizationSelfChecked(P3,pk3_1,rho3,ownerKey_2);
+        {137}let Req(cm_2: ident,exact(selfSigner_2: bitstring),cp_2: ident,cv_2: svn,ct_2: tcbreq,ca_2: attreq) = starEntry3(constraints(rho3)) in
+        {138}if ((selfSigner_2 = H(ownerKey_2)) && (ca_2 = Assign(P3))) then
+        {139}event AuthorizationAccepted(P3,pk3_1,rho3,ownerKey_2,selfSigner_2);
+        {140}out(ready3, P3);
+        {141}event AuthorizedPolicyDeclared(P3,pk3_1,rho3);
+        {142}event PolicyDeclared(P3,rho3)
+    )
+) | (
+    {144}in(initFrom3, (=P3,k_2: bitstring))
+) | (
+    {145}in(ceCert3, (a_2: bitstring,b_2: bitstring,c_2: bitstring,d_2: bitstring))
+)
+
+-- Query not event(EvidenceChecked(P1,P2,k_3,h)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 200 rules (87 with conclusion selected). Queue: 38 rules.
+400 rules inserted. Base: 342 rules (101 with conclusion selected). Queue: 1 rules.
+Starting query not event(EvidenceChecked(P1,P2,k_3,h))
+goal reachable: b-event(@p_act(@occ130[],(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO3),pk(skO3)))) && b-event(@p_act(@occ104[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)))) && b-event(@p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)))) -> event(EvidenceChecked(P1,P2,pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))
+
+Derivation:
+Abbreviations:
+n_3 = n_1[q = sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]),candidate = pk(sk1[])]
+n_4 = n_2[q_1 = sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[]),candidate_1 = pk(sk2[]),q = sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]),candidate = pk(sk1[])]
+
+1. The message (P1,n[]) may be sent on channel initTo1[] at output {10}.
+mess(initTo1[],(P1,n[])).
+
+2. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+3. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 2 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+4. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+5. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+6. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 5 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+7. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 6 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+8. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+9. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+10. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 9 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+11. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 10 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+12. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 8 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 11 may be received at input {20}.
+So the message (P2,n_3) may be sent on channel initTo2[] at output {24}.
+mess(initTo2[],(P2,n_3)).
+
+13. The message (P2,n_3) that may be sent on channel initTo2[] by 12 may be received at input {102}.
+So the message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) may be sent on channel initFrom2[] at output {103}.
+mess(initFrom2[],(P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[]))).
+
+14. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+15. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+16. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 15 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+17. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 16 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+18. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+19. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+20. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 19 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+21. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 20 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+22. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 18 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 21 may be received at input {20}.
+So the message (P2,n_3) may be sent on channel initTo2[] at output {24}.
+mess(initTo2[],(P2,n_3)).
+
+23. The message (P2,n_3) that may be sent on channel initTo2[] by 22 may be received at input {102}.
+So the message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) may be sent on channel initFrom2[] at output {103}.
+mess(initFrom2[],(P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[]))).
+
+24. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 14 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 17 may be received at input {20}.
+The message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) that may be sent on channel initFrom2[] by 23 may be received at input {25}.
+So the message (P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)) may be sent on channel initTo2[] at output {33}.
+mess(initTo2[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2))).
+
+25. The event @p_act(@occ104[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2))) records how variables are instantiated at {104}.
+The message (P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)) that may be sent on channel initTo2[] by 24 may be received at input {104}.
+So the message P2 may be sent on channel ready2[] at output {114}.
+mess(ready2[],P2).
+
+26. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+27. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+28. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 27 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+29. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 28 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+30. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+31. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+32. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 31 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+33. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 32 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+34. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 30 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 33 may be received at input {20}.
+So the message (P2,n_3) may be sent on channel initTo2[] at output {24}.
+mess(initTo2[],(P2,n_3)).
+
+35. The message (P2,n_3) that may be sent on channel initTo2[] by 34 may be received at input {102}.
+So the message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) may be sent on channel initFrom2[] at output {103}.
+mess(initFrom2[],(P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[]))).
+
+36. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+37. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+38. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 37 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+39. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 38 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+40. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+41. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+42. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 41 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+43. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 42 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+44. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 40 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 43 may be received at input {20}.
+So the message (P2,n_3) may be sent on channel initTo2[] at output {24}.
+mess(initTo2[],(P2,n_3)).
+
+45. The message (P2,n_3) that may be sent on channel initTo2[] by 44 may be received at input {102}.
+So the message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) may be sent on channel initFrom2[] at output {103}.
+mess(initFrom2[],(P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[]))).
+
+46. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 36 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 39 may be received at input {20}.
+The message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) that may be sent on channel initFrom2[] by 45 may be received at input {25}.
+So the message (P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)) may be sent on channel initTo2[] at output {33}.
+mess(initTo2[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2))).
+
+47. The event @p_act(@occ104[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2))) records how variables are instantiated at {104}.
+The message (P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)) that may be sent on channel initTo2[] by 46 may be received at input {104}.
+So the message P2 may be sent on channel ready2[] at output {114}.
+mess(ready2[],P2).
+
+48. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 26 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 29 may be received at input {20}.
+The message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) that may be sent on channel initFrom2[] by 35 may be received at input {25}.
+The message P2 that may be sent on channel ready2[] by 47 may be received at input {34}.
+So the message (P3,n_4) may be sent on channel initTo3[] at output {38}.
+mess(initTo3[],(P3,n_4)).
+
+49. The message (P3,n_4) that may be sent on channel initTo3[] by 48 may be received at input {128}.
+So the message (P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n_4))),akRPE[])) may be sent on channel initFrom3[] at output {129}.
+mess(initFrom3[],(P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n_4))),akRPE[]))).
+
+50. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+51. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+52. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 51 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+53. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 52 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+54. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+55. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+56. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 55 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+57. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 56 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+58. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 54 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 57 may be received at input {20}.
+So the message (P2,n_3) may be sent on channel initTo2[] at output {24}.
+mess(initTo2[],(P2,n_3)).
+
+59. The message (P2,n_3) that may be sent on channel initTo2[] by 58 may be received at input {102}.
+So the message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) may be sent on channel initFrom2[] at output {103}.
+mess(initFrom2[],(P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[]))).
+
+60. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+61. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+62. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 61 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+63. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 62 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+64. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+65. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+66. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 65 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+67. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 66 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+68. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 64 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 67 may be received at input {20}.
+So the message (P2,n_3) may be sent on channel initTo2[] at output {24}.
+mess(initTo2[],(P2,n_3)).
+
+69. The message (P2,n_3) that may be sent on channel initTo2[] by 68 may be received at input {102}.
+So the message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) may be sent on channel initFrom2[] at output {103}.
+mess(initFrom2[],(P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[]))).
+
+70. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 60 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 63 may be received at input {20}.
+The message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) that may be sent on channel initFrom2[] by 69 may be received at input {25}.
+So the message (P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)) may be sent on channel initTo2[] at output {33}.
+mess(initTo2[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2))).
+
+71. The event @p_act(@occ104[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2))) records how variables are instantiated at {104}.
+The message (P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)) that may be sent on channel initTo2[] by 70 may be received at input {104}.
+So the message P2 may be sent on channel ready2[] at output {114}.
+mess(ready2[],P2).
+
+72. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+73. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+74. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 73 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+75. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 74 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+76. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+77. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+78. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 77 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+79. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 78 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+80. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 76 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 79 may be received at input {20}.
+So the message (P2,n_3) may be sent on channel initTo2[] at output {24}.
+mess(initTo2[],(P2,n_3)).
+
+81. The message (P2,n_3) that may be sent on channel initTo2[] by 80 may be received at input {102}.
+So the message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) may be sent on channel initFrom2[] at output {103}.
+mess(initFrom2[],(P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[]))).
+
+82. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+83. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+84. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 83 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+85. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 84 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+86. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+87. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+88. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 87 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+89. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 88 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+90. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 86 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 89 may be received at input {20}.
+So the message (P2,n_3) may be sent on channel initTo2[] at output {24}.
+mess(initTo2[],(P2,n_3)).
+
+91. The message (P2,n_3) that may be sent on channel initTo2[] by 90 may be received at input {102}.
+So the message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) may be sent on channel initFrom2[] at output {103}.
+mess(initFrom2[],(P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[]))).
+
+92. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 82 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 85 may be received at input {20}.
+The message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) that may be sent on channel initFrom2[] by 91 may be received at input {25}.
+So the message (P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)) may be sent on channel initTo2[] at output {33}.
+mess(initTo2[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2))).
+
+93. The event @p_act(@occ104[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2))) records how variables are instantiated at {104}.
+The message (P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)) that may be sent on channel initTo2[] by 92 may be received at input {104}.
+So the message P2 may be sent on channel ready2[] at output {114}.
+mess(ready2[],P2).
+
+94. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 72 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 75 may be received at input {20}.
+The message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) that may be sent on channel initFrom2[] by 81 may be received at input {25}.
+The message P2 that may be sent on channel ready2[] by 93 may be received at input {34}.
+So the message (P3,n_4) may be sent on channel initTo3[] at output {38}.
+mess(initTo3[],(P3,n_4)).
+
+95. The message (P3,n_4) that may be sent on channel initTo3[] by 94 may be received at input {128}.
+So the message (P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n_4))),akRPE[])) may be sent on channel initFrom3[] at output {129}.
+mess(initFrom3[],(P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n_4))),akRPE[]))).
+
+96. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 50 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 53 may be received at input {20}.
+The message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) that may be sent on channel initFrom2[] by 59 may be received at input {25}.
+The message P2 that may be sent on channel ready2[] by 71 may be received at input {34}.
+The message (P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n_4))),akRPE[])) that may be sent on channel initFrom3[] by 95 may be received at input {39}.
+So the message (P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO3),pk(skO3)) may be sent on channel initTo3[] at output {47}.
+mess(initTo3[],(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO3),pk(skO3))).
+
+97. The event @p_act(@occ130[],(P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO3),pk(skO3))) records how variables are instantiated at {130}.
+The message (P3,pk(sk3[]),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3[]),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO3),pk(skO3)) that may be sent on channel initTo3[] by 96 may be received at input {130}.
+So the message P3 may be sent on channel ready3[] at output {140}.
+mess(ready3[],P3).
+
+98. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+99. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 98 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+100. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 99 may be received at input {62}.
+So the message (P1,sign(rpeQuote(mRPE,Good,H((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE[]),pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) may be sent on channel quoteFrom1[] at output {76}.
+mess(quoteFrom1[],(P1,sign(rpeQuote(mRPE,Good,H((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE[]),pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))).
+
+101. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+102. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+103. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 102 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+104. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 103 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+105. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+106. The message (P1,n[]) that may be sent on channel initTo1[] by 1 may be received at input {60}.
+So the message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) may be sent on channel initFrom1[] at output {61}.
+mess(initFrom1[],(P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[]))).
+
+107. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 106 may be received at input {11}.
+So the message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) may be sent on channel initTo1[] at output {19}.
+mess(initTo1[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))).
+
+108. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 107 may be received at input {62}.
+So the message P1 may be sent on channel ready1[] at output {72}.
+mess(ready1[],P1).
+
+109. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 105 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 108 may be received at input {20}.
+So the message (P2,n_3) may be sent on channel initTo2[] at output {24}.
+mess(initTo2[],(P2,n_3)).
+
+110. The message (P2,n_3) that may be sent on channel initTo2[] by 109 may be received at input {102}.
+So the message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) may be sent on channel initFrom2[] at output {103}.
+mess(initFrom2[],(P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[]))).
+
+111. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 101 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 104 may be received at input {20}.
+The message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) that may be sent on channel initFrom2[] by 110 may be received at input {25}.
+So the message (P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)) may be sent on channel initTo2[] at output {33}.
+mess(initTo2[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2))).
+
+112. The event @p_act(@occ104[],(P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2))) records how variables are instantiated at {104}.
+The message (P2,pk(sk2[]),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2)) that may be sent on channel initTo2[] by 111 may be received at input {104}.
+So the message (P2,sign(rpeQuote(mRPE,Good,H((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE[]),pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) may be sent on channel quoteFrom2[] at output {118}.
+mess(quoteFrom2[],(P2,sign(rpeQuote(mRPE,Good,H((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE[]),pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))).
+
+113. The message (P1,pk(sk1[]),sign(rpeQuote(mRPE,Good,H((pk(sk1[]),n[]))),akRPE[])) that may be sent on channel initFrom1[] by 4 may be received at input {11}.
+The message P1 that may be sent on channel ready1[] by 7 may be received at input {20}.
+The message (P2,pk(sk2[]),sign(rpeQuote(mRPE,Good,H((pk(sk2[]),n_3))),akRPE[])) that may be sent on channel initFrom2[] by 13 may be received at input {25}.
+The message P2 that may be sent on channel ready2[] by 25 may be received at input {34}.
+The message (P3,pk(sk3[]),sign(rpeQuote(mRPE,Good,H((pk(sk3[]),n_4))),akRPE[])) that may be sent on channel initFrom3[] by 49 may be received at input {39}.
+The message P3 that may be sent on channel ready3[] by 97 may be received at input {48}.
+The message (P1,sign(rpeQuote(mRPE,Good,H((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE[]),pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) that may be sent on channel quoteFrom1[] by 100 may be received at input {50}.
+The message (P2,sign(rpeQuote(mRPE,Good,H((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE[]),pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) that may be sent on channel quoteFrom2[] by 112 may be received at input {51}.
+So the message (P2,sign(rpeQuote(mRPE,Good,H((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE[]),pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) may be sent on channel quoteInbox[] at output {52}.
+mess(quoteInbox[],(P2,sign(rpeQuote(mRPE,Good,H((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE[]),pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))).
+
+114. The event @p_act(@occ62[],(P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) records how variables are instantiated at {62}.
+The message (P1,pk(sk1[]),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1[]),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1)) that may be sent on channel initTo1[] by 3 may be received at input {62}.
+The message (P2,sign(rpeQuote(mRPE,Good,H((pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE[]),pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) that may be sent on channel quoteInbox[] by 113 may be received at input {77}.
+We have pk(sk2[]) ≠ pk(sk1[]).
+So event EvidenceChecked(P1,P2,pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) may be executed at {83}.
+event(EvidenceChecked(P1,P2,pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))).
+
+115. By 114, event(EvidenceChecked(P1,P2,pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))).
+The goal is reached, represented in the following fact:
+event(EvidenceChecked(P1,P2,pk(sk2[]),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))).
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new akRPE: skey creating akRPE_1 at {1}
+
+new akTEE: skey creating akTEE_1 at {2}
+
+new akADV: skey creating akADV_1 at {3}
+
+event HonestOwner(pk(skO1)) at {4}
+
+event HonestOwner(pk(skO2)) at {5}
+
+new sk3: skey creating sk3_1 at {124}
+
+new sk2: skey creating sk2_1 at {98}
+
+new sk1: skey creating sk1_1 at {56}
+
+new n: bitstring creating n_5 at {8}
+
+event OwnerChallenge(pk(skO1),n_5) at {9}
+
+out(initFrom1, (P1,pk(sk1_1))) at {58} received at {93}
+
+out(initTo1, (P1,n_5)) at {10} received at {60} in copy a_3
+
+out(initFrom1, (P1,pk(sk1_1),sign(rpeQuote(mRPE,Good,H((pk(sk1_1),n_5))),akRPE_1))) at {61} in copy a_3 received at {11}
+
+event OwnerAttested(pk(skO1),pk(sk1_1),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),n_5) at {16}
+
+event OwnerSigned(pk(skO1),pk(sk1_1),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) at {18}
+
+out(initTo1, (P1,pk(sk1_1),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk1_1),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO1),pk(skO1))) at {19} received at {62}
+
+event AuthorizationReceived(P1,pk(sk1_1),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO1)) at {63}
+
+event AuthorizationSignatureChecked(P1,pk(sk1_1),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO1)) at {66}
+
+event AuthorizationSelfChecked(P1,pk(sk1_1),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO1)) at {68}
+
+event AuthorizationAccepted(P1,pk(sk1_1),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO1),H(pk(skO1))) at {71}
+
+out(ready1, P1) at {72} received at {20}
+
+event AuthorizedPolicyDeclared(P1,pk(sk1_1),pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))) at {73}
+
+event PolicyDeclared(P1,pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))) at {74}
+
+new n_1: bitstring creating n_6 at {22}
+
+event OwnerChallenge(pk(skO2),n_6) at {23}
+
+out(initFrom2, (P2,pk(sk2_1))) at {100} received at {119}
+
+out(initTo2, (P2,n_6)) at {24} received at {102} in copy a_4
+
+out(initFrom2, (P2,pk(sk2_1),sign(rpeQuote(mRPE,Good,H((pk(sk2_1),n_6))),akRPE_1))) at {103} in copy a_4 received at {25}
+
+event OwnerAttested(pk(skO2),pk(sk2_1),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),n_6) at {30}
+
+event OwnerSigned(pk(skO2),pk(sk2_1),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) at {32}
+
+out(initTo2, (P2,pk(sk2_1),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk2_1),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO2),pk(skO2))) at {33} received at {104}
+
+event AuthorizationReceived(P2,pk(sk2_1),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO2)) at {105}
+
+event AuthorizationSignatureChecked(P2,pk(sk2_1),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO2)) at {108}
+
+event AuthorizationSelfChecked(P2,pk(sk2_1),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO2)) at {110}
+
+event AuthorizationAccepted(P2,pk(sk2_1),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO2),H(pk(skO2))) at {113}
+
+out(ready2, P2) at {114} received at {34}
+
+event AuthorizedPolicyDeclared(P2,pk(sk2_1),pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))) at {115}
+
+event PolicyDeclared(P2,pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))) at {116}
+
+new n_2: bitstring creating n_7 at {36}
+
+event OwnerChallenge(pk(skO3),n_7) at {37}
+
+out(initFrom3, (P3,pk(sk3_1))) at {126} received at {144}
+
+out(initTo3, (P3,n_7)) at {38} received at {128} in copy a_5
+
+out(initFrom3, (P3,pk(sk3_1),sign(rpeQuote(mRPE,Good,H((pk(sk3_1),n_7))),akRPE_1))) at {129} in copy a_5 received at {39}
+
+event OwnerAttested(pk(skO3),pk(sk3_1),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),n_7) at {44}
+
+event OwnerSigned(pk(skO3),pk(sk3_1),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) at {46}
+
+out(initTo3, (P3,pk(sk3_1),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),sign((pk(sk3_1),H(policyBytes(pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))),skO3),pk(skO3))) at {47} received at {130}
+
+event AuthorizationReceived(P3,pk(sk3_1),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO3)) at {131}
+
+event AuthorizationSignatureChecked(P3,pk(sk3_1),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO3)) at {134}
+
+event AuthorizationSelfChecked(P3,pk(sk3_1),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO3)) at {136}
+
+event AuthorizationAccepted(P3,pk(sk3_1),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),pk(skO3),H(pk(skO3))) at {139}
+
+out(ready3, P3) at {140} received at {48}
+
+event AuthorizedPolicyDeclared(P3,pk(sk3_1),pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))) at {141}
+
+event PolicyDeclared(P3,pol(P3,E3,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))) at {142}
+
+event ControlAllAuthorized at {49}
+
+out(quoteFrom1, (P1,sign(rpeQuote(mRPE,Good,H((pk(sk1_1),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE_1),pk(sk1_1),H(policyBytes(pol(P1,E1,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))) at {76} received at {50}
+
+out(quoteFrom2, (P2,sign(rpeQuote(mRPE,Good,H((pk(sk2_1),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE_1),pk(sk2_1),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))) at {118} received at {51}
+
+out(quoteInbox, (P2,sign(rpeQuote(mRPE,Good,H((pk(sk2_1),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))))),akRPE_1),pk(sk2_1),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))))) at {52} received at {77}
+
+event EvidenceChecked(P1,P2,pk(sk2_1),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) at {83} (goal)
+
+The event EvidenceChecked(P1,P2,pk(sk2_1),H(policyBytes(pol(P2,E2,Members3,OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3)))))) is executed at {83}.
+A trace has been found.
+RESULT not event(EvidenceChecked(P1,P2,k_3,h)) is false.
+-- Query not event(QuotesComplete(P1)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 200 rules (87 with conclusion selected). Queue: 34 rules.
+Starting query not event(QuotesComplete(P1))
+RESULT not event(QuotesComplete(P1)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not event(EvidenceChecked(P1,P2,k_3,h)) is false.
+
+Query not event(QuotesComplete(P1)) is true.
+
+--------------------------------------------------------------
+

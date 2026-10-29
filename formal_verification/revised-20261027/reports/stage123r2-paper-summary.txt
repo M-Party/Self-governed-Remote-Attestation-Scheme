@@ -1,0 +1,45 @@
+SRAS 三方形式化验证：面向论文的一页摘要（r2／有限策略域）
+
+本轮以3766338d530为基线，验证单次初始化的三方Stage1–3联合过程。
+共同静态成员配置下，三个RPE受保护，O1/O2诚实，攻击者掌握O3签名密钥。
+按后续指令，P3策略限定为12个完整profile，含仅提高E2最低SVN的新增项；
+两份诚实策略采用具体配置，Self元数据不同，规范约束相同。
+
+Stage1实际执行Owner挑战、RPE初始Quote验证及Owner对RPE key/policy hash
+签名，RPE检查签名、公钥/hash、独立的Self RPE/TEE、signer指纹和本方
+attester。接受后，同一key–policy状态进入Stage2全员Quote/policy收集、
+规范化join及全部必需确认，再用于Stage3真实实例Quote检查与证书签发。
+Stage1/2共用Quote结构、硬件key和hash载荷，没有引入阶段隔离机制。
+
+ProVerif 2.05逐项证明：Authorization 36.13 s、Agreement 57.89 s、
+Authenticity 48.31 s、Completeness 47.68 s、Issuance 35.81 s，均true。
+Authorization对应诚实Owner对同一RPE key及policy hash的真实签署。
+14条辅助关联支撑本地/peer授权、完整收集、认证确认、实际实例Quote
+及证书绑定。22个公开主/辅助/联合查询模型的非查询过程相同。
+耗时为每条主查询的一次独立运行观察，含内部解析、转换、求解和请求的
+绘图，不含另行parse-only及Docker启动，不代表SRAS协议延迟。
+
+三条实际重建的联合轨迹均在同次执行完成三方授权、共识和合规签发；
+P3实际策略分别为PermissiveRpeTCB、StrongerSVNE2及Weak。Weak轨迹明确
+展示具体self-signer与peer通配符兼容。另29个三方控制场景补齐signer预期
+冲突、消息缺失/重复、真实Quote承诺不符、策略冲突及坏实例拒绝前序。
+其中25个保留完整Stage2–3体，4个为真实三方授权后的精确Evidence检查
+前缀；这些私有控制实验与公开网络证明分开报告。16个局部Stage1模型
+另查守卫，2个代数模型核验目录及8种控制配置的join专门化。
+当前69作业189条结果均确定；开发超时/无法证明和旧源尝试单独保留。
+
+12项覆盖measurement、signer、product、最低SVN、TCB集合及attester等
+主要字段类型和典型相容、通配符、强化、冲突、冗余情形。它们不构成
+一般字段组合的完备分类，也没有依据写“基本覆盖自由组合”。仅三个
+最低SVN自由取值的一个合法切片，已产生8种成功归一结果，而目录覆盖3种。
+因此正文应把五性质结论明确限定于列出的12-profile域和诚实配置；
+附录列精确查询、目录、逐字段抽象、join专门化依据及原始证据。
+
+第二份说明此前列出的专项缺口现有当前证据；原文的一般策略域按后续
+指令收窄，未恢复。任意N/腐化集合/诚实配置、重复初始化、TLS与真实
+collateral实现未证明；Stage3保留基线独立TEE硬件Quote抽象。联合可达
+不等于对恶意网络的活性保证。错误确认hash及坏RPE平台等故障注入明确
+标记，不当作网络攻击者可伪造受保护签名的反例。可选消融未重跑。
+
+本摘要供后续论文修改使用；当前未改写论文。逐项覆盖对照与精确证据见
+stage123r2-second-instructions-coverage.txt和stage123r2-results-table.csv。

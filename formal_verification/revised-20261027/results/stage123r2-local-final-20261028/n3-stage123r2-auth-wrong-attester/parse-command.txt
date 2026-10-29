@@ -1,0 +1,1 @@
+timeout 45 proverif -parse-only /out/n3-stage123r2-auth-wrong-attester/model.pv

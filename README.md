@@ -109,12 +109,18 @@ Symbolic models of SRAS mutual attestation and consensus-policy negotiation
 live under `formal_verification/`:
 
 - `sras-n2.pv` — N=2 Stage 2 and Stage 3 quote checks and certificate issuance
-- `sras-n3.pv` — N=3 full-input policy join with H(π*) confirmation
-- `sras-n3-ablation.pv` — the same N=3 model with only confirmation removed
+- `sras-n3.pv` — N=3 Stage 1–3, twelve policy profiles, five properties including Authorization
+- `sras-n3-ablation.pv` — historical N=3 Stage 2 model with only confirmation removed
 
-The revised models retain the original four property families in a bounded
-policy domain. Agreement remains true in the confirmation-only ablation;
-separate diagnostics expose a loss of coordination. The models, scope audit,
+The N=3 model extends the original four property families with Authorization
+in a twelve-profile policy domain. The current revision checks independent
+Self RPE/TEE fields and includes three joint execution witnesses and targeted
+rejection controls. The profiles cover principal field types and representative
+cases; they do not establish coverage of arbitrary field combinations. See the
+[current results](formal_verification/revised-20261027/reports/stage123r2-SUMMARY.txt).
+The historical confirmation-only ablation
+preserved Agreement, while separate diagnostics exposed a loss of coordination.
+The models, scope audit,
 reproduction scripts, and complete final logs are in
 [`formal_verification/revised-20261027/`](formal_verification/revised-20261027/).
 

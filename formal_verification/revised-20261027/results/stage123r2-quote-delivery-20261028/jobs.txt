@@ -1,0 +1,4 @@
+n3-stage123r2-control-missing-quote|scenarios/n3-stage123r2-control-missing-quote.pv|controlled-full-Stage123|3
+n3-stage123r2-control-duplicate-quote|scenarios/n3-stage123r2-control-duplicate-quote.pv|controlled-full-Stage123|3
+n3-stage123r2-control-bad-rpe-code|scenarios/n3-stage123r2-control-bad-rpe-code.pv|controlled-full-Stage123|3
+n3-stage123r2-control-bad-rpe-tcb|scenarios/n3-stage123r2-control-bad-rpe-tcb.pv|controlled-full-Stage123|3

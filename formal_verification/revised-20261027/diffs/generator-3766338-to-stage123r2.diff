@@ -1,0 +1,2670 @@
+--- a/formal_verification/revised-20261027/generate_models.py
++++ b/formal_verification/revised-20261027/generate_models.py
+@@ -7,6 +7,7 @@
+ from pathlib import Path
+ import json
+ import re
++import argparse
+ 
+ ROOT = Path(__file__).resolve().parent
+ MODELS = ROOT / 'models'
+@@ -17,6 +18,7 @@
+ PROFILES = ['Compatible', 'Weak', 'StrongerSVN', 'ConflictMeasurement',
+             'ConflictSigner', 'ConflictProduct', 'ConflictTCB', 'ConflictAttester',
+             'RejectPeerTCB', 'NoAssignments', 'PermissiveRpeTCB']
++EXTENDED_PROFILES = PROFILES + ['StrongerSVNE2']
+ 
+ def req(j, weak=False, **kw):
+     fields = [f'exact(mE{j})', f'exact(s{j})', 'exact(prodA)', 'V1', 'OnlyGood', f'Assign(P{j})']
+@@ -34,6 +36,8 @@
+         entries = [req(j, weak=True, **({'s':f'exact(s{owner})', 'a':f'Assign(P{owner})'} if j == owner else {})) for j in range(1,n+1)]
+     elif profile == 'StrongerSVN':
+         entries[0] = req(1, v='V2')
++    elif profile == 'StrongerSVNE2':
++        entries[1] = req(2, v='V2')
+     elif profile == 'ConflictMeasurement': entries[0] = req(1, m='exact(mBad)')
+     elif profile == 'ConflictSigner': entries[0] = req(1, s='exact(sBad)')
+     elif profile == 'ConflictProduct': entries[0] = req(1, p='exact(prodB)')
+@@ -96,13 +100,13 @@
+     return ('mkstar',tuple(intersect_tcb(x,y) if k<n else merge_entry(x,y)
+                           for k,(x,y) in enumerate(zip(a[1],b[1]))))
+ 
+-def specialized_join(n,scenario):
++def specialized_join(n,scenario,profiles=None):
+     # The canonical fold always starts with honest P1; in N3 the next input
+     # is honest P2 with the same constraints. The final input is one catalog
+     # policy. This table is EXACT on every authenticated input tuple in this
+     # finite model. Unreachable tuples are not used to enlarge its conclusions.
+     base=constraints_term(n,policy(n,1,scenario=scenario))
+-    inputs={constraints_term(n,policy(n,n,p,scenario)) for p in PROFILES}
++    inputs={constraints_term(n,policy(n,n,p,scenario)) for p in (PROFILES if profiles is None else profiles)}
+     inputs.add(base)
+     rules=[]
+     for right in sorted(inputs,key=render):
+@@ -115,7 +119,8 @@
+             'fun joinstar(polstar, polstar): polstar\nreduc '+
+             '\notherwise '.join(rules)+'.\n')
+ 
+-def schema(n, scenario):
++def schema(n, scenario, profiles=None):
++    profiles=PROFILES if profiles is None else profiles
+     pvars = [f't{i}: tcbreq' for i in range(1,n+1)] + [f'e{i}: entry' for i in range(1,n+1)]
+     names = [x.split(':')[0] for x in pvars]
+     args = ', '.join(names)
+@@ -146,11 +151,11 @@
+ reduc forall {', '.join(pvars)};
+   starEntry{j}(mkstar({args})) = e{j}.
+ '''
+-    result += specialized_join(n,scenario)
+-    for pr in PROFILES: result += f'const {pr}: profile [data].\n'
++    result += specialized_join(n,scenario,profiles)
++    for pr in profiles: result += f'const {pr}: profile [data].\n'
+     result += '\n(* Explicit finite policy domain for the adversarial owner; see policy-catalog.json. *)\n'
+     result += 'fun choosePolicy(profile): policy\n'
+-    result += '\notherwise '.join(('reduc ' if k==0 else '')+f'choosePolicy({pr}) = {policy(n,n,pr,scenario)}' for k,pr in enumerate(PROFILES)) + '.\n'
++    result += '\notherwise '.join(('reduc ' if k==0 else '')+f'choosePolicy({pr}) = {policy(n,n,pr,scenario)}' for k,pr in enumerate(profiles)) + '.\n'
+     return result
+ 
+ CRYPTO = '''
+@@ -213,7 +218,7 @@
+   event(CertIssued(a,e,kr,ke,n,id,t,x,body)) ==> event(QuoteSatisfied(a,e,kr,ke,n,id,t,x)).
+ '''
+ 
+-def auxiliary(n, no_confirm=False):
++def auxiliary(n, no_confirm=False, with_stage3=False):
+     s = '''
+ (* A1: actual recipient key, not an untrusted pre-policy slot label. *)
+ query a: party, b: party, ka: pkey, kb: pkey, r: policy;
+@@ -237,7 +242,7 @@
+ '''
+         for i in range(1,n+1):
+             s += f'query x: polstar;\n  event(Confirm(P{i},x)) ==> ' + ' && '.join(f'event(ConfirmationAccepted(P{i},P{j},hstar(x)))' for j in range(1,n+1) if j!=i) + '.\n'
+-    if n == 2:
++    if n == 2 or with_stage3:
+         s += '''
+ (* A4: evidence, request, Stage 2 completion, and certificate payload binding. *)
+ query a: party, e: entity, kr: pkey, ke: pkey, n: nonce, id: identity, t: tcbstatus, x: polstar, body: bitstring;
+@@ -246,7 +251,7 @@
+ '''
+     return s
+ 
+-def reachability(n):
++def reachability(n, with_stage3=False):
+     # One conjunction demands a common trace, not N separate reachable runs.
+     s = '\n(* R1: joint completion; `not ... is false` plus a reconstructed trace means reachable. *)\n'
+     s += 'query ' + ', '.join(f'x{i}: polstar' for i in range(1,n+1)) + ';\n  ' + ' && '.join(f'event(Confirm(P{i},x{i}))' for i in range(1,n+1)) + '.\n'
+@@ -259,6 +264,17 @@
+   event(CertIssued(P1,E1,kr1,ke1,n1,id1,t1,x1,b1)) &&
+   event(CertIssued(P2,E2,kr2,ke2,n2,id2,t2,x2,b2)).
+ '''
++    if n == 3 and with_stage3:
++        variables = []
++        facts = []
++        for i in range(1, n+1):
++            variables.extend([f'x{i}: polstar', f'kr{i}: pkey', f'ke{i}: pkey',
++                              f'n{i}: nonce', f'id{i}: identity',
++                              f't{i}: tcbstatus', f'b{i}: bitstring'])
++            facts.extend([f'event(Confirm(P{i},x{i}))',
++                          f'event(CertIssued(P{i},E{i},kr{i},ke{i},n{i},id{i},t{i},x{i},b{i}))'])
++        s += '\n(* R2: all three complete and issue in ONE execution. *)\n'
++        s += 'query ' + ', '.join(variables) + ';\n  ' + ' &&\n  '.join(facts) + '.\n'
+     return s
+ 
+ def coordination(n):
+@@ -321,7 +337,7 @@
+         s += '  event QuoteProduced(pk(skE),challenge,actual,status);\n  out(net,sign(teeQuote(actual,status,hchal(challenge,pk(skE))),ak)).\n'
+     return s
+ 
+-def role(n, i, scenario='', no_confirm=False):
++def role(n, i, scenario='', no_confirm=False, with_stage3=False):
+     peers = [j for j in range(1,n+1) if j != i]
+     s = f'\n(* RPE_{i}: required peers are the fixed Members{n} configuration minus self. *)\n'
+     s += f'let rpe{i}(akR: skey, pkAKR: pkey, pkAKE: pkey) =\n'
+@@ -391,7 +407,7 @@
+ '''
+     s += f'  event Confirm(P{i},pistar)'
+     target = 2 if scenario=='wrong-attester' and i==1 else i
+-    s += f';\n  attest(P{i},E{target},sk{i},pistar,starEntry{target}(pistar),pkAKE).\n' if n==2 else '.\n'
++    s += f';\n  attest(P{i},E{target},sk{i},pistar,starEntry{target}(pistar),pkAKE).\n' if n==2 or with_stage3 else '.\n'
+     return s
+ 
+ def scenario_queries(n, scenario):
+@@ -427,21 +443,23 @@
+         s += f'query ke: pkey, n: nonce, id: identity, t: tcbstatus; event(QuoteVerified(P1,{e},ke,n,id,t)).\n'
+     return s
+ 
+-def model(n, kind='primary', scenario='', no_confirm=False):
++def model(n, kind='primary', scenario='', no_confirm=False, with_stage3=False, profiles=None):
+     head = f'''(* SRAS revision 20261027; N={n}; kind={kind}; scenario={scenario or 'none'}.
+  * SINGLE static initialization with exactly N protected RPE roles.
+- * The adversary chooses the last owner's policy from 11 documented profiles.
++ * The adversary chooses the last owner's policy from {len(PROFILES if profiles is None else profiles)} documented profiles.
+  * All network sends/receives are public and adversary-controlled.
+  * This file is generated by generate_models.py; original models remain intact.
+  *)\n'''
+-    text = head + ALGEBRA + schema(n,scenario) + CRYPTO
+-    if kind=='primary': text += PRIMARY + (ISSUANCE if n==2 else '')
+-    elif kind=='auxiliary': text += auxiliary(n,no_confirm)
+-    elif kind=='reachability': text += reachability(n)
++    text = head + ALGEBRA + schema(n,scenario,profiles) + CRYPTO
++    if with_stage3:
++        text += '\n(* 20261028 extension of commit 3766338: Stage 3 runs after Confirm at every RPE. *)\n'
++    if kind=='primary': text += PRIMARY + (ISSUANCE if n==2 or with_stage3 else '')
++    elif kind=='auxiliary': text += auxiliary(n,no_confirm,with_stage3)
++    elif kind=='reachability': text += reachability(n,with_stage3)
+     elif kind=='coordination': text += coordination(n)
+     else: text += scenario_queries(n,scenario)
+-    if n==2: text += ATTEST + instance(scenario)
+-    text += ''.join(role(n,i,scenario,no_confirm) for i in range(1,n+1))
++    if n==2 or with_stage3: text += ATTEST + instance(scenario)
++    text += ''.join(role(n,i,scenario,no_confirm,with_stage3) for i in range(1,n+1))
+     text += '''
+ process
+   new akRPE: skey;
+@@ -450,7 +468,7 @@
+   out(net,(pk(akRPE),pk(akTEE),pk(akADV),akADV));
+   ('''
+     text += ' |\n   '.join(f'rpe{i}(akRPE,pk(akRPE),pk(akTEE))' for i in range(1,n+1))
+-    if n==2: text += ' |\n   !instance(' + ('akADV' if scenario=='invalid-signature' else 'akTEE') + ')'
++    if n==2 or with_stage3: text += ' |\n   !instance(' + ('akADV' if scenario=='invalid-signature' else 'akTEE') + ')'
+     text += ')\n'
+     return text
+ 
+@@ -495,4 +513,261 @@
+     (ROOT/'jobs-primary-single.txt').write_text('\n'.join(timed_jobs)+'\n')
+     print('Generated primary, auxiliary, reachability, single-change no-confirm, and regression models.')
+ 
+-if __name__ == '__main__': main()
++def stage23_main(profiles=None):
++    """Extend the requested baseline in place; preserve every historical model/log.
++
++    No change to the policy catalog, specialized join, Stage 2, or ATTEST body.
++    New evidence uses distinct filenames in the existing artifact directories.
++    """
++    tag='stage23' if profiles is None else 'stage23p12'
++    jobs=[]
++    for kind in ('primary','auxiliary','reachability'):
++        path=MODELS/f'sras-n3-{tag}-{kind}.pv'
++        path.write_text(model(3,kind,with_stage3=True,profiles=profiles))
++        jobs.append(f'{path.stem}|{path.relative_to(ROOT)}|{kind}|3')
++    src=(MODELS/f'sras-n3-{tag}-primary.pv').read_text()
++    blocks=list(re.finditer(r'^query\b.*?\.',src,re.M|re.S))
++    timed_jobs=[]
++    for i in range(1,len(blocks)+1):
++        timed=src
++        for j,m in reversed(list(enumerate(blocks,1))):
++            if j!=i:
++                timed=timed[:m.start()]+f'(* Q{j} omitted only for isolated timing. *)'+timed[m.end():]
++        path=ROOT/'queries'/f'n3-{tag}-Q{i}.pv'
++        path.write_text(timed)
++        timed_jobs.append(f'{path.stem}|{path.relative_to(ROOT)}|primary-single|3')
++    stage3=['bad-measurement','bad-signer','bad-product','bad-svn','bad-tcb',
++            'revoked-tcb','invalid-tcb','wrong-attester','wrong-challenge','invalid-signature']
++    regressions=[]
++    for scenario in stage3:
++        path=SCENARIOS/f'n3-{tag}-{scenario}.pv'
++        path.write_text(model(3,'regression',scenario,with_stage3=True,profiles=profiles))
++        regressions.append(f'{path.stem}|{path.relative_to(ROOT)}|regression-stage3|3')
++    for name,lines in [(f'jobs-{tag}.txt',jobs),(f'jobs-{tag}-single.txt',timed_jobs),
++                       (f'jobs-{tag}-regression.txt',regressions)]:
++        (ROOT/name).write_text('\n'.join(lines)+'\n')
++    # The user's original N3 entry point now runs all four requested properties.
++    (ROOT.parent/'sras-n3.pv').write_text(src)
++    if profiles is not None:
++        (MODELS/'policy-catalog-p12.json').write_text(json.dumps({pr:policy(3,3,pr) for pr in profiles},indent=2)+'\n')
++    print(f'Generated N3 {tag}; baseline models and logs preserved.')
++
++
++STAGE1_EVENTS = '''
++(* HonestOwner specifies the uncompromised keys covered by Authorization. *)
++event HonestOwner(pkey).
++event OwnerChallenge(pkey,nonce).
++event OwnerAttested(pkey,pkey,policy,nonce).
++event OwnerSigned(pkey,pkey,bitstring).
++event AuthorizationReceived(party,pkey,policy,pkey).
++event AuthorizationSignatureChecked(party,pkey,policy,pkey).
++event AuthorizationSelfChecked(party,pkey,policy,pkey).
++event AuthorizationAccepted(party,pkey,policy,pkey,attr).
++event AuthorizedPolicyDeclared(party,pkey,policy).
++'''
++
++AUTHORIZATION = '''
++(* The policy's claimed self signer, not an assumed owner identity, selects
++   the honest authority. A malicious owner signing with its own key is allowed. *)
++query a:party,k:pkey,r:policy,supplied:pkey,honest:pkey;
++  event(AuthorizationAccepted(a,k,r,supplied,H(honest))) && event(HonestOwner(honest))
++  ==> event(OwnerSigned(honest,k,hpol(r))).
++'''
++
++def stage1_owner(i):
++    return f'''
++(* Owner {i} learns the RPE key only through the public Quote exchange. *)
++let owner{i}(pkAKR:pkey) =
++  let rho={policy(3,i)} in
++  new n:nonce;
++  event OwnerChallenge(pk(skO{i}),n);
++  out(net,(P{i},n));
++  in(net,(=P{i},candidate:pkey,q:bitstring));
++  let rpeQuote(=mRPE,status:tcbstatus,binding:bitstring)=checksign(q,pkAKR) in
++  if binding=hbind(candidate,n) then
++  let platformOK=matchtcb(rpeTcb{i}(rho),status) in
++  if platformOK=true then
++  event OwnerAttested(pk(skO{i}),candidate,rho,n);
++  let authorization=sign((candidate,hpol(rho)),skO{i}) in
++  event OwnerSigned(pk(skO{i}),candidate,hpol(rho));
++  out(net,(P{i},candidate,rho,authorization,pk(skO{i}))).
++'''
++
++def stage123_role(i):
++    """Reuse the baseline Stage 2-3 suffix with the ACTUAL authorized state."""
++    old=role(3,i,with_stage3=True)
++    marker=f'  let q{i} = sign('
++    suffix=old[old.index(marker):]
++    # Put the quote service beside, not before, the actual authorization receiver.
++    # Same RPE key in both branches; no secret provisioning channel.
++    assert suffix.endswith('.\n')
++    suffix=suffix[:-2]+'\n  ).\n'
++    return f'''
++let rpe{i}(akR:skey,pkAKR:pkey,pkAKE:pkey) =
++  new sk{i}:skey;
++  let pk{i}=pk(sk{i}) in
++  out(net,(P{i},pk{i}));
++  (
++    (* An initial Quote is obtainable for any requested nonce, even after
++       authorization. Its payload is NOT separated from Stage 2 by a tag. *)
++    (!in(net,(=P{i},requested:nonce));
++      out(net,(P{i},pk{i},sign(rpeQuote(mRPE,Good,hbind(pk{i},requested)),akR))))
++  |
++    in(net,(=P{i},=pk{i},rho{i}:policy,authorization:bitstring,ownerKey:pkey)) [precise];
++    event AuthorizationReceived(P{i},pk{i},rho{i},ownerKey);
++    let (signedKey:pkey,signedHash:bitstring)=checksign(authorization,ownerKey) in
++    if signedKey=pk{i} && signedHash=hpol(rho{i}) then
++    event AuthorizationSignatureChecked(P{i},pk{i},rho{i},ownerKey);
++    if policySelf(rho{i})=P{i} then
++    event AuthorizationSelfChecked(P{i},pk{i},rho{i},ownerKey);
++    let Req(cm:ident,exact(selfSigner:attr),cp:ident,cv:svn,ct:tcbreq,ca:attreq)=starEntry{i}(constraints(rho{i})) in
++    if selfSigner=H(ownerKey) && ca=Assign(P{i}) then
++    event AuthorizationAccepted(P{i},pk{i},rho{i},ownerKey,selfSigner);
++    event AuthorizedPolicyDeclared(P{i},pk{i},rho{i});
++    event PolicyDeclared(P{i},rho{i});
++'''+suffix
++
++def common_hash_encoding(text):
++    """Inline legacy hash names as one H over canonically serialized inputs.
++
++    In particular Stage 1 H(key,nonce) and Stage 2 H(key,H(policy)) have the
++    SAME shape. Nonces and keys use bytes, so no type barrier prevents mixing.
++    """
++    for name in ('hpol','hbind','hstar','hchal','hcert'):
++        text=re.sub(r'^fun '+name+r'\([^\n]*\n','',text,flags=re.M)
++    def rewrite(src):
++        pattern=re.compile(r'\b(hpol|hbind|hstar|hchal|hcert)\(')
++        match=pattern.search(src)
++        if match is None:return src
++        pos=match.end();depth=1;start=pos;args=[]
++        while depth:
++            ch=src[pos]
++            if ch=='(':depth+=1
++            elif ch==')':depth-=1
++            if ch==',' and depth==1:
++                args.append(src[start:pos].strip());start=pos+1
++            if depth==0:args.append(src[start:pos].strip())
++            pos+=1
++        args=[rewrite(a) for a in args]
++        name=match[1]
++        if name=='hpol':value=f'H(policyBytes({args[0]}))'
++        elif name=='hstar':value=f'H(starBytes({args[0]}))'
++        elif name=='hchal':value=f'H(({args[1]},{args[0]}))'
++        else:value='H(('+','.join(args)+'))'
++        return src[:match.start()]+value+rewrite(src[pos:])
++    text=rewrite(text)
++    for oldtype in ('attr','nonce','pkey'):
++        text=text.replace(f'type {oldtype}.\n','')
++        text=re.sub(r'\b'+oldtype+r'\b','bitstring',text)
++    for i in (1,2,3):
++        text=text.replace(f'const s{i}: bitstring [data].\n','')
++        text=re.sub(r'\bs'+str(i)+r'\b',f'H(pk(skO{i}))',text)
++    return text
++
++def stage123_model(kind='primary'):
++    declarations='''type skey.
++fun pk(skey):bitstring.
++const skO1,skO2,skO3:skey [private].
++fun H(bitstring):bitstring.
++'''+ALGEBRA+schema(3,'',EXTENDED_PROFILES).replace('type skey.\n','')
++    # Bound the adversary's POLICY domain without inserting an extra protocol
++    # allow-list check after authorization. Public factories expose every P3
++    # profile; both honest policies are also published. Public projections keep
++    # fields readable. All RPEs still accept arbitrary messages/owner keys and
++    # actually check signatures, Self, self signer, and own attester.
++    declarations=re.sub(r'(fun pol\([^\n]*: policy) \[data\]\.',r'\1 [private].',declarations)
++    crypto=CRYPTO.replace('fun pk(skey): pkey.', '''fun policyBytes(policy):bitstring [data].
++fun starBytes(polstar):bitstring [data].''')
++    queries=AUTHORIZATION+PRIMARY+ISSUANCE
++    if kind=='auxiliary':
++        queries=auxiliary(3,with_stage3=True)+'''
++query a:party,k:pkey,r:policy,o:pkey,s:attr;
++  event(AuthorizedPolicyDeclared(a,k,r)) ==> event(AuthorizationAccepted(a,k,r,o,s)).
++query a:party,b:party,ka:pkey,kb:pkey,r:policy,o:pkey,s:attr;
++  event(PolicyAcceptedKeys(a,b,ka,kb,r)) ==> event(AuthorizationAccepted(b,kb,r,o,s)).
++query o:pkey,k:pkey,r:policy,n:nonce;
++  event(OwnerSigned(o,k,hpol(r))) ==> event(OwnerAttested(o,k,r,n)).
++'''
++    elif kind in ('reachability','reachability-profile12'):
++        witness=None
++        if kind=='reachability-profile12':
++            witness=render(merge_star(3,constraints_term(3,policy(3,1)),
++                                         constraints_term(3,policy(3,3,'StrongerSVNE2'))))
++        variables=[];facts=[]
++        for i in (1,2,3):
++            if witness is None:variables.append(f'x{i}:polstar')
++            variables += [f'kr{i}:pkey',f'ke{i}:pkey',f'n{i}:nonce',f'id{i}:identity',f't{i}:tcbstatus',f'b{i}:bitstring',f'r{i}:policy',f'o{i}:pkey',f's{i}a:attr']
++            x=witness or f'x{i}'
++            facts += [f'event(AuthorizationAccepted(P{i},kr{i},r{i},o{i},s{i}a))',f'event(Confirm(P{i},{x}))',f'event(CertIssued(P{i},E{i},kr{i},ke{i},n{i},id{i},t{i},{x},b{i}))']
++        queries='query '+','.join(variables)+';\n  '+' &&\n  '.join(facts)+'.\n'
++    text='''(* N3 Stage 1-3; extension of 3766338 with twelve explicit P3 profiles.
++   Two honest owner keys; O3's signing key is public, RPE keys protected.
++   One initialization; three fixed role/instance pairs P1/E1, P2/E2, P3/E3.
++   Stage 1 and Stage 2 use the SAME rpeQuote/hardware key/report-data format.
++   The finite policy domain is a scope restriction, not a new wire check.
++   Stage 3 retains the baseline distinct TEE hardware-key abstraction.
++*)\n'''+declarations+crypto+STAGE1_EVENTS+queries
++    text+=ATTEST+instance('')+stage1_owner(1)+stage1_owner(2)
++    text+=''.join(stage123_role(i) for i in (1,2,3))
++    text+='''
++process
++  new akRPE:skey;
++  new akTEE:skey;
++  new akADV:skey;
++  event HonestOwner(pk(skO1));
++  event HonestOwner(pk(skO2));
++  out(net,(pk(akRPE),pk(akTEE),pk(akADV),akADV,pk(skO1),pk(skO2),pk(skO3),skO3));
++'''
++    text+=f'  out(net,({policy(3,1)},{policy(3,2)}));\n'
++    text+='  (owner1(pk(akRPE)) | owner2(pk(akRPE)) |\n'
++    text+=' |\n'.join(f'   rpe{i}(akRPE,pk(akRPE),pk(akTEE))' for i in (1,2,3))
++    text+=' | !instance(akTEE))\n'
++    return common_hash_encoding(text)
++
++def stage123_main():
++    for kind in ('primary','auxiliary','reachability','reachability-profile12'):
++        (MODELS/f'sras-n3-stage123-{kind}.pv').write_text(stage123_model(kind))
++    source=stage123_model()
++    blocks=list(re.finditer(r'^query\b.*?\.',source,re.M|re.S))
++    names=['Authorization','Agreement','Authenticity','Completeness','Issuance']
++    assert len(blocks)==len(names)
++    jobs=[]
++    for i,name in enumerate(names):
++        single=source
++        for j,m in reversed(list(enumerate(blocks))):
++            if i!=j:single=single[:m.start()]+f'(* {names[j]} queried separately. *)'+single[m.end():]
++        path=ROOT/'queries'/f'n3-stage123-{name}.pv'
++        path.write_text(single)
++        jobs.append(f'{path.stem}|{path.relative_to(ROOT)}|{name}|3')
++    (ROOT/'jobs-stage123-single.txt').write_text('\n'.join(jobs)+'\n')
++    (ROOT/'jobs-stage123-pilot.txt').write_text('\n'.join([jobs[0],jobs[1]])+'\n')
++    (ROOT/'jobs-stage123-remaining.txt').write_text('\n'.join(jobs[2:])+'\n')
++    (ROOT/'jobs-stage123-normal.txt').write_text('sras-n3-stage123-reachability|models/sras-n3-stage123-reachability.pv|reachability|3\n')
++    (ROOT/'jobs-stage123-checks.txt').write_text('\n'.join(f'sras-n3-stage123-{k}|models/sras-n3-stage123-{k}.pv|{k}|3' for k in ('auxiliary','reachability'))+'\n')
++    aux=stage123_model('auxiliary')
++    blocks=list(re.finditer(r'^query\b.*?\.',aux,re.M|re.S))
++    grouped=[[],[],[]]
++    for i in range(len(blocks)):
++        single=aux
++        for j,m in reversed(list(enumerate(blocks))):
++            if i!=j:single=single[:m.start()]+f'(* Auxiliary {j+1} queried separately. *)'+single[m.end():]
++        path=ROOT/'queries'/f'n3-stage123-A{i+1:02d}.pv'
++        path.write_text(single)
++        grouped[min(i//5,2)].append(f'{path.stem}|{path.relative_to(ROOT)}|auxiliary|3')
++    for i,jobs in enumerate(grouped,1):
++        (ROOT/f'jobs-stage123-auxiliary{i}.txt').write_text('\n'.join(jobs)+'\n')
++    (ROOT/'jobs-stage123-profile12.txt').write_text('sras-n3-stage123-reachability-profile12|models/sras-n3-stage123-reachability-profile12.pv|reachability|3\n')
++    (MODELS/'policy-catalog-p12.json').write_text(json.dumps({pr:policy(3,3,pr) for pr in EXTENDED_PROFILES},indent=2)+'\n')
++    (MODELS/'policy-catalog-stage123-p12.json').write_text(json.dumps({pr:common_hash_encoding(policy(3,3,pr)) for pr in EXTENDED_PROFILES},indent=2)+'\n')
++    (ROOT.parent/'sras-n3.pv').write_text(source)
++    print('Generated Stage 1-3 owner authorization, same-key continuation, and five property queries.')
++
++if __name__ == '__main__':
++    cli=argparse.ArgumentParser(description=__doc__)
++    cli.add_argument('--stage23',action='store_true',help='Extend commit 3766338 N3 with its existing N2 Stage 3')
++    cli.add_argument('--profiles12',action='store_true',help='Add the E2-only minimum-SVN strengthening profile')
++    cli.add_argument('--stage123',action='store_true',help='Add real owner authorization before the three-party Stage 2-3 process')
++    args=cli.parse_args()
++    if args.stage123:stage123_main()
++    elif args.stage23:stage23_main(EXTENDED_PROFILES if args.profiles12 else None)
++    else:main()
+--- /dev/null
++++ b/formal_verification/revised-20261027/stage123_complete.py
+@@ -0,0 +1,91 @@
++#!/usr/bin/env python3
++"""Complete the agreed twelve-profile model with an explicit serialized Self TEE.
++
++All protocol bodies are inherited from generate_models.py. This revision adds
++one policy metadata field and its real Stage 1 check. The aggregate still has
++the original 21 constraint fields, with no input history in the result.
++"""
++import argparse
++import json
++from pathlib import Path
++import re
++import generate_models as g
++
++ROOT=Path(__file__).resolve().parent
++
++def self_tee(text):
++    text=text.replace('free E1, E2, E3: entity.','const E1, E2, E3: entity [data].')
++    text=text.replace('fun pol(party, roster,','fun pol(party, entity, roster,')
++    text=text.replace('forall a: party, members: roster,','forall a: party, selfTEE: entity, members: roster,')
++    text=text.replace('pol(a, members,','pol(a, selfTEE, members,')
++    text=re.sub(r'\bpol\((P[123]),\s*',lambda m:'pol('+m[1]+', E'+m[1][1]+', ',text)
++    fields=['t1: tcbreq','t2: tcbreq','t3: tcbreq','e1: entry','e2: entry','e3: entry']
++    getter='reduc forall a: party, selfTEE: entity, members: roster, '+', '.join(fields)+';\n  policySelfTEE(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = selfTEE.\n'
++    declaration=re.search(r'^fun pol\([^\n]+\): policy \[private\]\.\n',text,re.M)
++    if declaration:
++        text=text[:declaration.end()]+getter+text[declaration.end():]
++    for i in (1,2,3):
++        text=text.replace(f'if policySelf(rho{i})=P{i} then',
++                          f'if policySelf(rho{i})=P{i} && policySelfTEE(rho{i})=E{i} then')
++    return text
++
++def normalized(text):return self_tee(g.common_hash_encoding(text))
++
++def policy(i,profile='Compatible'):return normalized(g.policy(3,i,profile))
++
++def model(kind='primary'):
++    basekind='reachability' if kind=='reachability-weak' else kind
++    text=self_tee(g.stage123_model(basekind))
++    if kind=='reachability-weak':
++        needle='event(AuthorizationAccepted(P3,kr3,r3,o3,s3a))'
++        assert text.count(needle)==1
++        text=text.replace(needle,f'event(AuthorizationAccepted(P3,kr3,{policy(3,"Weak")},o3,s3a))')
++        text=text.replace(',r3:policy','')
++    return '(* Revision r2: explicit serialized Self-TEE and actual check; twelve profiles. *)\n'+text
++
++def declarations():
++    text=model().split('(* Stage 3: shared verifier,')[0]
++    return re.sub(r'^query\b.*?\.', '',text,flags=re.M|re.S)
++
++def role(i):return normalized(g.stage123_role(i))
++
++def owner(i):return normalized(g.stage1_owner(i))
++
++def strip_queries(source,keep):
++    blocks=list(re.finditer(r'^query\b.*?\.',source,re.M|re.S))
++    for j,block in reversed(list(enumerate(blocks))):
++        if j!=keep:source=source[:block.start()]+f'(* Query {j+1} checked separately. *)'+source[block.end():]
++    return source
++
++def main():
++    cli=argparse.ArgumentParser(description=__doc__)
++    cli.add_argument('--install',action='store_true',help='Update the original N3 entry after verification')
++    args=cli.parse_args()
++    for kind in ('primary','auxiliary','reachability','reachability-profile12','reachability-weak'):
++        (ROOT/'models'/f'sras-n3-stage123r2-{kind}.pv').write_text(model(kind))
++    names=['Authorization','Agreement','Authenticity','Completeness','Issuance']
++    jobs=[]
++    for i,name in enumerate(names):
++        path=ROOT/'queries'/f'n3-stage123r2-{name}.pv'
++        path.write_text(strip_queries(model(),i))
++        jobs.append(f'{path.stem}|{path.relative_to(ROOT)}|{name}|3')
++    (ROOT/'jobs-stage123r2-main.txt').write_text('\n'.join(jobs)+'\n')
++    (ROOT/'jobs-stage123r2-pilot.txt').write_text(jobs[0]+'\n')
++    aux=model('auxiliary')
++    groups=[[],[],[]]
++    for i,_ in enumerate(re.finditer(r'^query\b.*?\.',aux,re.M|re.S)):
++        path=ROOT/'queries'/f'n3-stage123r2-A{i+1:02d}.pv'
++        path.write_text(strip_queries(aux,i))
++        groups[min(i//5,2)].append(f'{path.stem}|{path.relative_to(ROOT)}|auxiliary|3')
++    for i,jobs in enumerate(groups,1):
++        (ROOT/f'jobs-stage123r2-aux{i}.txt').write_text('\n'.join(jobs)+'\n')
++    witnesses=[]
++    for kind in ('reachability','reachability-profile12','reachability-weak'):
++        name=f'sras-n3-stage123r2-{kind}'
++        witnesses.append(f'{name}|models/{name}.pv|reachability|3')
++    (ROOT/'jobs-stage123r2-witness.txt').write_text('\n'.join(witnesses)+'\n')
++    (ROOT/'models/policy-catalog-stage123r2-p12.json').write_text(json.dumps({p:policy(3,p) for p in g.EXTENDED_PROFILES},indent=2)+'\n')
++    if args.install:(ROOT.parent/'sras-n3.pv').write_text(model())
++    print('Generated r2: explicit Self TEE, five main queries, fourteen auxiliary queries and three joint witnesses.')
++
++if __name__=='__main__':main()
+--- /dev/null
++++ b/formal_verification/revised-20261027/stage123_supplement.py
+@@ -0,0 +1,402 @@
++#!/usr/bin/env python3
++"""Current Stage 1-3 controlled regressions, preserving actual authorization.
++
++The public-network r2 model proves the five properties separately. These
++fixtures route the same three owner/RPE bodies over private buffered test
++channels to fix a fault and observe its real predecessor. Sender/hardware
++fault injection is labelled separately from loss/replay by a network attacker.
++"""
++import json
++from pathlib import Path
++import re
++import generate_models as g
++import stage123_complete as v
++import stage123_regression as old
++
++ROOT=Path(__file__).resolve().parent
++META={}
++
++EVENTS='''
++event ControlQuoteReceived(party,party).
++event ControlPolicyReceived(party,party).
++event ControlConfirmationReceived(party,party).
++event ControlInitialHashRequested.
++event ControlAllAuthorized.
++'''
++
++def constraints(policy):
++    args=g.parse_term(policy)[1]
++    assert len(args)==9
++    return ('mkstar',args[3:])
++
++def case_policies(case):
++    profile={'conflict-measurement':'ConflictMeasurement','conflict-signer':'ConflictSigner',
++             'conflict-product':'ConflictProduct','conflict-tcb':'ConflictTCB',
++             'conflict-attester':'ConflictAttester','reject-peer-tcb':'RejectPeerTCB'}.get(case,'Compatible')
++    policies=[v.policy(1),v.policy(2),v.policy(3,profile)]
++    if case=='authorized-signer-peer-conflict':
++        for i in (0,1):
++            # Change only honest peers' expectation for E3, never their own
++            # signer or the actual P3 authorization signer H(pk(skO3)).
++            policies[i]=policies[i].replace('exact(H(pk(skO3)))','exact(H(pk(skO1)))')
++    return policies
++
++def table_for_case(policies):
++    a,b,c=map(constraints,policies)
++    middle=g.merge_star(3,a,b)
++    rules={(a,b):middle}
++    try:rules[(middle,c)]=g.merge_star(3,middle,c)
++    except ValueError:pass
++    return 'fun joinstar(polstar,polstar):polstar\nreduc '+'\notherwise '.join(
++        f'joinstar({g.render(x)},{g.render(y)})={g.render(z)}' for (x,y),z in rules.items())+'.\n'
++
++def header(policies,early=False):
++    text=v.declarations().replace('free net: channel.','free net: channel [private].')
++    text=re.sub(r'fun joinstar\(polstar, polstar\): polstar\nreduc .*?\.\n',
++                table_for_case(policies),text,count=1,flags=re.S)
++    assert 'fun joinstar(polstar,polstar):polstar' in text
++    channels=['collabOut','quoteInbox','policyInbox','confirmationInbox']
++    if early:channels += ['quoteFrom1','quoteFrom2','quoteFrom3']
++    for i in (1,2,3):channels += [f'initTo{i}',f'initFrom{i}',f'ceKey{i}',f'ceQuote{i}',f'ceChallenge{i}',f'ceCert{i}',f'ready{i}']
++    return '(* CONTROL FIXTURE: real three-party authorization, private buffered delivery. *)\n'+text+'\nfree '+','.join(channels)+':channel [private].\n'+EVENTS
++
++def owner(i,policy):
++    text=v.owner(i).replace(v.policy(i),policy)
++    return text.replace('out(net,',f'out(initTo{i},').replace('in(net,',f'in(initFrom{i},')
++
++def attest():
++    text=v.normalized(g.ATTEST)
++    text=text.replace('pkAK: bitstring) =','pkAK: bitstring, keyIn:channel, quoteIn:channel, challengeOut:channel, certOut:channel) =')
++    assert 'keyIn:channel' in text
++    return (text.replace('in(net, pkE:', 'in(keyIn, pkE:')
++                .replace('in(net, qe:', 'in(quoteIn, qe:')
++                .replace('out(net, challenge)', 'out(challengeOut, challenge)')
++                .replace('out(net,', 'out(certOut,'))
++
++def role(i,case):
++    text=v.role(i)
++    marker=f'  let q{i} = sign('
++    start=text.index(marker)
++    init=text[:start].replace('out(net,',f'out(initFrom{i},').replace('in(net,',f'in(initTo{i},')
++    # Test delivery waits for three ACTUAL authorizations. This is a chosen
++    # network schedule and observation channel, not a check in the main model.
++    gate=f'    event AuthorizationAccepted(P{i},pk{i},rho{i},ownerKey,selfSigner);'
++    assert gate in init
++    init=init.replace(gate,gate+f'\n    out(ready{i},P{i});')
++    body=text[start:]
++    if i==3 and case in ('missing-quote','duplicate-quote','policy-hash-mismatch'):
++        needle='  out(net,(P3,q3,pk3,H(policyBytes(rho3))));\n'
++        assert needle in body
++        body=body.replace(needle,'')
++    if i==2 and case=='duplicate-quote':
++        needle='  out(net,(P2,q2,pk2,H(policyBytes(rho2))));\n'
++        body=body.replace(needle,needle+'  out(net,(P3,q2,pk2,H(policyBytes(rho2))));\n')
++    if i==3 and case in ('bad-rpe-code','bad-rpe-tcb'):
++        body=body.replace('rpeQuote(mRPE,Good,',
++                          'rpeQuote(mBad,Good,' if case=='bad-rpe-code' else 'rpeQuote(mRPE,Revoked,',1)
++    if i==3 and case in ('missing-policy','duplicate-policy'):
++        needle='  out(net,(P3,P1,sign(policyMsg(pk1,rho3),sk3)));\n'
++        assert needle in body
++        body=body.replace(needle,'')
++    if i==2 and case=='duplicate-policy':
++        needle='  out(net,(P2,P1,sign(policyMsg(pk1,rho2),sk2)));\n'
++        body=body.replace(needle,needle+'  out(net,(P3,P1,sign(policyMsg(pk1,rho2),sk2)));\n')
++    if i==3 and case in ('missing-confirmation','duplicate-confirmation'):
++        needle='  out(net,(P3,P1,sign(confirmMsg(pk1,H(starBytes(pistar))),sk3)));\n'
++        assert needle in body
++        body=body.replace(needle,'')
++    if i==2 and case=='duplicate-confirmation':
++        needle='  out(net,(P2,P1,sign(confirmMsg(pk1,H(starBytes(pistar))),sk2)));\n'
++        body=body.replace(needle,needle+'  out(net,(P3,P1,sign(confirmMsg(pk1,H(starBytes(pistar))),sk2)));\n')
++    if i==3 and case=='confirmation-mismatch':
++        body=body.replace('sign(confirmMsg(pk1,H(starBytes(pistar))),sk3)','sign(confirmMsg(pk1,badHash),sk3)')
++    # Observation events do not alter guards or message payloads.
++    if i==1:
++        for kind,needle,event in [
++            ('quote','  in(net,(=P3,q3: bitstring,pk3: bitstring,hb3: bitstring));','ControlQuoteReceived'),
++            ('policy','  in(net,(=P3,=P1,msg3: bitstring));','ControlPolicyReceived'),
++            ('confirmation','  in(net,(=P3,=P1,confirmation3: bitstring));','ControlConfirmationReceived')]:
++            assert needle in body,(kind,case)
++            body=body.replace(needle,needle+f'\n  event {event}(P1,P3);')
++    early=case in ('missing-quote','duplicate-quote','bad-rpe-code','bad-rpe-tcb')
++    if early:
++        # The target is QuotesComplete, before any policy/confirmation/instance
++        # activity. Keep all real Stage1 code and the exact quote-check prefix;
++        # other RPEs supply their genuine post-authorization Evidence only.
++        # Their initial Quote services remain present. Later suffixes cannot
++        # generate an additional Evidence send in this single initialization.
++        if i==1:
++            end='  event QuotesComplete(P1);'
++            body=body[:body.index(end)+len(end)]+'\n  0\n  ).\n'
++        else:
++            body=body[:body.index('  in(net,(')]+'  0\n  ).\n'
++    target=2 if case=='wrong-attester' and i==1 else i
++    original=f'attest(P{i},E{i},sk{i},pistar,starEntry{i}(pistar),pkAKE)'
++    replacement=f'attest(P{i},E{target},sk{i},pistar,starEntry{target}(pistar),pkAKE,ceKey{i},ceQuote{i},ceChallenge{i},ceCert{i})'
++    if not early:
++        assert original in body
++        body=body.replace(original,replacement)
++    body=body.replace('out(net,',f'out(quoteFrom{i},' if early else 'out(collabOut,')
++    for j in (1,2,3):
++        body=body.replace(f'in(net,(=P{j},q{j}:',f'in(quoteInbox,(=P{j},q{j}:')
++        body=body.replace(f'in(net,(=P{j},=P{i},msg{j}:',f'in(policyInbox,(=P{j},=P{i},msg{j}:')
++        body=body.replace(f'in(net,(=P{j},=P{i},confirmation{j}:',f'in(confirmationInbox,(=P{j},=P{i},confirmation{j}:')
++    assert 'in(net,' not in body
++    return init+body
++
++def instance(i,case):
++    target=2 if case=='wrong-attester' and i==1 else i
++    actual=f'Identity(mE{target},H(pk(skO{target})),prodA,V2)'
++    status='Good';signing='akTEE';key='pk(skE)';nonce='challenge'
++    if i==1:
++        actual={
++          'bad-measurement':'Identity(mBad,H(pk(skO1)),prodA,V2)',
++          'bad-signer':'Identity(mE1,sBad,prodA,V2)',
++          'bad-product':'Identity(mE1,H(pk(skO1)),prodB,V2)',
++          'bad-svn':'Identity(mE1,H(pk(skO1)),prodA,V0)',
++        }.get(case,actual)
++        status={'bad-tcb':'Outdated','revoked-tcb':'Revoked','invalid-tcb':'Invalid'}.get(case,status)
++        if case=='invalid-signature':signing='akADV'
++        if case=='wrong-challenge':nonce='stale'
++        if case=='wrong-instance-key':key='pk(other)'
++    return f'''
++let inst{i}(akTEE:skey,akADV:skey)=
++  new skE:skey;
++  new other:skey;
++  new stale:bitstring;
++  out(ceKey{i},pk(skE));
++  in(ceChallenge{i},challenge:bitstring);
++  event QuoteProduced({key},{nonce},{actual},{status});
++  out(ceQuote{i},sign(teeQuote({actual},{status},H(({key},{nonce}))),{signing})).
++'''
++
++def query_all_auth(extra):
++    # The observer is after ready1/2/3, each emitted only AFTER the unchanged
++    # actual AuthorizationAccepted event. Avoid unrelated existential event
++    # copies in private-channel trace reconstruction; the source audit checks
++    # this connection, and the complete transcript retains real authorization.
++    variables=['k2:bitstring','h:bitstring','r:policy','x:polstar','ke:bitstring','n:bitstring','id:identity','t:tcbstatus']
++    return 'query '+','.join(variables)+';\n  event(ControlAllAuthorized) && '+extra+'.\n'
++
++def queries(case):
++    if case=='normal':
++        return v.model('reachability')[v.model('reachability').index('query '):].split('(* Stage 3: shared verifier,')[0],[True]
++    if case in ('missing-quote','duplicate-quote','bad-rpe-code','bad-rpe-tcb'):
++        before='event(EvidenceChecked(P1,P2,k2,h))'
++        # Every quote delivery is causally after the observer's three ready
++        # receipts, so the predecessor already implies all three real auths.
++        # Asking the same event as a second conjunction makes private-message
++        # trace reconstruction needlessly ambiguous at this early cut point.
++        text='query k:bitstring,h:bitstring; event(EvidenceChecked(P1,P2,k,h)).\nquery event(QuotesComplete(P1)).\n'
++        expected=[True,False]
++        if case!='missing-quote':text+='query event(ControlQuoteReceived(P1,P3)).\n';expected.append(True)
++        return text,expected
++    if case in ('missing-policy','duplicate-policy','policy-hash-mismatch'):
++        before='event(QuotesComplete(P1)) && event(PolicyAccepted(P1,P2,r))'
++        text=query_all_auth(before)+'query event(PoliciesComplete(P1)).\n';expected=[True,False]
++        if case=='duplicate-policy':text+='query event(ControlPolicyReceived(P1,P3)).\n';expected.append(True)
++        if case=='policy-hash-mismatch':
++            text+='query r:policy; event(PolicyAuthenticated(P1,P3,r)).\nquery event(ControlInitialHashRequested).\n'
++            expected += [True,True]
++        return text,expected
++    if case in ('missing-confirmation','duplicate-confirmation','confirmation-mismatch'):
++        text=query_all_auth('event(FullJoin(P1,x)) && event(ConfirmationAccepted(P1,P2,H(starBytes(x))))')
++        text+='query x:polstar; event(Confirm(P1,x)).\n';expected=[True,False]
++        if case=='duplicate-confirmation':text+='query event(ControlConfirmationReceived(P1,P3)).\n';expected.append(True)
++        if case=='confirmation-mismatch':text+='query event(ConfirmationAuthenticated(P1,P3,badHash)).\n';expected.append(True)
++        return text,expected
++    if case.startswith('conflict-') or case=='authorized-signer-peer-conflict':
++        text=query_all_auth('event(PoliciesComplete(P1))')+'query x:polstar; event(FullJoin(P1,x)).\n'
++        return text,[True,False]
++    if case=='reject-peer-tcb':
++        return query_all_auth('event(PolicyDeclared(P3,r))')+'query event(QuotesComplete(P3)).\n',[True,False]
++    entity='E2' if case=='wrong-attester' else 'E1'
++    text=query_all_auth('event(Confirm(P1,x))')
++    text+=f'query kr:bitstring,ke:bitstring,n:bitstring,id:identity,t:tcbstatus,x:polstar,b:bitstring; event(CertIssued(P1,{entity},kr,ke,n,id,t,x,b)).\n'
++    expected=[True,False]
++    if case=='invalid-signature':
++        text+=f'query ke:bitstring,n:bitstring; event(QuoteReceived(P1,{entity},ke,n)).\n'
++        text+=f'query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteSignatureChecked(P1,{entity},ke,n,id,t)).\n'
++        expected += [True,False]
++    elif case in ('wrong-challenge','wrong-instance-key'):
++        text+=f'query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteSignatureChecked(P1,{entity},ke,n,id,t)).\n'
++        text+=f'query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,{entity},ke,n,id,t)).\n'
++        expected += [True,False]
++    else:
++        text+=f'query ke:bitstring,n:bitstring,id:identity,t:tcbstatus; event(QuoteVerified(P1,{entity},ke,n,id,t)).\n'
++        expected.append(True)
++    return text,expected
++
++def control_model(case):
++    policies=case_policies(case)
++    early=case in ('missing-quote','duplicate-quote','bad-rpe-code','bad-rpe-tcb')
++    text=header(policies,early)
++    query,expected=queries(case)
++    text+=query+attest()
++    if early:
++        # Choose a simple legal schedule: complete the real authorizations in
++        # order, then start Evidence delivery. This avoids a private-channel
++        # trace ambiguity without assuming or injecting an authorized state.
++        delivery='''let earlyDelivery()=
++  in(quoteFrom1,ownEvidence:bitstring);
++  in(quoteFrom2,peerEvidence:bitstring);
++  out(quoteInbox,peerEvidence)'''
++        if case=='duplicate-quote':
++            delivery='''let earlyDelivery()=
++  in(quoteFrom1,ownEvidence:bitstring);
++  in(quoteFrom2,(=P2,q2:bitstring,k2:bitstring,h2:bitstring));
++  out(quoteInbox,(P2,q2,k2,h2));
++  in(quoteFrom2,(=P3,replayed:bitstring,replayedKey:bitstring,replayedHash:bitstring));
++  out(quoteInbox,(P3,replayed,replayedKey,replayedHash))'''
++        elif case!='missing-quote':
++            delivery+=';\n  in(quoteFrom3,thirdEvidence:bitstring);\n  out(quoteInbox,thirdEvidence)'
++        text+=delivery+'.\n'
++        for i in (3,2,1):
++            body=owner(i,policies[i-1]).rstrip()
++            assert body.endswith('.')
++            continuation=f'owner{i+1}(pkAKR)' if i<3 else 'event ControlAllAuthorized; earlyDelivery()'
++            text+=body[:-1]+f';\n  in(ready{i},=P{i});\n  '+continuation+'.\n'
++    else:
++        text+=''.join(owner(i,policies[i-1]) for i in (1,2,3))
++    text+=''.join(role(i,case) for i in (1,2,3))+''.join(instance(i,case) for i in (1,2,3))
++    # Buffered private transport reproduces asynchronous public delivery. Only
++    # Evidence is broadcast; policy/confirmation already include recipient tags.
++    text+='''
++let transport()=
++  in(ready1,=P1);
++  in(ready2,=P2);
++  in(ready3,=P3);
++  event ControlAllAuthorized;
++  !in(collabOut,m:bitstring);
++    let (a:party,q:bitstring,k:bitstring,h:bitstring)=m in
++      (out(quoteInbox,m) | out(quoteInbox,m))
++    else
++      let (sender:party,recipient:party,signed:bitstring)=m in
++      let policyMsg(destination:bitstring,r:policy)=getmess(signed) in
++        out(policyInbox,m)
++      else
++        let confirmMsg(destination:bitstring,h:bitstring)=getmess(signed) in
++        out(confirmationInbox,m).
++'''
++    if case=='policy-hash-mismatch':
++        weak=v.policy(3,'Weak')
++        text+=f'''
++(* Normal protected initial Quote service creates the alternate commitment;
++   no hardware signature or protected RPE policy signature is forged. *)
++let alternateQuote()=
++  in(initFrom3,(=P3,k:bitstring));
++  event ControlInitialHashRequested;
++  out(initTo3,(P3,H(policyBytes({weak}))));
++  in(initFrom3,(=P3,=k,q:bitstring));
++  out(collabOut,(P3,q,k,H(policyBytes({weak})))).
++'''
++    text+='process\n  new akRPE:skey;\n  new akTEE:skey;\n  new akADV:skey;\n'
++    text+='  event HonestOwner(pk(skO1));\n  event HonestOwner(pk(skO2));\n  ('+('owner1(pk(akRPE))' if early else 'transport()')+' |\n'
++    actors=[]
++    for i in (1,2,3):
++        if not early:actors.append(f'owner{i}(pk(akRPE))')
++        actors.append(f'rpe{i}(akRPE,pk(akRPE),pk(akTEE))')
++        if case not in ('missing-quote','duplicate-quote','bad-rpe-code','bad-rpe-tcb'):
++            actors.append(f'inst{i}(akTEE,akADV)')
++        if i==3 and case=='policy-hash-mismatch':actors.append('alternateQuote()')
++        else:actors.append(f'(in(initFrom{i},(=P{i},k:bitstring));0)')
++        actors.append(f'(in(ceCert{i},(a:bitstring,b:bitstring,c:bitstring,d:bitstring));0)')
++    text+='   '+' |\n   '.join(actors)+')\n'
++    return text,expected,policies
++
++def control_table_audit(cases):
++    configurations=list(dict.fromkeys(tuple(case_policies(case)) for case in cases))
++    # Independent expected results are executed by the original ProVerif
++    # jointcb/joinentry code, not by Python merge_star.
++    old_generic=v.self_tee(old.join_fixture())
++    start=old_generic.index('letfun genericJoin(')
++    end=old_generic.index('let checkProfile(')
++    generic=old_generic[start:end]
++    text=v.declarations()+'\nevent ControlTableWrong(bitstring).\nevent ControlTablePassed(bitstring).\n'
++    for i,policies in enumerate(configurations):
++        text+=f'const Table{i}:bitstring [data].\n'
++        text+=table_for_case(policies).replace('joinstar',f'joincase{i}')
++    text+='query x:bitstring; event(ControlTableWrong(x)).\nquery '+ ' && '.join(f'event(ControlTablePassed(Table{i}))' for i in range(len(configurations)))+'.\n'
++    text+=generic
++    for i,policies in enumerate(configurations):
++        text+=f'''let check{i}()=
++  let a=constraints({policies[0]}) in
++  let b=constraints({policies[1]}) in
++  let c=constraints({policies[2]}) in
++  let fast=joincase{i}(a,b) in
++  let reference=genericJoin(a,b) in
++  let actual=joincase{i}(fast,c) in
++    (let expected=genericJoin(reference,c) in
++      if actual=expected then event ControlTablePassed(Table{i}) else event ControlTableWrong(Table{i})
++     else event ControlTableWrong(Table{i}))
++  else
++    (let expected=genericJoin(reference,c) in event ControlTableWrong(Table{i})
++     else event ControlTablePassed(Table{i})).
++'''
++    text+='process\n  ('+' | '.join(f'check{i}()' for i in range(len(configurations)))+')\n'
++    return text,len(configurations)
++
++def main():
++    cases=['normal','authorized-signer-peer-conflict','missing-quote','duplicate-quote',
++           'bad-rpe-code','bad-rpe-tcb','missing-policy','duplicate-policy','policy-hash-mismatch',
++           'missing-confirmation','duplicate-confirmation','confirmation-mismatch',
++           'conflict-measurement','conflict-signer','conflict-product','conflict-tcb','conflict-attester','reject-peer-tcb',
++           'bad-measurement','bad-signer','bad-product','bad-svn','bad-tcb','revoked-tcb','invalid-tcb',
++           'wrong-attester','wrong-challenge','wrong-instance-key','invalid-signature']
++    jobs=[];metadata={}
++    for case in cases:
++        name='n3-stage123r2-control-'+case
++        source,expected,policies=control_model(case)
++        path=ROOT/'scenarios'/(name+'.pv');path.write_text(source)
++        nature='controlled-network-delivery'
++        if case in ('confirmation-mismatch','bad-rpe-code','bad-rpe-tcb'):
++            nature='protected-sender-or-hardware-fault-injection'
++        elif case.startswith('bad-') or case in ('revoked-tcb','invalid-tcb','wrong-challenge','wrong-instance-key','invalid-signature'):
++            nature='controlled-instance-quote-input'
++        elif case=='wrong-attester':nature='receiver-asked-to-attest-other-designated-instance'
++        elif case=='authorized-signer-peer-conflict':nature='explicit-control-configuration-different-peer-signer-expectation'
++        metadata[name]={'case':case,'expected_reachability':expected,'nature':nature,
++                        'actual_stage1_all_three':True,'private_buffered_fixture':True,'policies':policies,
++                        'process_extent':'three real authorizations + exact Evidence-check prefix' if case in ('missing-quote','duplicate-quote','bad-rpe-code','bad-rpe-tcb') else 'three real authorizations + full Stage2-3 bodies',
++                        'source':str(path.relative_to(ROOT))}
++        category='controlled-Stage123-quote-prefix' if 'prefix' in metadata[name]['process_extent'] else 'controlled-full-Stage123'
++        jobs.append(f'{name}|{path.relative_to(ROOT)}|{category}|3')
++    # Refresh the original single-party guard fixtures against the r2 code.
++    old_expected=json.loads((ROOT/'models/stage123r2-report-inputs.json').read_text())['expected_local_reachability']
++    locals=[]
++    for name,expected in old_expected.items():
++        if name.startswith('n3-stage123-auth-'):
++            case=name.removeprefix('n3-stage123-auth-');source=v.self_tee(old.auth_fixture(case))
++        elif name.startswith('n3-stage123-owner-'):
++            case=name.removeprefix('n3-stage123-owner-');source=v.self_tee(old.owner_fixture(case))
++        else:case='join';source=v.self_tee(old.join_fixture())
++        newname=name.replace('stage123-','stage123r2-')
++        path=ROOT/('models' if case=='join' else 'scenarios')/(newname+'.pv');path.write_text(source)
++        locals.append(f'{newname}|{path.relative_to(ROOT)}|local-r2-Stage1-or-algebra|3')
++        metadata[newname]={'case':case,'expected_reachability':expected,'nature':'local-guard-or-algebra',
++                           'actual_stage1_all_three':False,'private_buffered_fixture':True,'source':str(path.relative_to(ROOT))}
++    source=v.self_tee(old.auth_fixture('normal'))
++    start=source.index('let fixture(')
++    source=source[:start]+source[start:].replace('pol(P3, E3,','pol(P3, E2,')
++    name='n3-stage123r2-auth-wrong-self-tee'
++    path=ROOT/'scenarios'/(name+'.pv');path.write_text(source)
++    metadata[name]={'case':'wrong-self-tee','expected_reachability':[True,True,True,True,False,False],
++                    'nature':'local-extra-SelfTEE-control','actual_stage1_all_three':False,
++                    'private_buffered_fixture':True,'source':str(path.relative_to(ROOT))}
++    locals.append(f'{name}|{path.relative_to(ROOT)}|local-r2-Stage1-or-algebra|3')
++    table_source,table_count=control_table_audit(cases)
++    name='join-stage123r2-control-tables'
++    path=ROOT/'models'/(name+'.pv');path.write_text(table_source)
++    metadata[name]={'case':'control-table-audit','expected_reachability':[False,True],
++                    'nature':'ground-control-tables-versus-generic-ProVerif-join',
++                    'distinct_control_configurations':table_count,'actual_stage1_all_three':False,
++                    'private_buffered_fixture':False,'source':str(path.relative_to(ROOT))}
++    (ROOT/'jobs-stage123r2-control-tables.txt').write_text(f'{name}|{path.relative_to(ROOT)}|algebra|3\n')
++    (ROOT/'jobs-stage123r2-controls.txt').write_text('\n'.join(jobs)+'\n')
++    (ROOT/'jobs-stage123r2-local.txt').write_text('\n'.join(locals)+'\n')
++    pilot=[jobs[cases.index(c)] for c in ('normal','duplicate-quote','policy-hash-mismatch','authorized-signer-peer-conflict')]
++    (ROOT/'jobs-stage123r2-control-pilot.txt').write_text('\n'.join(pilot)+'\n')
++    (ROOT/'reports/stage123r2-control-expectations.json').write_text(json.dumps(metadata,indent=2,ensure_ascii=False)+'\n')
++    print(f'Generated {len(jobs)} three-party authorized control scenarios and {len(locals)} local/alias checks.')
++
++if __name__=='__main__':main()
+--- /dev/null
++++ b/formal_verification/revised-20261027/stage123_regression.py
+@@ -0,0 +1,159 @@
++#!/usr/bin/env python3
++"""Local control fixtures for the actual Stage 1 checks, plus all 12 join cases.
++
++Fixtures use a private channel to deliver an exact faulty message. They are
++guard checks with reachable predecessors, not additional public-network proofs.
++The main five queries remain over the full public-network Stage 1-3 process.
++"""
++import json
++from pathlib import Path
++import re
++import generate_models as g
++
++ROOT=Path(__file__).resolve().parent
++
++def declarations():
++    text=g.stage123_model().split('(* Stage 3: shared verifier,')[0]
++    return re.sub(r'^query\b.*?\.', '',text,flags=re.M|re.S)
++
++def norm(source):
++    return g.common_hash_encoding(source)
++
++def auth_fixture(scenario):
++    prefix=g.stage123_role(3).split('    event AuthorizedPolicyDeclared')[0]+'    0\n  ).\n'
++    prefix=norm(prefix)
++    prefix=prefix.replace('    if signedKey=pk3',
++                          '    event FixtureAuthorizationCryptoChecked;\n    if signedKey=pk3')
++    rho=norm(g.policy(3,3))
++    owner='skO3'
++    signed_key='k'
++    signed_hash=f'H(policyBytes({rho}))'
++    signing='skO3'
++    if scenario=='wrong-signature':signing='wrong'
++    elif scenario=='fingerprint-mismatch':owner=signing='skO1'
++    elif scenario=='key-rebinding':signed_key='pk(wrong)'
++    elif scenario=='policy-rebinding':signed_hash=f'H(policyBytes({norm(g.policy(3,3,"Weak"))}))'
++    elif scenario=='wrong-self':
++        rho=norm(g.policy(3,1));owner=signing='skO1';signed_hash=f'H(policyBytes({rho}))'
++    elif scenario=='wrong-attester':
++        rho=rho.replace('Assign(P3)','Assign(P1)');signed_hash=f'H(policyBytes({rho}))'
++    elif scenario=='nonconcrete-signer':
++        rho=rho.replace('exact(H(pk(skO3)))','Any');signed_hash=f'H(policyBytes({rho}))'
++    body='0' if scenario=='no-authorization' else f'out(net,(P3,k,{rho},sign(({signed_key},{signed_hash}),{signing}),pk({owner})))'
++    fixture=f'''
++let fixture(akR:skey)=
++  new wrong:skey;
++  new n:bitstring;
++  in(net,(=P3,k:bitstring));
++  out(net,(P3,n));
++  in(net,(=P3,=k,q:bitstring));
++  let rpeQuote(=mRPE,=Good,=H((k,n)))=checksign(q,pk(akR)) in
++  event FixtureQuoteReady;
++  {body}.
++process
++  new akR:skey;
++  new akE:skey;
++  (rpe3(akR,pk(akR),pk(akE)) | fixture(akR))
++'''
++    queries='''query event(FixtureQuoteReady).
++query k:bitstring,r:policy,o:bitstring; event(AuthorizationReceived(P3,k,r,o)).
++query event(FixtureAuthorizationCryptoChecked).
++query k:bitstring,r:policy,o:bitstring; event(AuthorizationSignatureChecked(P3,k,r,o)).
++query k:bitstring,r:policy,o:bitstring; event(AuthorizationSelfChecked(P3,k,r,o)).
++query k:bitstring,r:policy,o:bitstring,s:bitstring; event(AuthorizationAccepted(P3,k,r,o,s)).
++'''
++    text=declarations().replace('free net: channel.','free net: channel [private].')
++    return text+'event FixtureQuoteReady.\nevent FixtureAuthorizationCryptoChecked.\n'+queries+prefix+fixture
++
++def owner_fixture(scenario):
++    owner=norm(g.stage1_owner(1))
++    original='  let rpeQuote(=mRPE,status:tcbstatus,binding:bitstring)=checksign(q,pkAKR) in'
++    owner=owner.replace(original,'''  let signedQuote=checksign(q,pkAKR) in
++  event FixtureOwnerCryptoChecked;
++  let rpeQuote(=mRPE,status:tcbstatus,binding:bitstring)=signedQuote in''')
++    assert 'event FixtureOwnerCryptoChecked' in owner
++    code='mBad' if scenario=='wrong-code' else 'mRPE'
++    status='Outdated' if scenario=='wrong-tcb' else 'Good'
++    key='pk(wrong)' if scenario=='key-rebinding' else 'pk(target)'
++    nonce='stale' if scenario=='nonce-rebinding' else 'n'
++    signing='wrong' if scenario=='wrong-signature' else 'akR'
++    fixture=f'''
++let fixture(akR:skey)=
++  new target:skey;
++  new wrong:skey;
++  new stale:bitstring;
++  in(net,(=P1,n:bitstring));
++  event FixtureOwnerResponseSent;
++  out(net,(P1,pk(target),sign(rpeQuote({code},{status},H(({key},{nonce}))),{signing}))).
++process
++  new akR:skey;
++  (owner1(pk(akR)) | fixture(akR))
++'''
++    queries='''query event(FixtureOwnerResponseSent).
++query event(FixtureOwnerCryptoChecked).
++query o:bitstring,k:bitstring,r:policy,n:bitstring; event(OwnerAttested(o,k,r,n)).
++query o:bitstring,k:bitstring,h:bitstring; event(OwnerSigned(o,k,h)).
++'''
++    text=declarations().replace('free net: channel.','free net: channel [private].')
++    return text+'event FixtureOwnerResponseSent.\nevent FixtureOwnerCryptoChecked.\n'+queries+owner+fixture
++
++def join_fixture():
++    types=['tcbreq']*3+['entry']*3
++    left=[f'l{i}' for i in range(6)];right=[f'r{i}' for i in range(6)]
++    lp='mkstar('+','.join(f'{x}:{t}' for x,t in zip(left,types))+')'
++    rp='mkstar('+','.join(f'{x}:{t}' for x,t in zip(right,types))+')'
++    lines=[f'letfun genericJoin(x:polstar,y:polstar)=\n  let {lp}=x in\n  let {rp}=y in']
++    for i in range(6):
++        function='jointcb' if i<3 else 'joinentry'
++        lines.append(f'  let j{i}={function}({left[i]},{right[i]}) in')
++    lines.append('  mkstar('+','.join(f'j{i}' for i in range(6))+').\n')
++    body=f'''
++let checkProfile(pr:profile)=
++  let a=constraints({norm(g.policy(3,1))}) in
++  let b=constraints({norm(g.policy(3,2))}) in
++  let c=constraints(choosePolicy(pr)) in
++  let first=joinstar(a,b) in
++  let generalFirst=genericJoin(a,b) in
++  let actual=joinstar(first,c) in
++    (let expected=genericJoin(generalFirst,c) in
++      if actual=expected then event FixtureJoinPassed(pr) else event FixtureJoinWrong(pr)
++     else event FixtureJoinWrong(pr))
++  else
++    (let expected=genericJoin(generalFirst,c) in event FixtureJoinWrong(pr)
++     else event FixtureJoinPassed(pr)).
++process
++  ('''+ ' |\n   '.join(f'checkProfile({p})' for p in g.EXTENDED_PROFILES)+')\n'
++    queries='query pr:profile; event(FixtureJoinWrong(pr)).\nquery '+ ' && '.join(f'event(FixtureJoinPassed({p}))' for p in g.EXTENDED_PROFILES)+'.\n'
++    return declarations()+'event FixtureJoinWrong(profile).\nevent FixtureJoinPassed(profile).\n'+queries+'\n'.join(lines)+body
++
++def main():
++    jobs=[];expected={}
++    receiver=['normal','wrong-signature','fingerprint-mismatch','key-rebinding',
++              'policy-rebinding','wrong-self','wrong-attester','nonconcrete-signer','no-authorization']
++    for case in receiver:
++        name='n3-stage123-auth-'+case
++        path=ROOT/'scenarios'/(name+'.pv');path.write_text(auth_fixture(case))
++        # true means the query target is reachable; collector interprets raw false.
++        behavior=[True,True,True,True,True,case=='normal']
++        if case=='wrong-signature':behavior[2:]=[False]*4
++        elif case in ('key-rebinding','policy-rebinding'):behavior[3:]=[False]*3
++        elif case=='wrong-self':behavior[4:]=[False]*2
++        elif case=='no-authorization':behavior=[True]+[False]*5
++        expected[name]=behavior
++        jobs.append(f'{name}|{path.relative_to(ROOT)}|local-Stage1-receiver|3')
++    for case in ('normal','wrong-code','wrong-tcb','key-rebinding','nonce-rebinding','wrong-signature'):
++        name='n3-stage123-owner-'+case
++        path=ROOT/'scenarios'/(name+'.pv');path.write_text(owner_fixture(case))
++        expected[name]=[True,case!='wrong-signature',case=='normal',case=='normal']
++        jobs.append(f'{name}|{path.relative_to(ROOT)}|local-Stage1-owner|3')
++    path=ROOT/'models/join-stage123-p12-regression.pv';path.write_text(join_fixture())
++    expected[path.stem]=[False,True]
++    jobs.append(f'{path.stem}|{path.relative_to(ROOT)}|algebra|3')
++    (ROOT/'jobs-stage123-regression.txt').write_text('\n'.join(jobs)+'\n')
++    (ROOT/'reports/stage123-regression-expectations.json').write_text(json.dumps({
++        'scope':'Local private-channel control fixtures; not substitutes for the full public-network proofs',
++        'values_mean':'True = reachable; False = unreachable, not raw ProVerif true/false',
++        'expected_reachability':expected},indent=2)+'\n')
++    print(f'Generated {len(jobs)} local Stage 1/join checks.')
++
++if __name__=='__main__':main()
+--- /dev/null
++++ b/formal_verification/revised-20261027/collect_stage23_results.py
+@@ -0,0 +1,123 @@
++#!/usr/bin/env python3
++"""Collect new Stage 2-3 runs from immutable snapshots; leave old reports intact."""
++import argparse
++import csv
++import hashlib
++import json
++import re
++from pathlib import Path
++
++ROOT=Path(__file__).resolve().parent
++PROPERTIES=('Agreement','Authenticity','Completeness','Issuance')
++
++def digest(path):
++    return hashlib.sha256(path.read_bytes()).hexdigest()
++
++def extract_queries(source):
++    return [(source[:m.start()].count('\n')+1,m.group())
++            for m in re.finditer(r'^query\b.*?\.',source,re.M|re.S)]
++
++def main():
++    cli=argparse.ArgumentParser(description=__doc__)
++    cli.add_argument('runs',nargs='+',help='Existing directory names under results/')
++    cli.add_argument('--report-prefix',default='stage23',help='Output prefix, preserving earlier reports')
++    cli.add_argument('--select-json',type=Path,help='Optional run-name to selected-job-name mapping')
++    cli.add_argument('--evidence-json',type=Path,help='Optional per-job control scope and input classification')
++    args=cli.parse_args()
++    if not re.fullmatch(r'[A-Za-z0-9_-]+',args.report_prefix):cli.error('Invalid report prefix')
++    selection=json.loads(args.select_json.read_text()) if args.select_json else None
++    evidence=json.loads(args.evidence_json.read_text()) if args.evidence_json else {}
++    rows=[]
++    runs=[]
++    issues=[]
++    details=[]
++    for name in args.runs:
++        if not re.fullmatch(r'[A-Za-z0-9_-]+',name):
++            cli.error('Invalid run name')
++        directory=ROOT/'results'/name
++        for line in (directory/'jobs.txt').read_text().splitlines():
++            job,source,recorded_category,n=line.split('|')
++            if selection is not None and job not in selection.get(name,[]):continue
++            meta=evidence.get(job,{})
++            extent=meta.get('process_extent','')
++            category=recorded_category
++            if recorded_category.startswith('controlled-') and extent:
++                category='controlled-Stage123-quote-prefix' if 'prefix' in extent else 'controlled-full-Stage123'
++            d=directory/job
++            frozen=d/'model.pv'
++            if not frozen.exists():
++                issues.append(f'{name}/{job}: not run')
++                continue
++            sha=digest(frozen)
++            assert sha==(d/'model.sha256').read_text().split()[0],f'Frozen source mismatch: {d}'
++            queries=extract_queries(frozen.read_text())
++            log=(d/'output.log').read_text() if (d/'output.log').exists() else ''
++            raw=list(re.finditer(r'^RESULT (.+?) (?:is (true|false)|cannot be proved)\.$',log,re.M))
++            parse=int((d/'parse-exit.txt').read_text()) if (d/'parse-exit.txt').exists() else None
++            exit_code=int((d/'exit.txt').read_text()) if (d/'exit.txt').exists() else None
++            timing=(d/'time.txt').read_text() if (d/'time.txt').exists() else ''
++            tm=dict(re.findall(r'(\w+)=([\d.]+)',timing))
++            elapsed=float(tm['elapsed_seconds']) if 'elapsed_seconds' in tm else None
++            record=dict(run=name,job=job,source=source,sha256=sha,category=category,
++                        recorded_category=recorded_category,process_extent=extent,input_nature=meta.get('nature',''),
++                        parse_exit=parse,exit=exit_code,elapsed_seconds=elapsed,
++                        query_count=len(queries),result_count=len(raw),
++                        source_still_matches=digest(ROOT/source)==sha,
++                        log_sha256=digest(d/'output.log') if (d/'output.log').exists() else None)
++            runs.append(record)
++            if exit_code!=0 or len(raw)!=len(queries):
++                issues.append(f'{name}/{job}: exit={exit_code}, {len(raw)}/{len(queries)} results')
++            last=0
++            for i,(lineno,query) in enumerate(queries):
++                trace=False
++                if i<len(raw):
++                    result=raw[i][2] or 'cannot be proved'
++                    trace='A trace has been found.' in log[last:raw[i].end()]
++                    last=raw[i].end()
++                    if '==>' in query:
++                        meaning={'true':'proved','false':'confirmed_counterexample' if trace else 'unconfirmed_false',
++                                 'cannot be proved':'inconclusive'}[result]
++                    else:
++                        meaning={'true':'unreachable','false':'reachable' if trace else 'unconfirmed_false',
++                                 'cannot be proved':'inconclusive'}[result]
++                    raw_line=raw[i].group()
++                else:
++                    result='no result'
++                    meaning='timed_out' if exit_code==124 else 'parse_failed' if parse not in (0,None) else 'unfinished'
++                    raw_line=''
++                if category=='primary-single':
++                    qid=job.rsplit('-',1)[1]
++                    prop=PROPERTIES[int(qid[1:])-1]
++                elif category=='primary':
++                    qid='Q'+str(i+1)
++                    props=('Authorization',)+PROPERTIES if 'stage123' in job else PROPERTIES
++                    prop=props[i]
++                else:
++                    qid=str(i+1)
++                    prop=category
++                row=dict(run=name,model=job,participants=n,category=category,query_id=qid,property=prop,
++                         recorded_category=recorded_category,process_extent=extent,input_nature=meta.get('nature',''),
++                         raw_result=result,result=meaning,model_sha256=sha,elapsed_seconds=elapsed,
++                         timing_scope='single query, whole verifier command' if len(queries)==1 else 'whole model, all queries combined',
++                         query_line=lineno,query=query,source=source,frozen_source=str(frozen.relative_to(ROOT)),
++                         log=str((d/'output.log').relative_to(ROOT)),trace_reconstructed=trace,
++                         graph_directory=str((d/'graphs').relative_to(ROOT)))
++                rows.append(row)
++                details.append(f'{name}/{job}/{qid}\n{query}\n{raw_line}\nResult: {meaning}; wall={elapsed}s ({row["timing_scope"]})\nSHA256: {sha}\nLog: {row["log"]}\n')
++    reports=ROOT/'reports'
++    with (reports/(args.report_prefix+'-results-table.csv')).open('w',newline='') as f:
++        w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
++    latest={r['job']:r['run'] for r in runs}
++    current=[r for r in rows if latest[r['model']]==r['run']]
++    result={'baseline':'3766338d5301d543434a57fdcb3aea037aea512a','runs':runs,'results':rows,'current_results':current,'issues':issues,
++            'source_and_log_integrity':all(r['source_still_matches'] for r in runs),
++            'all_runs_complete':not issues,
++            'latest_run_per_model':latest,
++            'current_unresolved_queries':sum(r['result'] in ('inconclusive','timed_out','parse_failed','unfinished','unconfirmed_false') for r in current),
++            'clock_scope':'GNU time includes ProVerif parsing/translation/solving and requested graph generation; preliminary parse-only and Docker startup are separate.'}
++    (reports/(args.report_prefix+'-results.json')).write_text(json.dumps(result,indent=2,ensure_ascii=False)+'\n')
++    (reports/(args.report_prefix+'-queries-and-results.txt')).write_text('\n'.join(details))
++    print(json.dumps({'runs':len(runs),'query_results':len(rows),'issues':issues,'integrity':result['source_and_log_integrity']},indent=2))
++
++if __name__=='__main__':
++    main()
+--- /dev/null
++++ b/formal_verification/revised-20261027/organize_stage123r2_results.py
+@@ -0,0 +1,352 @@
++#!/usr/bin/env python3
++"""Audit and organize the completed bounded Stage 1-3 experiment.
++
++Reads existing verifier evidence; does not run ProVerif. Regenerates sources
++in a temporary directory to check reproducibility without overwriting logs.
++The old stage123 reports remain a record of the preceding revision.
++"""
++import collections
++import contextlib
++import copy
++import csv
++import hashlib
++import io
++import itertools
++import json
++from pathlib import Path
++import re
++import shutil
++import subprocess
++import tempfile
++
++import generate_models as g
++import stage123_complete as v
++import stage123_supplement as s
++
++ROOT = Path(__file__).resolve().parent
++REPORTS = ROOT / 'reports'
++BASE = '3766338d5301d543434a57fdcb3aea037aea512a'
++BASE_GENERATOR_SHA256 = '961b66946b7f49e92783537edbadd4baeb29096ea6bb7748507bf0516d90ba15'
++NAMES = ('Authorization', 'Agreement', 'Authenticity', 'Completeness', 'Issuance')
++
++
++def sha(data):
++    return hashlib.sha256(data).hexdigest()
++
++
++def save(name, value):
++    (REPORTS / name).write_text(json.dumps(value, indent=2, ensure_ascii=False) + '\n')
++
++
++def csv_file(name, rows):
++    with (REPORTS / name).open('w', encoding='utf-8-sig', newline='') as f:
++        writer = csv.DictWriter(f, fieldnames=list(rows[0]))
++        writer.writeheader()
++        writer.writerows(rows)
++
++
++def nonquery(source):
++    text = re.sub(r'\(\*.*?\*\)', '', source, flags=re.S)
++    text = re.sub(r'^query\b.*?\.', '', text, flags=re.M | re.S)
++    return sha(re.sub(r'\s+', ' ', text).strip().encode())
++
++
++def profile_coverage():
++    """A concrete slice demonstrates the limit; it is not a coverage estimate."""
++    base = s.constraints(v.policy(1))
++    details = []
++    successful = set()
++    for name in g.EXTENDED_PROFILES:
++        term = s.constraints(v.policy(3, name))
++        try:
++            output = g.merge_star(3, base, term)
++            successful.add(output)
++            result = g.render(output)
++            svn = [entry[1][3] for entry in output[1][3:]]
++        except ValueError:
++            result, svn = None, None
++        details.append(dict(profile=name, policy=v.policy(3, name),
++                            compatible_join=result is not None,
++                            normalized_join=result, normalized_minimum_SVN=svn))
++
++    # Keep every field of P3 Compatible fixed except its three minimum SVNs.
++    # Self/signature/attester constraints are unchanged by this enumeration.
++    svn_slice = []
++    for minima in itertools.product(('V0', 'V1', 'V2'), repeat=3):
++        fields = list(s.constraints(v.policy(3))[1])
++        for j, minimum in enumerate(minima):
++            entry = list(fields[j + 3][1])
++            entry[3] = minimum
++            fields[j + 3] = ('Req', tuple(entry))
++        output = g.merge_star(3, base, ('mkstar', tuple(fields)))
++        svn_slice.append(dict(input_minimum_SVN=minima,
++                              normalized_minimum_SVN=[e[1][3] for e in output[1][3:]],
++                              normalized_join=g.render(output)))
++    possible = {tuple(x['normalized_minimum_SVN']) for x in svn_slice}
++    covered = {tuple(x['normalized_minimum_SVN']) for x in details if x['compatible_join']}
++    assert len(possible) == 8 and len(covered) == 3
++    assert len(successful) == 3
++    answer = dict(
++        domain='12 complete P3 profiles, two fixed honest policies; no cross-profile field construction',
++        principal_field_types=['measurement', 'signer', 'product', 'minimum SVN', 'TCB acceptance set', 'attester'],
++        represented_semantics=['compatible concrete constraints', 'peer wildcards with concrete self signer',
++                               'stronger SVN on E1 or E2', 'exact-value conflicts',
++                               'disjoint TCB sets', 'attester conflicts',
++                               'unspecified peer attester', 'redundant/weaker input'],
++        profiles=details,
++        successful_catalog_profiles=sum(x['compatible_join'] for x in details),
++        distinct_successful_catalog_joins=len(successful),
++        SVN_slice=dict(description='Only P3 minimum SVNs vary; all other fields are Compatible. Each input is admissible under the general field syntax.',
++                       input_combinations=len(svn_slice), distinct_successful_join_vectors=sorted(possible),
++                       vectors_covered_by_catalog=sorted(covered), missing_vectors=sorted(possible - covered),
++                       enumeration=svn_slice),
++        interpretation='This explicit slice refutes exhaustive field-combination coverage. The 3/8 count is not an estimate of total policy-domain coverage.',
++        recommended_wording='12 个预设 profile 覆盖主要 policy 字段类型及通配符、相容、强化和冲突等代表性语义情形；该有限目录不穷尽字段自由组合。')
++    save('stage123r2-profile-coverage.json', answer)
++    csv_file('stage123r2-profile-coverage.csv', [
++        dict(profile=x['profile'], compatible_join=x['compatible_join'],
++             normalized_minimum_SVN=' / '.join(x['normalized_minimum_SVN'] or []),
++             policy=x['policy'], normalized_join=x['normalized_join']) for x in details])
++    (REPORTS / 'stage123r2-profile-coverage.txt').write_text(
++        '12-profile 覆盖范围\n\n' + answer['recommended_wording'] + '\n\n'
++        '六类主要约束：measurement、signer、product、最低 SVN、TCB 接受集合、attester。\n'
++        '12 项是完整策略配置，不是六类字段的任意组合器。主模型没有开放目录间拼接。\n'
++        '6 项可与固定诚实配置成功 join，6 项冲突；成功输入归一化后只有 3 种不同结果。\n\n'
++        '可复核的遗漏：固定其他字段，仅让 P3 对 E1/E2/E3 的最低 SVN 各取 V0/V1/V2，\n'
++        '原字段语法得到 27 个合法输入；与诚实方 (V1,V1,V1) 聚合后，得到 8 种成功结果。\n'
++        '12 项目录覆盖其中 3 种：(V1,V1,V1)、(V2,V1,V1)、(V1,V2,V1)。\n'
++        '未覆盖只提高 E3、同时提高 E1/E2，以及其他同时强化的结果。\n'
++        '3/8 只是这一具体 SVN 切片的统计，不能当作整个策略空间的覆盖率。\n'
++        '因此不能据此写“基本覆盖 policy 字段自由组合”，也未证明它们是完备等价类。\n\n'
++        '本统计不增加主模型 profile、不改变输入域，也不替代新的安全证明。\n'
++        '逐项目录与枚举依据见同名 JSON/CSV；通用 ProVerif join 对照见两项代数模型。\n')
++    return answer
++
++
++def audit(result, metadata):
++    checks = {}
++    def check(name, value):
++        checks[name] = bool(value)
++
++    check('current_results_complete', not result['issues'] and result['current_unresolved_queries'] == 0)
++    check('current_source_integrity', result['source_and_log_integrity'])
++    check('69_jobs_189_query_results', len(result['runs']) == 69 and len(result['current_results']) == 189)
++    relative = 'formal_verification/revised-20261027/generate_models.py'
++    # A delivered experiment archive has no Git database. Include the pinned
++    # baseline source so the same audit works after an independent extraction.
++    try:
++        baseline = subprocess.run(['git', 'show', BASE + ':' + relative], cwd=ROOT,
++                                  capture_output=True, check=False)
++        old_text = baseline.stdout.decode() if baseline.returncode == 0 else ''
++    except FileNotFoundError:
++        old_text = ''
++    if not old_text:
++        old_text = (ROOT / 'legacy/generate_models-3766338.py').read_text()
++    check('pinned_baseline_generator_hash', sha(old_text.encode()) == BASE_GENERATOR_SHA256)
++    old = {'__file__': str(ROOT / 'generate_models.py'), '__name__': 'baseline'}
++    exec(compile(old_text, 'baseline-generator', 'exec'), old)
++    check('original_eleven_profiles_retained', g.EXTENDED_PROFILES[:-1] == old['PROFILES'])
++    check('baseline_Stage3_verifier_preserved', g.ATTEST == old['ATTEST'])
++    check('baseline_four_query_definitions_preserved', g.PRIMARY == old['PRIMARY'] and g.ISSUANCE == old['ISSUANCE'])
++    check('historical_N2_N3_defaults_preserved', g.model(2) == old['model'](2) and g.model(3) == old['model'](3))
++    before = g.constraints_term(3, g.policy(3, 3))
++    expected = list(before[1])
++    entry = list(expected[4][1]); entry[3] = 'V2'; expected[4] = ('Req', tuple(entry))
++    check('twelfth_profile_only_changes_E2_SVN', g.constraints_term(3, g.policy(3, 3, 'StrongerSVNE2')) == ('mkstar', tuple(expected)))
++    source = v.model()
++    check('root_entry_is_current_r2', (ROOT.parent / 'sras-n3.pv').read_text() == source)
++    check('public_main_network', 'free net: channel.' in source)
++    check('malicious_O3_key_public', 'pk(skO3),skO3' in source)
++    check('one_shared_hash_no_nonce_key_type_barrier', source.count('fun H(bitstring):bitstring.') == 1 and 'type nonce.' not in source and 'type pkey.' not in source)
++    check('explicit_serialized_SelfTEE', 'fun pol(party, entity, roster,' in source and 'policySelfTEE(pol(a, selfTEE,' in source)
++    for i in (1, 2, 3):
++        role = v.role(i)
++        check(f'RPE{i}_actual_SelfRPE_and_SelfTEE_guard', f'policySelf(rho{i})=P{i} && policySelfTEE(rho{i})=E{i}' in role)
++        check(f'RPE{i}_same_key_policy_across_stages', role.count(f'new sk{i}:skey') == 1 and f'H((pk{i},H(policyBytes(rho{i}))))' in role and f'attest(P{i},E{i},sk{i},pistar' in role)
++        check(f'RPE{i}_same_initial_Evidence_quote_payload_shape', f'rpeQuote(mRPE,Good,H((pk{i},requested)))' in role and f'rpeQuote(mRPE,Good,H((pk{i},H(policyBytes(rho{i})))))' in role)
++        marker, end = f'  let q{i} = sign(', f'  event Confirm(P{i},pistar)'
++        old_role, inherited = old['role'](3, i), g.stage123_role(i)
++        check(f'RPE{i}_baseline_Stage2_checks_preserved', old_role[old_role.index(marker):old_role.index(end)+len(end)] == inherited[inherited.index(marker):inherited.index(end)+len(end)])
++
++    rows = result['current_results']
++    public = [r for r in result['runs'] if r['category'] in (*NAMES, 'auxiliary', 'reachability')]
++    fingerprints = {r['job']: nonquery((ROOT / r['source']).read_text()) for r in public}
++    check('22_public_models_same_nonquery_process_domain_corruption', len(public) == 22 and len(set(fingerprints.values())) == 1)
++    check('five_primary_proved', sum(r['category'] in NAMES and r['result'] == 'proved' for r in rows) == 5)
++    check('fourteen_auxiliary_proved', sum(r['category'] == 'auxiliary' and r['result'] == 'proved' for r in rows) == 14)
++    check('three_joint_witnesses_reconstructed', sum(r['category'] == 'reachability' and r['result'] == 'reachable' and r['trace_reconstructed'] for r in rows) == 3)
++    for run in result['runs']:
++        directory = ROOT / 'results' / run['run'] / run['job']
++        check('snapshot_' + run['job'], (directory / 'model.pv').read_bytes() == (ROOT / run['source']).read_bytes() and sha((directory / 'model.pv').read_bytes()) == run['sha256'])
++        check('output_' + run['job'], sha((directory / 'output.log').read_bytes()) == run['log_sha256'] and run['parse_exit'] == run['exit'] == 0)
++    by_job = collections.defaultdict(list)
++    for row in rows:
++        by_job[row['model']].append(row)
++    for job, meta in metadata.items():
++        actual = by_job[job]
++        expected = ['reachable' if value else 'unreachable' for value in meta['expected_reachability']]
++        check('expected_' + job, [r['result'] for r in actual] == expected)
++        check('positive_trace_' + job, all(r['trace_reconstructed'] for r in actual if r['result'] == 'reachable'))
++        if meta['actual_stage1_all_three']:
++            fixture = (ROOT / meta['source']).read_text()
++            for i in (1, 2, 3):
++                accepted = f'event AuthorizationAccepted(P{i},pk{i},rho{i},ownerKey,selfSigner);'
++                check(f'{job}_real_authorization{i}', accepted + f'\n    out(ready{i},P{i});' in fixture and f'let owner{i}(pkAKR:bitstring)' in fixture and f'sign((candidate,H(policyBytes(rho))),skO{i})' in fixture)
++            check(job + '_private_control_label', 'CONTROL FIXTURE' in fixture and 'free net: channel [private].' in fixture)
++    with tempfile.TemporaryDirectory(prefix='sras-r2-reproduce-', dir='/tmp') as temporary:
++        folder = Path(temporary)
++        for part in ('models', 'scenarios', 'queries', 'reports'):
++            (folder / part).mkdir()
++        shutil.copyfile(ROOT / 'models/stage123r2-report-inputs.json', folder / 'models/stage123r2-report-inputs.json')
++        old_v, old_s = v.ROOT, s.ROOT
++        try:
++            v.ROOT = s.ROOT = folder
++            with contextlib.redirect_stdout(io.StringIO()):
++                v.main(); s.main()
++            for run in result['runs']:
++                check('regenerated_' + run['job'], (folder / run['source']).read_bytes() == (ROOT / run['source']).read_bytes())
++        finally:
++            v.ROOT, s.ROOT = old_v, old_s
++    failed = [key for key, value in checks.items() if not value]
++    assert not failed, failed
++    answer = dict(baseline=BASE, baseline_generator_sha256=sha(old_text.encode()), checks=checks,
++                  full_public_process_nonquery_sha256=fingerprints,
++                  nature='Source/evidence audit, not additional ProVerif security queries',
++                  scope=dict(policy='12 complete P3 profiles + two fixed honest policies; private pol constructor and public factories',
++                             honest_configuration='Fixed Compatible constraints for P1/P2; Self RPE/TEE metadata differs',
++                             corruption='O3 signing key public; O1/O2 and all RPE private keys protected',
++                             SelfTEE='Serialized independent policy field, checked against the configured Ei in Stage1',
++                             sessions='One initialization, three protected RPEs, common static membership',
++                             quote='Stage1 and Stage2 share quote constructor, hardware key and H(key,bytes); Stage3 retains baseline separate hardware-key/teeQuote abstraction',
++                             controls='29 private controlled schedules/inputs, including four Evidence-prefix tests with all three real authorizations; not replacements for public-network proofs',
++                             exclusions='General field combinations, arbitrary honest configuration/corruption/N, repeated initialization, TLS and real collateral implementation'))
++    save('stage123r2-source-audit.json', answer)
++    return answer
++
++
++def executed_witnesses(result):
++    catalog = {g.render(g.parse_term(v.policy(3, name))): name for name in g.EXTENDED_PROFILES}
++    witnesses = []
++    for row in result['current_results']:
++        if row['category'] != 'reachability':
++            continue
++        lines = (ROOT / row['log']).read_text().splitlines()
++        executed = [(i, line) for i, line in enumerate(lines, 1) if line.startswith('The event AuthorizationAccepted(P3,')]
++        assert executed
++        lineno, line = executed[-1]
++        start = line.index('pol('); end = start + 4; depth = 1
++        while depth:
++            if line[end] == '(': depth += 1
++            if line[end] == ')': depth -= 1
++            end += 1
++        policy = line[start:end]
++        witnesses.append(dict(model=row['model'], actual_P3_profile=catalog[g.render(g.parse_term(policy))],
++                              actual_P3_policy=policy, log=row['log'], executed_event_line=lineno,
++                              elapsed_seconds=row['elapsed_seconds']))
++    assert {w['actual_P3_profile'] for w in witnesses} == {'PermissiveRpeTCB', 'StrongerSVNE2', 'Weak'}
++    save('stage123r2-executed-witnesses.json', witnesses)
++    return witnesses
++
++
++def coverage(result, metadata, witnesses):
++    previous = json.loads((ROOT / 'models/stage123r2-report-inputs.json').read_text())
++    rows = copy.deepcopy(previous['coverage'])
++    by_id = {r['编号']: r for r in rows}
++    for row in rows:
++        for key in ('核对结论', '证据', '未覆盖或待补'):
++            row[key] = row[key].replace('stage123-', 'stage123r2-')
++    def update(code, assessment, evidence, boundary='', status='已覆盖（限定当前模型与所列证据层级）'):
++        row = by_id[code]
++        row.update(当前覆盖=status, 核对结论=assessment, 证据=evidence, 未覆盖或待补=boundary)
++    update('O01', '实际三方 Stage1–3，五主性质、14辅助及三种三方联合执行。', 'sras-n3-stage123r2-primary.pv；stage123r2-results.json')
++    update('D03', '五类策略冲突均重建真实三方授权及 P1 PoliciesComplete 前序，FullJoin 不可达；RejectPeerTCB 单独检查。', 'control-conflict-*；control-reject-peer-tcb；两项 join 对照模型', '限定当前目录及明确列出的控制配置。')
++    update('D04', '主模型实际验证 concrete self-signer、指纹、Self RPE/TEE 及 own attester；局部测试分别证明前序可达和拒绝。', '16个局部Stage1模型；auth-nonconcrete-signer/fingerprint-mismatch/wrong-self/wrong-self-tee/wrong-attester', '主目录并未开放任意不合法 own 字段组合；这些目录外负例是明确标记的控制输入。', '已覆盖检查与局部负例；主策略域按后续指令收窄')
++    update('D05', '列出21个聚合字段，加上Self RPE、Self TEE、Members；分别描述语法与主目录实际取值。', 'stage123r2-field-domains.csv；stage123r2-profile-coverage.json', '主目录不开放字段笛卡尔积，详见D01/D02。')
++    update('S105', 'policy现在序列化独立SelfTEE字段；实际比较policySelf=Pi及policySelfTEE=Ei。', 'stage123_complete.py:self_tee；auth-wrong-self-tee', '角色配置Pi/Ei仍固定；只篡改SelfTEE的局部输入在签名/hash通过后被拒绝。')
++    update('S202', '保留实际签名、代码/TCB、key/hash绑定与peer key去重；补齐三方真实授权后的早期Quote检查。', 'A01/A02；missing-quote/duplicate-quote/bad-rpe-code/bad-rpe-tcb', '四个Quote控制模型保留精确检查前缀，省略后续不相关流程；不冒充完整私有全流程实验。')
++    update('S206', 'Stage2使用已授权状态和RPE认证策略，不重验owner签名；具体signer冲突与peer wildcard各有当前证据。', 'authorized-signer-peer-conflict；reachability-weak', 'signer冲突控制配置的诚实peer对E3期望改为O1指纹；主配置未改。')
++    update('S302', '实际实例验签、key/挑战绑定、六类appraisal守卫保持；11项当前坏输入控制实验覆盖前序与拒绝。', 'Issuance；A11；11个实例控制模型', '控制实例/接收端输入与故障性质分别列在control-expectations中。')
++    update('R01', '三个公开网络联合查询各自重建同一条包含三方授权、Confirm及CertIssued的轨迹。', 'stage123r2-executed-witnesses.json', '实际P3分别为PermissiveRpeTCB、StrongerSVNE2和Weak；不声称每个profile均有成功执行。')
++    update('T03', 'Self RPE、独立SelfTEE、本方attester及concrete self-signer分别有实际检查前序与拒绝证据。', 'auth-wrong-self/wrong-self-tee/wrong-attester/nonconcrete-signer', '局部控制负例不等同于主目录允许任意字段组合。')
++    update('T04', 'P3以实际O3 key和H(pk(skO3))合法自授权；诚实peers对E3期望H(pk(skO1))。三方授权及PoliciesComplete可达，FullJoin不可达。', 'n3-stage123r2-control-authorized-signer-peer-conflict；control-tables', '为触发指定冲突，单独改变控制配置中诚实peer对E3的signer期望；主五性质配置保持原样。')
++    update('T05', '同一公开主过程的联合查询将实际P3已授权policy约束为Weak，三方授权、确认及签发共同可达。', 'sras-n3-stage123r2-reachability-weak；executed-witnesses.json', 'Weak自身signer具体、对peers signer为Any；只约束查询，不限制过程输入。')
++    update('T06', '真实三方授权后给P1交付有效P2 Evidence，扣留P3所有Quote交付。EvidenceChecked(P1,P2)可达、QuotesComplete(P1)不可达。', 'control-missing-quote', '私有确定交付与精确Evidence检查前缀；初始Quote服务保留，但不向P1交付可替代的P3 Quote。')
++    update('T07', '将真实P2 Quote以P3外层标签再交付；三方真实授权及首个peer检查可达，重复包接收可达，全员Quote完成不可达。', 'control-duplicate-quote', '确定交付顺序的私有前缀测试；没有伪造硬件签名。')
++    update('T08', '缺失/重复policy均从三方真实授权继续；QuotesComplete及接受有效P2 policy可达，PoliciesComplete不可达；重复包接收另有可达查询。', 'control-missing-policy/duplicate-policy', '完整Stage2–3体、私有交付控制。')
++    update('T09', '缺失、重复、已认证但hash不匹配的确认均有FullJoin及有效P2确认前序，Confirm(P1)不可达。', 'control-missing-confirmation/duplicate-confirmation/confirmation-mismatch', '错误hash签名由受保护发送端故障注入；不声称正常网络攻击者可产生该签名。')
++    update('T10', '请求真实P3初始Quote承诺Weak的hash，再交付实际授权Compatible的真实policy签名。QuotesComplete、PolicyAuthenticated可达，policy hash检查拒绝。', 'control-policy-hash-mismatch；ControlInitialHashRequested可达', '使用现有初始Quote请求能力和相同载荷；没有修改受保护RPE的policy发送内容。')
++    update('T11', '五类策略冲突均有真实三方授权、PoliciesComplete可达及FullJoin不可达；控制专门化与通用PV join逐项对照。', 'control-conflict-measurement/signer/product/tcb/attester；join-stage123r2-control-tables', '语法合法输入限定列出的目录；一般自由组合仍未证明。')
++    update('T12', '11项坏实例输入均在三方真实授权及P1共识确认后检查签名、绑定或appraisal拒绝，并分别确认接收/验签/QuoteVerified前序。', 'control-bad-*/revoked-tcb/invalid-tcb/wrong-attester/wrong-challenge/wrong-instance-key/invalid-signature', 'bad-rpe-code/tcb另外属于早期Quote前缀与硬件故障测试。')
++    update('T13', '29个三方控制场景和16个局部Stage1测试均核对指定前序；所有正向可达结果有实际重建轨迹。', 'stage123r2-control-expectations.json；stage123r2-results-table.csv', '4个Quote场景为三方真实授权后的检查前缀；25个保留完整Stage2–3体。局部控制不替代公开网络主证明。')
++    update('A02', '当前69作业189条确定结果，未决0；开发阶段状态另有摘要。', 'stage123r2-results.json；stage123r2-development-summary.json', '未选中开发尝试的原始文件留存本地，未计入或上传为当前结果；摘要不代替其原始证据。')
++    update('A03', '5主查询、14辅助、3联合见证的非查询过程摘要一致；策略域及攻击者配置相同。', 'stage123r2-source-audit.json')
++    update('V01', '给出基线到当前的源码差异；说明真实授权、Stage3、共享hash、独立SelfTEE和后续有限策略约定。', 'diffs/*-stage123r2.diff；stage123r2-SUMMARY.txt', '11项未替换为一般组合器，而按后续指令增加到12项；这一范围变化单独列明。')
++    update('V02', '独立源码、固定基线、报告输入、生成和运行脚本、环境、命令及hash均已收录。', 'stage123r2-REPRODUCE.txt；各选中结果目录；SHA256SUMS.stage123r2.public.txt')
++    update('V04', '当前69作业保存完整文字输出、冻结源、前序及联合执行轨迹；公开联合见证有DOT/PDF。', 'stage123r2-current-selection.json及各作业output.log/command/time/exit', '私有控制关闭绘图但保留文字轨迹；未选中的开发尝试只公开状态摘要，原始材料留在本地。')
++    update('V06', '当前模型、原始日志、查询、三条联合执行轨迹和复现材料直接收录到仓库。', 'stage123r2-current-selection.json；stage123r2-REPRODUCE.txt；SHA256SUMS.stage123r2.public.txt', '本地完整压缩包继续保留；镜像、压缩包及其解压副本不重复提交。')
++    by_id['V06']['后续直接指令'] = '按本次要求提交当前结果，排除镜像、交付副本和无关文件。'
++    # Replace stale witness/count references in otherwise unchanged assessments.
++    for row in rows:
++        row['核对结论'] = row['核对结论'].replace('两个联合见证', '三个联合见证')
++        row['证据'] = row['证据'].replace('两个联合见证', '三个联合见证')
++    evidence = []
++    for run in result['runs']:
++        job = run['job']
++        level = ('public-full-Stage123' if run['category'] in (*NAMES, 'auxiliary', 'reachability')
++                 else metadata[job].get('process_extent', metadata[job]['nature']))
++        evidence.append(dict(**run, evidence_level=level, details=metadata.get(job)))
++    report = dict(instructions=previous['instructions'], instructions_sha256=previous['instructions_sha256'],
++                  baseline=BASE, current_primary_sha256=sha(v.model().encode()),
++                  verdict='Current evidence covers the targeted checks at their stated level in the later-authorized twelve-profile domain. Optional ablation was not rerun. Source, selected logs and traces are published directly; delivery archives are retained locally.',
++                  current_model_jobs=69, current_query_results=189, executed_witnesses=witnesses,
++                  coverage=rows, evidence=evidence,
++                  scope_note='12 profiles are representative cases, not exhaustive or established near-complete field-combination coverage. Four early Quote controls use precise prefixes after three real authorizations.')
++    save('stage123r2-second-instructions-coverage.json', report)
++    csv_file('stage123r2-second-instructions-coverage.csv', rows)
++    text = ['第二份说明：补齐后的覆盖对照（Stage123 r2，2026-10-28）',
++            '原先列出的专项缺口现已补齐。范围按后续指令固定为12个完整profile，未恢复原文的一般字段组合。',
++            '69个当前作业／189条确定结果；层级：5主性质＋14辅助＋3公开联合可达＋29控制场景79查询＋17局部/目录模型86查询＋控制表对照2查询。',
++            '29个控制场景中：25个保留完整Stage2–3体；4个保留三方真实授权与精确Evidence检查前缀。',
++            '16个局部Stage1模型是检查守卫的控制实验；另1个模型对照12项目录join。不得把控制测试数当作主性质数。',
++            '一般策略组合、任意诚实配置/参与方数量/腐化组合不在此次结论内。12-profile不能写成基本覆盖自由组合。',
++            '可选消融未重跑；当前原始证据直接收录仓库，不重复提交本地压缩包。论文附件未修改。', '']
++    for row in rows:
++        text += [f"{row['编号']} | {row['当前覆盖']}",
++                 f"原说明第{row['说明起始行']}行：{row['原要求摘录']}",
++                 '核对：' + row['核对结论'], '证据：' + row['证据']]
++        if row['未覆盖或待补']: text.append('范围/解释：' + row['未覆盖或待补'])
++        if row['后续直接指令']: text.append('后续指令：' + row['后续直接指令'])
++        text.append('')
++    (REPORTS / 'stage123r2-second-instructions-coverage.txt').write_text('\n'.join(text) + '\n')
++    csv_file('stage123r2-field-domains.csv', previous['field_domains'])
++    return report
++
++
++def development_inventory(selection):
++    # A published checkout deliberately contains only the selected runs.
++    # Read the recorded development summary rather than deriving a different
++    # history from whichever local prototype files happen to be present.
++    inputs = json.loads((ROOT / 'models/stage123r2-report-inputs.json').read_text())
++    assert sum(map(len, selection.values())) == 69
++    save('stage123r2-development-summary.json', inputs['development_summary'])
++
++
++def main():
++    result = json.loads((REPORTS / 'stage123r2-results.json').read_text())
++    metadata = json.loads((REPORTS / 'stage123r2-control-expectations.json').read_text())
++    selection = json.loads((REPORTS / 'stage123r2-current-selection.json').read_text())
++    audit_result = audit(result, metadata)
++    profiles = profile_coverage()
++    witnesses = executed_witnesses(result)
++    development_inventory(selection)
++    coverage(result, metadata, witnesses)
++    main_rows = [r for r in result['current_results'] if r['category'] in NAMES]
++    timings = {r['category']: r['elapsed_seconds'] for r in main_rows}
++    print(json.dumps(dict(jobs=len(result['runs']), queries=len(result['current_results']),
++                          source_checks=len(audit_result['checks']), main_seconds=timings,
++                          witnesses=[w['actual_P3_profile'] for w in witnesses],
++                          catalog_join_outcomes=profiles['distinct_successful_catalog_joins']), ensure_ascii=False, indent=2))
++
++
++if __name__ == '__main__':
++    main()
+--- a/formal_verification/revised-20261027/run.sh
++++ b/formal_verification/revised-20261027/run.sh
+@@ -12,10 +12,24 @@
+     exit 2
+ fi
+ mkdir -p "$dest"
++cp "$base/$jobs_file" "$dest/jobs.txt"
++mkdir "$dest/source-dependencies"
++cp "$base/generate_models.py" "$dest/source-dependencies/"
++cp "$base/models/algebra.pvl" "$dest/source-dependencies/"
++for helper in stage123_regression.py stage123_complete.py stage123_supplement.py; do
++    if [ -f "$base/$helper" ]; then
++        cp "$base/$helper" "$dest/source-dependencies/"
++    fi
++done
++printf 'timeout_seconds=%s\nmemory_limit=%s\n' "${SRAS_TIMEOUT_SECONDS:-600}" "${SRAS_MEMORY:-4g}" > "$dest/limits.txt"
++printf 'graphs=%s\n' "${SRAS_GRAPHS:-1}" >> "$dest/limits.txt"
+ sudo -n docker version > "$dest/docker-version.txt"
+ sudo -n docker image inspect sras-proverif:latest > "$dest/image-inspect.json"
+ printf '%s\n' 'Source mount /work read-only; output mount /out writable; Docker networking disabled.' > "$dest/runner.txt"
+ sudo -n docker run --rm --network none \
++  --memory "${SRAS_MEMORY:-4g}" --memory-swap "${SRAS_MEMORY:-4g}" \
++  -e "SRAS_TIMEOUT_SECONDS=${SRAS_TIMEOUT_SECONDS:-600}" \
++  -e "SRAS_GRAPHS=${SRAS_GRAPHS:-1}" \
+   --mount "type=bind,source=$base,target=/work,readonly" \
+   --mount "type=bind,source=$dest,target=/out" \
+   sras-proverif:latest sh /work/run-in-container.sh "/work/$jobs_file"
+--- a/formal_verification/revised-20261027/run-in-container.sh
++++ b/formal_verification/revised-20261027/run-in-container.sh
+@@ -2,6 +2,10 @@
+ # /work is the read-only package; /out is a fresh writable results directory.
+ set -eu
+ cd /work
++seconds=${SRAS_TIMEOUT_SECONDS:-600}
++graphs=${SRAS_GRAPHS:-1}
++case "$seconds" in *[!0-9]*|'') printf 'Invalid timeout\n' >&2; exit 2;; esac
++case "$graphs" in 0|1) ;; *) printf 'Invalid graphs flag\n' >&2; exit 2;; esac
+ proverif -help > /out/proverif-version.txt 2>&1
+ dot -V > /out/graphviz-version.txt 2>&1
+ uname -a > /out/container-kernel.txt
+@@ -11,11 +15,12 @@
+     [ -n "$name" ] || continue
+     dest="/out/$name"
+     mkdir -p "$dest/graphs"
++    cp "$source" "$dest/model.pv"
+     sha256sum "$source" > "$dest/model.sha256"
+-    printf '%s\n' "proverif -parse-only $source" > "$dest/parse-command.txt"
++    printf '%s\n' "timeout $seconds proverif -parse-only $dest/model.pv" > "$dest/parse-command.txt"
+     status=0
+     /usr/bin/time -f 'elapsed_seconds=%e user_seconds=%U system_seconds=%S max_rss_kb=%M exit_status=%x' \
+-      -o "$dest/parse-time.txt" timeout 600 proverif -parse-only "$source" \
++      -o "$dest/parse-time.txt" timeout "$seconds" proverif -parse-only "$dest/model.pv" \
+       > "$dest/parse.log" 2>&1 || status=$?
+     printf '%s\n' "$status" > "$dest/parse-exit.txt"
+     if [ "$status" -ne 0 ]; then
+@@ -23,10 +28,15 @@
+         overall=1
+         continue
+     fi
+-    printf '%s\n' "timeout 600 proverif -graph $dest/graphs $source" > "$dest/command.txt"
++    if [ "$graphs" -eq 1 ]; then
++        set -- -graph "$dest/graphs" "$dest/model.pv"
++    else
++        set -- "$dest/model.pv"
++    fi
++    printf '%s\n' "timeout $seconds proverif $*" > "$dest/command.txt"
+     status=0
+     /usr/bin/time -f 'elapsed_seconds=%e user_seconds=%U system_seconds=%S max_rss_kb=%M exit_status=%x' \
+-      -o "$dest/time.txt" timeout 600 proverif -graph "$dest/graphs" "$source" \
++      -o "$dest/time.txt" timeout "$seconds" proverif "$@" \
+       > "$dest/output.log" 2>&1 || status=$?
+     printf '%s\n' "$status" > "$dest/exit.txt"
+     printf 'DONE %s exit=%s ' "$name" "$status"
+--- /dev/null
++++ b/formal_verification/revised-20261027/models/stage123r2-report-inputs.json
+@@ -0,0 +1,1017 @@
++{
++  "description": "Self-contained report definitions and local fixture expectations for the fixed Stage123 r2 model; contains no manuscript or historical raw evidence.",
++  "instructions": "SRAS 形式化验证修订与重新实验说明（第二份）",
++  "instructions_sha256": "593e9835f8330a992577f41b3648394f17c0e3ce3d4421bd7ce35ea725cf475d",
++  "coverage": [
++    {
++      "编号": "O01",
++      "说明章节": "一",
++      "原要求摘录": "本轮以**三方 Stage 1–3 联合模型**为主",
++      "说明起始行": 5,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "实际三方 Stage1–3，五主性质、14辅助及三种三方联合执行。",
++      "证据": "sras-n3-stage123r2-primary.pv；stage123r2-results.json",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "O02",
++      "说明章节": "一",
++      "原要求摘录": "原两方模型可用于调试和回归检查",
++      "说明起始行": 17,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "主结果仅报告 N3；N2 和旧 N3 材料保留为历史/回归。",
++      "证据": "stage123r2-results.json；Git 3766338；历史索引",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "O03",
++      "说明章节": "一",
++      "原要求摘录": "本轮仅修改模型并进行实验，暂不修改论文",
++      "说明起始行": 21,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "本轮整理模型与实验材料；main.tex 附件未改写，也不把旧正文结果当作当前证明。",
++      "证据": "当前工作树差异；stage123r2-SUMMARY.txt",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "P01",
++      "说明章节": "二",
++      "原要求摘录": "保留 Dolev–Yao 网络攻击者",
++      "说明起始行": 27,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "主模型 net 公开，消息可截留、替换、重放和调度；局部 private fixture 不混作主网络证明。",
++      "证据": "models/sras-n3-stage123r2-primary.pv；stage123_regression.py",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "P02",
++      "说明章节": "二",
++      "原要求摘录": "至少保留上一轮的一个恶意 owner",
++      "说明起始行": 29,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "公开 O3 签名密钥；O1/O2 及三个 RPE 密钥受保护。只覆盖这一腐化配置。",
++      "证据": "主模型 process；HonestOwner；Authorization 查询",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "P03",
++      "说明章节": "二",
++      "原要求摘录": "不能预先假设“提交给 RPE 的授权来自正确 owner”",
++      "说明起始行": 33,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "从网络接收实际 policy、签名与 ownerKey，逐一验签并核对指纹；Owner 只预知硬件验证公钥。",
++      "证据": "generate_models.py:stage1_owner/stage123_role；auth-fingerprint-mismatch；Authorization",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "D01",
++      "说明章节": "二",
++      "原要求摘录": "主模型应允许攻击者构造**模型语法允许的 policy 及字段组合**",
++      "说明起始行": 37,
++      "当前覆盖": "按后续指令调整范围",
++      "核对结论": "原文要求一般组合；当前按后续明确选择保留 12 个 P3 完整 profile，另有两份诚实固定 policy。",
++      "证据": "models/policy-catalog-stage123r2-p12.json；private pol；choosePolicy",
++      "未覆盖或待补": "未恢复任意字段组合；没有证明 12 项构成一般策略的完备抽象。",
++      "后续直接指令": "用户随后指定回到 3766338，允许有限 profile，并要求只增补 E2-SVN 一项。"
++    },
++    {
++      "编号": "D02",
++      "说明章节": "二",
++      "原要求摘录": "不再使用 `choosePolicy(profile)`",
++      "说明起始行": 41,
++      "当前覆盖": "按后续指令调整范围",
++      "核对结论": "当前仍使用公开目录工厂。private pol 限定可构造 policy 集合，不在 RPE 中加入目录检查。",
++      "证据": "generate_models.py:schema/stage123_model",
++      "未覆盖或待补": "增加到 12 项没有满足原文“不以模板代替一般策略输入”的要求。",
++      "后续直接指令": "同 D01：按后续有限目录范围实施。"
++    },
++    {
++      "编号": "D03",
++      "说明章节": "二",
++      "原要求摘录": "存在冲突的合法策略必须能够进入相应检查",
++      "说明起始行": 43,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "五类策略冲突均重建真实三方授权及 P1 PoliciesComplete 前序，FullJoin 不可达；RejectPeerTCB 单独检查。",
++      "证据": "control-conflict-*；control-reject-peer-tcb；两项 join 对照模型",
++      "未覆盖或待补": "限定当前目录及明确列出的控制配置。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "D04",
++      "说明章节": "二",
++      "原要求摘录": "self-signer、Self designation 和本方 attester 指派的合法性",
++      "说明起始行": 44,
++      "当前覆盖": "已覆盖检查与局部负例；主策略域按后续指令收窄",
++      "核对结论": "主模型实际验证 concrete self-signer、指纹、Self RPE/TEE 及 own attester；局部测试分别证明前序可达和拒绝。",
++      "证据": "16个局部Stage1模型；auth-nonconcrete-signer/fingerprint-mismatch/wrong-self/wrong-self-tee/wrong-attester",
++      "未覆盖或待补": "主目录并未开放任意不合法 own 字段组合；这些目录外负例是明确标记的控制输入。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "D05",
++      "说明章节": "二",
++      "原要求摘录": "请列出各字段的符号表示、取值域、组合方式及合法性检查",
++      "说明起始行": 47,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "列出21个聚合字段，加上Self RPE、Self TEE、Members；分别描述语法与主目录实际取值。",
++      "证据": "stage123r2-field-domains.csv；stage123r2-profile-coverage.json",
++      "未覆盖或待补": "主目录不开放字段笛卡尔积，详见D01/D02。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "D06",
++      "说明章节": "二",
++      "原要求摘录": "也请明确诚实 owner 的策略是符号化参数还是具体配置",
++      "说明起始行": 49,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "P1/P2 使用具体 Compatible 策略，Self 不同但规范约束相同；该 join 前提已明示。",
++      "证据": "stage123r2-source-audit.json；stage123r2-SUMMARY.txt",
++      "未覆盖或待补": "未声称覆盖任意诚实配置。原文要求不得将相同 base 作为未经说明的前提；当前已披露。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S101",
++      "说明章节": "三",
++      "原要求摘录": "Owner 发出新鲜挑战",
++      "说明起始行": 60,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "RPE 先生成自身私钥；Owner 发出新鲜 n 并接收待验证公钥和 Quote。",
++      "证据": "stage1_owner；stage123_role；owner-normal",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S102",
++      "说明章节": "三",
++      "原要求摘录": "Owner 实际验证 Quote、预期代码、TCB、公钥和挑战绑定",
++      "说明起始行": 62,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "有实际硬件验签、mRPE/TCB 检查和 H(candidate,n) 绑定检查，随后才能签署授权。",
++      "证据": "owner-wrong-code/wrong-tcb/key-rebinding/nonce-rebinding/wrong-signature；A14",
++      "未覆盖或待补": "主 RPE 平台给定 Good；不合规代码/TCB 的针对性证据来自局部控制场景。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S103",
++      "说明章节": "三",
++      "原要求摘录": "Owner 的真实授权事件应记录在其实际生成授权签名的位置",
++      "说明起始行": 70,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "OwnerSigned 在 sign((RPE key,H(policy)),skOi) 处，私钥没有传给 RPE。",
++      "证据": "stage1_owner；Authorization；A14",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S104",
++      "说明章节": "三",
++      "原要求摘录": "被授权公钥与自身公钥的匹配",
++      "说明起始行": 77,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "对实际签名内容匹配 signedKey 和 signedHash，再进行 Self、指纹和 attester 检查。",
++      "证据": "auth-key-rebinding/policy-rebinding/wrong-signature/fingerprint-mismatch",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S105",
++      "说明章节": "三",
++      "原要求摘录": "Self 与启动时配置的 RPE designation 的匹配",
++      "说明起始行": 80,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "policy现在序列化独立SelfTEE字段；实际比较policySelf=Pi及policySelfTEE=Ei。",
++      "证据": "stage123_complete.py:self_tee；auth-wrong-self-tee",
++      "未覆盖或待补": "角色配置Pi/Ei仍固定；只篡改SelfTEE的局部输入在签名/hash通过后被拒绝。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S106",
++      "说明章节": "三",
++      "原要求摘录": "同一组已授权 key–policy 状态",
++      "说明起始行": 83,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "AuthAccepted 后直接使用同一 sk_i/rho_i 发 Evidence、交换 policy、计算 join 并签发。",
++      "证据": "A12/A13；stage123r2-source-audit.json；联合轨迹",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S107",
++      "说明章节": "三",
++      "原要求摘录": "Stage 1 初始 Quote 与 Stage 2 Evidence Quote",
++      "说明起始行": 87,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "二者共享 rpeQuote、硬件 key 和单一 H(key,bytes) 载荷；不以 nonce/pkey 类型隔离。",
++      "证据": "common_hash_encoding；主模型初始 Quote 服务与 Evidence 发送点",
++      "未覆盖或待补": "Stage3 的 teeQuote/硬件 key 仍是基线的独立抽象，未证明跨三个阶段的一般 Quote 类型混用。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S108",
++      "说明章节": "三",
++      "原要求摘录": "有效 Quote 本身不能直接视为 owner 授权完成",
++      "说明起始行": 91,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "无授权的局部场景已有有效初始 Quote 前序但 AuthAccepted 不可达；A12/A13 关联后续状态。",
++      "证据": "auth-no-authorization；A12/A13",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S201",
++      "说明章节": "四",
++      "原要求摘录": "每个 RPE 的必需 peers 来自其 owner 配置中的",
++      "说明起始行": 97,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "共同 Members3 配置编译为两个固定 peer 槽位，不从已到达消息决定成员。",
++      "证据": "schema；role 接收列表；A04–A06",
++      "未覆盖或待补": "不验证独立或不一致成员配置；这是本轮明确的共同静态三方前提。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S202",
++      "说明章节": "四",
++      "原要求摘录": "收齐并验证所有必需 peer 的 Evidence Quotes",
++      "说明起始行": 101,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "保留实际签名、代码/TCB、key/hash绑定与peer key去重；补齐三方真实授权后的早期Quote检查。",
++      "证据": "A01/A02；missing-quote/duplicate-quote/bad-rpe-code/bad-rpe-tcb",
++      "未覆盖或待补": "四个Quote控制模型保留精确检查前缀，省略后续不相关流程；不冒充完整私有全流程实验。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S203",
++      "说明章节": "四",
++      "原要求摘录": "检查每份 policy 的来源、承诺哈希及其与相应 peer 的关联",
++      "说明起始行": 103,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "验证 quote-bound key 下的 policyMsg、接收端 key、实际 H(policy) 与 Self。",
++      "证据": "Authenticity；A01/A13；事件前守卫",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S204",
++      "说明章节": "四",
++      "原要求摘录": "收齐每个必需 peer 的有效 policy 后",
++      "说明起始行": 104,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "本地已授权 rho 与实际收齐的 rho1/rho2/rho3 输入 canonical join。",
++      "证据": "Completeness；A03–A06；RPE 实际接收体",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S205",
++      "说明章节": "四",
++      "原要求摘录": "收到所有必需 peer 的有效且匹配的共识哈希确认后",
++      "说明起始行": 106,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "两份确认都经过 quote-bound key 验证、接收端 key 及本地 H(pi) 比较，才 Confirm。",
++      "证据": "A07–A10；Confirm 前守卫",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S206",
++      "说明章节": "四",
++      "原要求摘录": "Stage 2 不重复验证 owner 签名",
++      "说明起始行": 110,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "Stage2使用已授权状态和RPE认证策略，不重验owner签名；具体signer冲突与peer wildcard各有当前证据。",
++      "证据": "authorized-signer-peer-conflict；reachability-weak",
++      "未覆盖或待补": "signer冲突控制配置的诚实peer对E3期望改为O1指纹；主配置未改。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "J01",
++      "说明章节": "四",
++      "原要求摘录": "不预先赋予全局 policy 列表或共同的",
++      "说明起始行": 121,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "有限目录描述可构造输入域；每个 RPE 的运行状态仍来自实际授权和 peer 收集，不直接赋 pi*。",
++      "证据": "主模型 rho_i 的授权接收、peer 接收与 joinstar 实参",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "J02",
++      "说明章节": "四",
++      "原要求摘录": "输出表示规范化后的聚合约束",
++      "说明起始行": 122,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "mkstar 只包含聚合字段，不包含原始 policy 历史；通用逐字段函数处理 Any/exact、版本 max、TCB 交及 attester 冲突。",
++      "证据": "models/algebra.pvl；join-stage123r2-p12-regression",
++      "未覆盖或待补": "幂等/冗余语义的当前目录核验不是完整无限格理论证明。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "J03",
++      "说明章节": "四",
++      "原要求摘录": "它如何覆盖本轮主模型的全部可达输入",
++      "说明起始行": 126,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "Self 检查和有限工厂使 P1/P2 可接受的 policy 唯一；P3 来自 12 项。每项 fast/general join 对比覆盖同一固定 fold。",
++      "证据": "stage123r2-source-audit.json；join-stage123r2-p12-regression",
++      "未覆盖或待补": "不覆盖目录外策略、不同诚实 base 或更广泛腐化配置。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S301",
++      "说明章节": "四",
++      "原要求摘录": "为三个 RPE 分别接入实例认证过程",
++      "说明起始行": 130,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "三个 Confirm 后分别调用 attest(Pi,Ei,sk_i,pistar,starEntry_i(pistar),pkAKE)。",
++      "证据": "主模型三个 attest 调用；三个联合见证",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S302",
++      "说明章节": "四",
++      "原要求摘录": "实例 Quote 签名",
++      "说明起始行": 134,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "实际实例验签、key/挑战绑定、六类appraisal守卫保持；11项当前坏输入控制实验覆盖前序与拒绝。",
++      "证据": "Issuance；A11；11个实例控制模型",
++      "未覆盖或待补": "控制实例/接收端输入与故障性质分别列在control-expectations中。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S303",
++      "说明章节": "四",
++      "原要求摘录": "允许合规及不合规的属性",
++      "说明起始行": 142,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "实例过程从公开网络接收实际 identity/status，硬件可产生不合规属性的真实 Quote。",
++      "证据": "instance；matchid/matchv/matchtcb/matchatt；Issuance",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "S304",
++      "说明章节": "四",
++      "原要求摘录": "签发绑定实例公钥、签发 RPE 和共识策略哈希的结果",
++      "说明起始行": 140,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "实际签名 H((instance key,RPE key,H(starBytes(pi))))；A11 同时关联确认与真实 Quote。",
++      "证据": "ATTEST；A11",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "M01",
++      "说明章节": "五",
++      "原要求摘录": "检查 Authorization、Agreement、Authenticity、Completeness 和 Issuance",
++      "说明起始行": 14,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "五项主查询在同一完整过程分别证明成立，保留原四项含义并补入实际授权对应关系。",
++      "证据": "5 个 queries/n3-stage123r2-*.pv；stage123r2-results-table.csv",
++      "未覆盖或待补": "主证明适用当前有限域；不自动成为原文一般策略域的五项证明。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "M02",
++      "说明章节": "五",
++      "原要求摘录": "必要的辅助关联",
++      "说明起始行": 182,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "14 项辅助全部成立，关键链为 A12 本方授权、A13 peer 授权、A11 Confirm/真实 Quote/证书载荷、A14 owner 验 Quote。",
++      "证据": "queries/n3-stage123r2-A01…A14.pv；完整各自日志",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "R01",
++      "说明章节": "六",
++      "原要求摘录": "不能用三个彼此独立的可达查询代替联合可达性",
++      "说明起始行": 200,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "三个公开网络联合查询各自重建同一条包含三方授权、Confirm及CertIssued的轨迹。",
++      "证据": "stage123r2-executed-witnesses.json",
++      "未覆盖或待补": "实际P3分别为PermissiveRpeTCB、StrongerSVNE2和Weak；不声称每个profile均有成功执行。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T01",
++      "说明章节": "六",
++      "原要求摘录": "无有效授权、错误签名或 owner 公钥指纹不匹配",
++      "说明起始行": 206,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "局部真实接收/验签守卫测试均有相应前序且阻止接受；公共网络 Authorization 主证明另行成立。",
++      "证据": "auth-no-authorization/wrong-signature/fingerprint-mismatch",
++      "未覆盖或待补": "局部 fixture 不作为网络攻击者可伪造诚实 owner 签名的证据。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T02",
++      "说明章节": "六",
++      "原要求摘录": "授权被换绑到另一个 RPE 公钥或另一份 policy",
++      "说明起始行": 207,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "实际验签可达，key/hash 不匹配后接受不可达。",
++      "证据": "auth-key-rebinding/policy-rebinding",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T03",
++      "说明章节": "六",
++      "原要求摘录": "Self 或本方 attester 指派不符合初始化要求",
++      "说明起始行": 208,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "Self RPE、独立SelfTEE、本方attester及concrete self-signer分别有实际检查前序与拒绝证据。",
++      "证据": "auth-wrong-self/wrong-self-tee/wrong-attester/nonconcrete-signer",
++      "未覆盖或待补": "局部控制负例不等同于主目录允许任意字段组合。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T04",
++      "说明章节": "六",
++      "原要求摘录": "攻击者以自己的 signer 授权，但与 peer 的具体 signer 要求冲突",
++      "说明起始行": 209,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "P3以实际O3 key和H(pk(skO3))合法自授权；诚实peers对E3期望H(pk(skO1))。三方授权及PoliciesComplete可达，FullJoin不可达。",
++      "证据": "n3-stage123r2-control-authorized-signer-peer-conflict；control-tables",
++      "未覆盖或待补": "为触发指定冲突，单独改变控制配置中诚实peer对E3的signer期望；主五性质配置保持原样。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T05",
++      "说明章节": "六",
++      "原要求摘录": "合法具体 self-signer 与 peer 通配符能够正常协商",
++      "说明起始行": 210,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "同一公开主过程的联合查询将实际P3已授权policy约束为Weak，三方授权、确认及签发共同可达。",
++      "证据": "sras-n3-stage123r2-reachability-weak；executed-witnesses.json",
++      "未覆盖或待补": "Weak自身signer具体、对peers signer为Any；只约束查询，不限制过程输入。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T06",
++      "说明章节": "六",
++      "原要求摘录": "缺失或重复必需 Quote、policy、确认消息",
++      "说明起始行": 211,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "真实三方授权后给P1交付有效P2 Evidence，扣留P3所有Quote交付。EvidenceChecked(P1,P2)可达、QuotesComplete(P1)不可达。",
++      "证据": "control-missing-quote",
++      "未覆盖或待补": "私有确定交付与精确Evidence检查前缀；初始Quote服务保留，但不向P1交付可替代的P3 Quote。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T07",
++      "说明章节": "六",
++      "原要求摘录": "重复必需 Quote",
++      "说明起始行": 211,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "将真实P2 Quote以P3外层标签再交付；三方真实授权及首个peer检查可达，重复包接收可达，全员Quote完成不可达。",
++      "证据": "control-duplicate-quote",
++      "未覆盖或待补": "确定交付顺序的私有前缀测试；没有伪造硬件签名。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T08",
++      "说明章节": "六",
++      "原要求摘录": "缺失或重复必需 Quote、policy、确认消息",
++      "说明起始行": 211,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "缺失/重复policy均从三方真实授权继续；QuotesComplete及接受有效P2 policy可达，PoliciesComplete不可达；重复包接收另有可达查询。",
++      "证据": "control-missing-policy/duplicate-policy",
++      "未覆盖或待补": "完整Stage2–3体、私有交付控制。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T09",
++      "说明章节": "六",
++      "原要求摘录": "缺失或重复必需 Quote、policy、确认消息",
++      "说明起始行": 211,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "缺失、重复、已认证但hash不匹配的确认均有FullJoin及有效P2确认前序，Confirm(P1)不可达。",
++      "证据": "control-missing-confirmation/duplicate-confirmation/confirmation-mismatch",
++      "未覆盖或待补": "错误hash签名由受保护发送端故障注入；不声称正常网络攻击者可产生该签名。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T10",
++      "说明章节": "六",
++      "原要求摘录": "Policy 与 Quote 承诺不匹配",
++      "说明起始行": 212,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "请求真实P3初始Quote承诺Weak的hash，再交付实际授权Compatible的真实policy签名。QuotesComplete、PolicyAuthenticated可达，policy hash检查拒绝。",
++      "证据": "control-policy-hash-mismatch；ControlInitialHashRequested可达",
++      "未覆盖或待补": "使用现有初始Quote请求能力和相同载荷；没有修改受保护RPE的policy发送内容。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T11",
++      "说明章节": "六",
++      "原要求摘录": "合法语法内的策略冲突",
++      "说明起始行": 213,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "五类策略冲突均有真实三方授权、PoliciesComplete可达及FullJoin不可达；控制专门化与通用PV join逐项对照。",
++      "证据": "control-conflict-measurement/signer/product/tcb/attester；join-stage123r2-control-tables",
++      "未覆盖或待补": "语法合法输入限定列出的目录；一般自由组合仍未证明。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T12",
++      "说明章节": "六",
++      "原要求摘录": "实例 Quote 的签名、绑定或 appraisal 不通过",
++      "说明起始行": 214,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "11项坏实例输入均在三方真实授权及P1共识确认后检查签名、绑定或appraisal拒绝，并分别确认接收/验签/QuoteVerified前序。",
++      "证据": "control-bad-*/revoked-tcb/invalid-tcb/wrong-attester/wrong-challenge/wrong-instance-key/invalid-signature",
++      "未覆盖或待补": "bad-rpe-code/tcb另外属于早期Quote前缀与硬件故障测试。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "T13",
++      "说明章节": "六",
++      "原要求摘录": "每个拒绝场景都应检查其前序阶段可达",
++      "说明起始行": 216,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "29个三方控制场景和16个局部Stage1测试均核对指定前序；所有正向可达结果有实际重建轨迹。",
++      "证据": "stage123r2-control-expectations.json；stage123r2-results-table.csv",
++      "未覆盖或待补": "4个Quote场景为三方真实授权后的检查前缀；25个保留完整Stage2–3体。局部控制不替代公开网络主证明。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "A01",
++      "说明章节": "七",
++      "原要求摘录": "不强制重新开展确认轮消融",
++      "说明起始行": 222,
++      "当前覆盖": "不强制／本轮未做",
++      "核对结论": "本轮主模型优先；旧不完整输入消融只保留历史，不作为当前 Agreement 必要性证据。",
++      "证据": "当前 jobs-stage123* 不包含消融；历史模型单独保留",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "A02",
++      "说明章节": "七",
++      "原要求摘录": "区分反例、无法证明、超时、内存不足及建模错误",
++      "说明起始行": 231,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "当前69作业189条确定结果，未决0；开发阶段状态另有摘要。",
++      "证据": "stage123r2-results.json；stage123r2-development-summary.json",
++      "未覆盖或待补": "未选中开发尝试的原始文件留存本地，未计入或上传为当前结果；摘要不代替其原始证据。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "A03",
++      "说明章节": "七",
++      "原要求摘录": "保持相同的协议过程、策略域和攻击者配置",
++      "说明起始行": 235,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "5主查询、14辅助、3联合见证的非查询过程摘要一致；策略域及攻击者配置相同。",
++      "证据": "stage123r2-source-audit.json",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "V01",
++      "说明章节": "八",
++      "原要求摘录": "修改与范围对照",
++      "说明起始行": 241,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "给出基线到当前的源码差异；说明真实授权、Stage3、共享hash、独立SelfTEE和后续有限策略约定。",
++      "证据": "diffs/*-stage123r2.diff；stage123r2-SUMMARY.txt",
++      "未覆盖或待补": "11项未替换为一般组合器，而按后续指令增加到12项；这一范围变化单独列明。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "V02",
++      "说明章节": "八",
++      "原要求摘录": "完整模型与复现方法",
++      "说明起始行": 253,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "独立源码、固定基线、报告输入、生成和运行脚本、环境、命令及hash均已收录。",
++      "证据": "stage123r2-REPRODUCE.txt；各选中结果目录；SHA256SUMS.stage123r2.public.txt",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "V03",
++      "说明章节": "八",
++      "原要求摘录": "主查询耗时优先单独测量",
++      "说明起始行": 265,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "五项分别运行；准确 query、source hash、wall time、日志和计时边界均列出。",
++      "证据": "stage123r2-results-table.csv；stage123r2-queries-and-results.txt",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "V04",
++      "说明章节": "八",
++      "原要求摘录": "完整输出、错误日志、可达性轨迹及反例",
++      "说明起始行": 269,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "当前69作业保存完整文字输出、冻结源、前序及联合执行轨迹；公开联合见证有DOT/PDF。",
++      "证据": "stage123r2-current-selection.json及各作业output.log/command/time/exit",
++      "未覆盖或待补": "私有控制关闭绘图但保留文字轨迹；未选中的开发尝试只公开状态摘要，原始材料留在本地。",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "V05",
++      "说明章节": "八",
++      "原要求摘录": "面向论文的一页摘要",
++      "说明起始行": 271,
++      "当前覆盖": "已覆盖（限定当前模型）",
++      "核对结论": "本次生成限定范围的一页摘要，并明确主文能写什么、附录放什么、哪些结论尚未成立。",
++      "证据": "stage123r2-paper-summary.txt",
++      "未覆盖或待补": "",
++      "后续直接指令": ""
++    },
++    {
++      "编号": "V06",
++      "说明章节": "八",
++      "原要求摘录": "请返回一个新版本结果包",
++      "说明起始行": 239,
++      "当前覆盖": "已覆盖（限定当前模型与所列证据层级）",
++      "核对结论": "当前模型、原始日志、查询、三条联合执行轨迹和复现材料直接收录到仓库。",
++      "证据": "stage123r2-current-selection.json；stage123r2-REPRODUCE.txt；SHA256SUMS.stage123r2.public.txt",
++      "未覆盖或待补": "本地完整压缩包继续保留；镜像、压缩包及其解压副本不重复提交。",
++      "后续直接指令": "按本次要求提交当前结果，排除镜像、交付副本和无关文件。"
++    }
++  ],
++  "field_domains": [
++    {
++      "序号": "1",
++      "实体": "RPE1",
++      "字段": "TCB接受集合",
++      "代数表示与范围": "Both={Good,Outdated}; OnlyGood={Good}; OnlyOutdated={Outdated}",
++      "14份目录输入中的实际取值": "Both | OnlyGood | OnlyOutdated",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "2",
++      "实体": "RPE2",
++      "字段": "TCB接受集合",
++      "代数表示与范围": "Both={Good,Outdated}; OnlyGood={Good}; OnlyOutdated={Outdated}",
++      "14份目录输入中的实际取值": "Both | OnlyGood",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "3",
++      "实体": "RPE3",
++      "字段": "TCB接受集合",
++      "代数表示与范围": "Both={Good,Outdated}; OnlyGood={Good}; OnlyOutdated={Outdated}",
++      "14份目录输入中的实际取值": "Both | OnlyGood",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "4",
++      "实体": "E1",
++      "字段": "measurement",
++      "代数表示与范围": "Any / exact(bitstring)",
++      "14份目录输入中的实际取值": "Any | exact(mBad) | exact(mE1)",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "5",
++      "实体": "E1",
++      "字段": "signer",
++      "代数表示与范围": "Any / exact(bitstring)",
++      "14份目录输入中的实际取值": "Any | exact(H(pk(skO1))) | exact(sBad)",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "6",
++      "实体": "E1",
++      "字段": "product",
++      "代数表示与范围": "Any / exact(bitstring)",
++      "14份目录输入中的实际取值": "Any | exact(prodA) | exact(prodB)",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "7",
++      "实体": "E1",
++      "字段": "最低SVN",
++      "代数表示与范围": "V0<V1<V2，V0兼作不限制",
++      "14份目录输入中的实际取值": "V0 | V1 | V2",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "8",
++      "实体": "E1",
++      "字段": "TCB接受集合",
++      "代数表示与范围": "Both / OnlyGood / OnlyOutdated",
++      "14份目录输入中的实际取值": "Both | OnlyGood | OnlyOutdated",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "9",
++      "实体": "E1",
++      "字段": "attester",
++      "代数表示与范围": "NoAtt / Assign(P1|P2|P3)",
++      "14份目录输入中的实际取值": "Assign(P1) | Assign(P3) | NoAtt",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "10",
++      "实体": "E2",
++      "字段": "measurement",
++      "代数表示与范围": "Any / exact(bitstring)",
++      "14份目录输入中的实际取值": "Any | exact(mE2)",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "11",
++      "实体": "E2",
++      "字段": "signer",
++      "代数表示与范围": "Any / exact(bitstring)",
++      "14份目录输入中的实际取值": "Any | exact(H(pk(skO2)))",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "12",
++      "实体": "E2",
++      "字段": "product",
++      "代数表示与范围": "Any / exact(bitstring)",
++      "14份目录输入中的实际取值": "Any | exact(prodA)",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "13",
++      "实体": "E2",
++      "字段": "最低SVN",
++      "代数表示与范围": "V0<V1<V2，V0兼作不限制",
++      "14份目录输入中的实际取值": "V0 | V1 | V2",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "14",
++      "实体": "E2",
++      "字段": "TCB接受集合",
++      "代数表示与范围": "Both / OnlyGood / OnlyOutdated",
++      "14份目录输入中的实际取值": "Both | OnlyGood",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "15",
++      "实体": "E2",
++      "字段": "attester",
++      "代数表示与范围": "NoAtt / Assign(P1|P2|P3)",
++      "14份目录输入中的实际取值": "Assign(P2) | NoAtt",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "16",
++      "实体": "E3",
++      "字段": "measurement",
++      "代数表示与范围": "Any / exact(bitstring)",
++      "14份目录输入中的实际取值": "Any | exact(mE3)",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "17",
++      "实体": "E3",
++      "字段": "signer",
++      "代数表示与范围": "Any / exact(bitstring)",
++      "14份目录输入中的实际取值": "exact(H(pk(skO3)))",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "18",
++      "实体": "E3",
++      "字段": "product",
++      "代数表示与范围": "Any / exact(bitstring)",
++      "14份目录输入中的实际取值": "Any | exact(prodA)",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "19",
++      "实体": "E3",
++      "字段": "最低SVN",
++      "代数表示与范围": "V0<V1<V2，V0兼作不限制",
++      "14份目录输入中的实际取值": "V0 | V1",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "20",
++      "实体": "E3",
++      "字段": "TCB接受集合",
++      "代数表示与范围": "Both / OnlyGood / OnlyOutdated",
++      "14份目录输入中的实际取值": "Both | OnlyGood",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "21",
++      "实体": "E3",
++      "字段": "attester",
++      "代数表示与范围": "NoAtt / Assign(P1|P2|P3)",
++      "14份目录输入中的实际取值": "Assign(P3)",
++      "组合边界": "主输入按完整profile选择；不开放这些取值的任意跨字段组合"
++    },
++    {
++      "序号": "Members",
++      "实体": "协作",
++      "字段": "成员配置",
++      "代数表示与范围": "Members3",
++      "14份目录输入中的实际取值": "Members3",
++      "组合边界": "共同静态成员；未验证独立成员配置一致性"
++    },
++    {
++      "序号": "SelfRPE",
++      "实体": "RPE",
++      "字段": "Self RPE designation",
++      "代数表示与范围": "policySelf: party",
++      "14份目录输入中的实际取值": "P1/P2/P3",
++      "组合边界": "实际Stage1比较Pi；目录外错误值用局部控制检查"
++    },
++    {
++      "序号": "SelfTEE",
++      "实体": "TEE",
++      "字段": "Self TEE designation",
++      "代数表示与范围": "policySelfTEE: entity；独立序列化字段",
++      "14份目录输入中的实际取值": "E1/E2/E3",
++      "组合边界": "实际Stage1比较Ei；wrong-self-tee单独篡改该字段"
++    }
++  ],
++  "expected_local_reachability": {
++    "n3-stage123-auth-normal": [
++      true,
++      true,
++      true,
++      true,
++      true,
++      true
++    ],
++    "n3-stage123-auth-wrong-signature": [
++      true,
++      true,
++      false,
++      false,
++      false,
++      false
++    ],
++    "n3-stage123-auth-fingerprint-mismatch": [
++      true,
++      true,
++      true,
++      true,
++      true,
++      false
++    ],
++    "n3-stage123-auth-key-rebinding": [
++      true,
++      true,
++      true,
++      false,
++      false,
++      false
++    ],
++    "n3-stage123-auth-policy-rebinding": [
++      true,
++      true,
++      true,
++      false,
++      false,
++      false
++    ],
++    "n3-stage123-auth-wrong-self": [
++      true,
++      true,
++      true,
++      true,
++      false,
++      false
++    ],
++    "n3-stage123-auth-wrong-attester": [
++      true,
++      true,
++      true,
++      true,
++      true,
++      false
++    ],
++    "n3-stage123-auth-nonconcrete-signer": [
++      true,
++      true,
++      true,
++      true,
++      true,
++      false
++    ],
++    "n3-stage123-auth-no-authorization": [
++      true,
++      false,
++      false,
++      false,
++      false,
++      false
++    ],
++    "n3-stage123-owner-normal": [
++      true,
++      true,
++      true,
++      true
++    ],
++    "n3-stage123-owner-wrong-code": [
++      true,
++      true,
++      false,
++      false
++    ],
++    "n3-stage123-owner-wrong-tcb": [
++      true,
++      true,
++      false,
++      false
++    ],
++    "n3-stage123-owner-key-rebinding": [
++      true,
++      true,
++      false,
++      false
++    ],
++    "n3-stage123-owner-nonce-rebinding": [
++      true,
++      true,
++      false,
++      false
++    ],
++    "n3-stage123-owner-wrong-signature": [
++      true,
++      false,
++      false,
++      false
++    ],
++    "join-stage123-p12-regression": [
++      false,
++      true
++    ]
++  },
++  "development_summary": {
++    "interpretation": "Historical development attempts are summarized here; their raw files are retained locally, not part of the published current evidence. Only the 69 jobs in current-selection count toward current results.",
++    "attempts": 57,
++    "parse_exit_counts": {
++      "0": 56,
++      "2": 1
++    },
++    "verification_exit_counts": {
++      "124": 25,
++      "0": 31,
++      "None": 1
++    },
++    "per_batch": [
++      {
++        "batch": "stage123r2-controls-pilot-20261028",
++        "attempts": 4
++      },
++      {
++        "batch": "stage123r2-controls-pilot2-20261028",
++        "attempts": 4
++      },
++      {
++        "batch": "stage123r2-controls1-complete-20261028",
++        "attempts": 2
++      },
++      {
++        "batch": "stage123r2-controls1-final-20261028",
++        "attempts": 15
++      },
++      {
++        "batch": "stage123r2-controls2-complete-20261028",
++        "attempts": 3
++      },
++      {
++        "batch": "stage123r2-controls2-final-20261028",
++        "attempts": 14
++      },
++      {
++        "batch": "stage123r2-early-quotes-20261028",
++        "attempts": 4
++      },
++      {
++        "batch": "stage123r2-pilot-20261028",
++        "attempts": 1
++      },
++      {
++        "batch": "stage123r2-quote-delivery-20261028",
++        "attempts": 1
++      },
++      {
++        "batch": "stage123r2-quote-prefix-20261028",
++        "attempts": 4
++      },
++      {
++        "batch": "stage123r2-quote-schedule-20261028",
++        "attempts": 4
++      },
++      {
++        "batch": "stage123r2-table-audit-20261028",
++        "attempts": 1
++      }
++    ],
++    "counted_as_current": false
++  }
++}

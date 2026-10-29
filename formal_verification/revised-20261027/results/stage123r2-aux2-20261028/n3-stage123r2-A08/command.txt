@@ -1,0 +1,1 @@
+timeout 150 proverif -graph /out/n3-stage123r2-A08/graphs /out/n3-stage123r2-A08/model.pv

@@ -1,0 +1,553 @@
+(* CONTROL FIXTURE: real three-party authorization, private buffered delivery. *)
+(* Revision r2: explicit serialized Self-TEE and actual check; twelve profiles. *)
+(* N3 Stage 1-3; extension of 3766338 with twelve explicit P3 profiles.
+   Two honest owner keys; O3's signing key is public, RPE keys protected.
+   One initialization; three fixed role/instance pairs P1/E1, P2/E2, P3/E3.
+   Stage 1 and Stage 2 use the SAME rpeQuote/hardware key/report-data format.
+   The finite policy domain is a scope restriction, not a new wire check.
+   Stage 3 retains the baseline distinct TEE hardware-key abstraction.
+*)
+type skey.
+fun pk(skey):bitstring.
+const skO1,skO2,skO3:skey [private].
+fun H(bitstring):bitstring.
+(* Shared policy algebra for the revised SRAS models, ProVerif 2.05.
+ * Exact identity attributes are symbolic atoms. SVN and TCB are finite.
+ * Joins return only normalized constraints; no source-policy history is kept.
+ * A failed destructor represents an unsatisfiable/ill-formed component.
+ *)
+
+type party.
+type ident.
+type svn.
+type tcbstatus.
+type tcbreq.
+type attreq.
+type entry.
+type identity.
+
+const P1: party [data].
+const P2: party [data].
+const P3: party [data].
+const mRPE: bitstring [data].
+const mE1: bitstring [data].
+const mE2: bitstring [data].
+const mE3: bitstring [data].
+const mBad: bitstring [data].
+const sBad: bitstring [data].
+const prodA: bitstring [data].
+const prodB: bitstring [data].
+
+const Any: ident [data].
+fun exact(bitstring): ident [data].
+
+(* V0 is both the least represented version and the unrestricted lower bound.
+ * The represented order is V0 < V1 < V2; unbounded integer SVN is not modeled.
+ *)
+const V0: svn [data].
+const V1: svn [data].
+const V2: svn [data].
+
+const Good: tcbstatus [data].
+const Outdated: tcbstatus [data].
+const Revoked: tcbstatus [data].
+const Invalid: tcbstatus [data].
+const Both: tcbreq [data].
+const OnlyGood: tcbreq [data].
+const OnlyOutdated: tcbreq [data].
+
+const NoAtt: attreq [data].
+fun Assign(party): attreq [data].
+
+(* Canonical order: measurement, signer, product, minimum SVN, TCB, attester. *)
+fun Req(ident, ident, ident, svn, tcbreq, attreq): entry [data].
+fun Identity(bitstring, bitstring, bitstring, svn): identity [data].
+
+(* Shape-aware rules reject arbitrary names of type ident/attreq rather than
+ * returning them unchanged through a wildcard rule. Exact atoms are symbolic.
+ *)
+fun joinid(ident, ident): ident
+reduc joinid(Any, Any) = Any
+otherwise forall a: bitstring; joinid(Any, exact(a)) = exact(a)
+otherwise forall a: bitstring; joinid(exact(a), Any) = exact(a)
+otherwise forall a: bitstring; joinid(exact(a), exact(a)) = exact(a).
+
+fun joinv(svn, svn): svn
+reduc joinv(V0, V0) = V0
+otherwise joinv(V0, V1) = V1
+otherwise joinv(V0, V2) = V2
+otherwise joinv(V1, V0) = V1
+otherwise joinv(V1, V1) = V1
+otherwise joinv(V1, V2) = V2
+otherwise joinv(V2, V0) = V2
+otherwise joinv(V2, V1) = V2
+otherwise joinv(V2, V2) = V2.
+
+(* Intersection of nonempty acceptable-status sets. The disjoint pair
+ * OnlyGood/OnlyOutdated has no rule and therefore aborts the local join.
+ *)
+fun jointcb(tcbreq, tcbreq): tcbreq
+reduc jointcb(Both, Both) = Both
+otherwise jointcb(Both, OnlyGood) = OnlyGood
+otherwise jointcb(Both, OnlyOutdated) = OnlyOutdated
+otherwise jointcb(OnlyGood, Both) = OnlyGood
+otherwise jointcb(OnlyOutdated, Both) = OnlyOutdated
+otherwise jointcb(OnlyGood, OnlyGood) = OnlyGood
+otherwise jointcb(OnlyOutdated, OnlyOutdated) = OnlyOutdated.
+
+fun joinatt(attreq, attreq): attreq
+reduc joinatt(NoAtt, NoAtt) = NoAtt
+otherwise forall a: party; joinatt(NoAtt, Assign(a)) = Assign(a)
+otherwise forall a: party; joinatt(Assign(a), NoAtt) = Assign(a)
+otherwise forall a: party; joinatt(Assign(a), Assign(a)) = Assign(a).
+
+(* Satisfaction destructors return true only for accepted values. *)
+fun matchid(ident, bitstring): bool
+reduc forall a: bitstring; matchid(Any, a) = true
+otherwise forall a: bitstring; matchid(exact(a), a) = true.
+
+fun matchv(svn, svn): bool
+reduc matchv(V0, V0) = true
+otherwise matchv(V0, V1) = true
+otherwise matchv(V0, V2) = true
+otherwise matchv(V1, V1) = true
+otherwise matchv(V1, V2) = true
+otherwise matchv(V2, V2) = true.
+
+fun matchtcb(tcbreq, tcbstatus): bool
+reduc matchtcb(Both, Good) = true
+otherwise matchtcb(Both, Outdated) = true
+otherwise matchtcb(OnlyGood, Good) = true
+otherwise matchtcb(OnlyOutdated, Outdated) = true.
+
+(* NoAtt contributes no assignment; it never authorizes an arbitrary RPE. *)
+fun matchatt(attreq, party): bool
+reduc forall a: party; matchatt(Assign(a), a) = true.
+
+(* Initialization checks for adversary-selected policy components. *)
+fun validid(ident): bool
+reduc validid(Any) = true
+otherwise forall a: bitstring; validid(exact(a)) = true.
+
+fun validv(svn): bool
+reduc validv(V0) = true
+otherwise validv(V1) = true
+otherwise validv(V2) = true.
+
+fun validtcbreq(tcbreq): bool
+reduc validtcbreq(Both) = true
+otherwise validtcbreq(OnlyGood) = true
+otherwise validtcbreq(OnlyOutdated) = true.
+
+fun validatt(attreq): bool
+reduc validatt(NoAtt) = true
+otherwise forall a: party; validatt(Assign(a)) = true.
+
+letfun validentry(c: entry) =
+  let Req(cm: ident, cs: ident, cp: ident, cv: svn, ct: tcbreq, ca: attreq) = c in
+  let vm = validid(cm) in
+  let vs = validid(cs) in
+  let vp = validid(cp) in
+  let vv = validv(cv) in
+  let vt = validtcbreq(ct) in
+  let va = validatt(ca) in
+  vm && vs && vp && vv && vt && va.
+
+letfun joinentry(x: entry, y: entry) =
+  let Req(xm: ident, xs: ident, xp: ident, xv: svn, xt: tcbreq, xa: attreq) = x in
+  let Req(ym: ident, ys: ident, yp: ident, yv: svn, yt: tcbreq, ya: attreq) = y in
+  let jm = joinid(xm, ym) in
+  let js = joinid(xs, ys) in
+  let jp = joinid(xp, yp) in
+  let jv = joinv(xv, yv) in
+  let jt = jointcb(xt, yt) in
+  let ja = joinatt(xa, ya) in
+  Req(jm, js, jp, jv, jt, ja).
+
+letfun checkentry(c: entry, who: party, actual: identity, ts: tcbstatus) =
+  let Req(cm: ident, cs: ident, cp: ident, cv: svn, ct: tcbreq, ca: attreq) = c in
+  let Identity(am: bitstring, asigner: bitstring, ap: bitstring, av: svn) = actual in
+  let vm = matchid(cm, am) in
+  let vs = matchid(cs, asigner) in
+  let vp = matchid(cp, ap) in
+  let vv = matchv(cv, av) in
+  let vt = matchtcb(ct, ts) in
+  let va = matchatt(ca, who) in
+  vm && vs && vp && vv && vt && va.
+
+type policy.
+type polstar.
+type roster.
+type profile.
+type entity.
+free net: channel [private].
+const E1, E2, E3: entity [data].
+const Members3: roster [data].
+free badHash: bitstring.
+fun pol(party, entity, roster, tcbreq, tcbreq, tcbreq, entry, entry, entry): policy [private].
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  policySelfTEE(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = selfTEE.
+(* mkstar now stores only normalized joined constraints, NOT source policies. *)
+fun mkstar(tcbreq, tcbreq, tcbreq, entry, entry, entry): polstar [data].
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  policySelf(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = a.
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  constraints(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = mkstar(t1, t2, t3, e1, e2, e3).
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  rpeTcb1(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = t1.
+reduc forall t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  starEntry1(mkstar(t1, t2, t3, e1, e2, e3)) = e1.
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  rpeTcb2(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = t2.
+reduc forall t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  starEntry2(mkstar(t1, t2, t3, e1, e2, e3)) = e2.
+reduc forall a: party, selfTEE: entity, members: roster, t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  rpeTcb3(pol(a, selfTEE, members, t1, t2, t3, e1, e2, e3)) = t3.
+reduc forall t1: tcbreq, t2: tcbreq, t3: tcbreq, e1: entry, e2: entry, e3: entry;
+  starEntry3(mkstar(t1, t2, t3, e1, e2, e3)) = e3.
+
+(* Exact finite-domain specialization of the componentwise join.
+ * Conflicting tuples have no rule. No input history enters mkstar.
+ * Generic scalar/entry semantics are checked in join-regression.pv. *)
+fun joinstar(polstar,polstar):polstar
+reduc joinstar(mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))),mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))))=mkstar(OnlyGood,OnlyGood,OnlyGood,Req(exact(mE1),exact(H(pk(skO1))),exact(prodA),V1,OnlyGood,Assign(P1)),Req(exact(mE2),exact(H(pk(skO2))),exact(prodA),V1,OnlyGood,Assign(P2)),Req(exact(mE3),exact(H(pk(skO3))),exact(prodA),V1,OnlyGood,Assign(P3))).
+const Compatible: profile [data].
+const Weak: profile [data].
+const StrongerSVN: profile [data].
+const ConflictMeasurement: profile [data].
+const ConflictSigner: profile [data].
+const ConflictProduct: profile [data].
+const ConflictTCB: profile [data].
+const ConflictAttester: profile [data].
+const RejectPeerTCB: profile [data].
+const NoAssignments: profile [data].
+const PermissiveRpeTCB: profile [data].
+const StrongerSVNE2: profile [data].
+
+(* Explicit finite policy domain for the adversarial owner; see policy-catalog.json. *)
+fun choosePolicy(profile): policy
+reduc choosePolicy(Compatible) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(Weak) = pol(P3, E3, Members3, Both, Both, Both, Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, Any, Any, V0, Both, NoAtt), Req(Any, exact(H(pk(skO3))), Any, V0, Both, Assign(P3)))
+otherwise choosePolicy(StrongerSVN) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V2, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(ConflictMeasurement) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mBad), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(ConflictSigner) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(sBad), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(ConflictProduct) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodB), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(ConflictTCB) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyOutdated, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(ConflictAttester) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P3)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(RejectPeerTCB) = pol(P3, E3, Members3, OnlyOutdated, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(NoAssignments) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, NoAtt), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, NoAtt), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(PermissiveRpeTCB) = pol(P3, E3, Members3, Both, Both, Both, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3)))
+otherwise choosePolicy(StrongerSVNE2) = pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V2, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3))).
+
+(* Perfect signatures/hashes. All communication remains on public net.
+ * Receiver-key arguments encode authentication-channel endpoint association,
+ * not new SRAS fields, a new round, or a session identifier.
+ * Confidentiality/TLS internals are deliberately not proved by this model.
+ *)
+fun policyBytes(policy):bitstring [data].
+fun starBytes(polstar):bitstring [data].
+fun sign(bitstring, skey): bitstring.
+reduc forall m: bitstring, k: skey; getmess(sign(m,k)) = m.
+reduc forall m: bitstring, k: skey; checksign(sign(m,k), pk(k)) = m.
+fun rpeQuote(bitstring, tcbstatus, bitstring): bitstring [data].
+fun teeQuote(identity, tcbstatus, bitstring): bitstring [data].
+fun policyMsg(bitstring, policy): bitstring [data].
+fun confirmMsg(bitstring, bitstring): bitstring [data].
+
+event PolicyDeclared(party, policy).
+(* EvidenceChecked labels a collection slot, not authenticated policy Self. *)
+event EvidenceChecked(party, party, bitstring, bitstring).
+event QuotesComplete(party).
+event PolicySent(party, bitstring, policy).
+event PolicyAuthenticated(party, party, policy).
+event PolicyAccepted(party, party, policy).
+event PolicyAcceptedKeys(party, party, bitstring, bitstring, policy).
+event PoliciesComplete(party).
+event FullJoin(party, polstar).
+event ConfirmationSent(party, party, bitstring).
+event ConfirmationAuthenticated(party, party, bitstring).
+event ConfirmationAccepted(party, party, bitstring).
+event Confirm(party, polstar).
+event QuoteProduced(bitstring, bitstring, identity, tcbstatus).
+event ChallengeSent(party, bitstring, bitstring).
+event QuoteReceived(party, entity, bitstring, bitstring).
+event QuoteSignatureChecked(party, entity, bitstring, bitstring, identity, tcbstatus).
+event QuoteVerified(party, entity, bitstring, bitstring, identity, tcbstatus).
+event QuoteSatisfied(party, entity, bitstring, bitstring, bitstring, identity, tcbstatus, polstar).
+event CertIssued(party, entity, bitstring, bitstring, bitstring, identity, tcbstatus, polstar, bitstring).
+
+(* HonestOwner specifies the uncompromised keys covered by Authorization. *)
+event HonestOwner(bitstring).
+event OwnerChallenge(bitstring,bitstring).
+event OwnerAttested(bitstring,bitstring,policy,bitstring).
+event OwnerSigned(bitstring,bitstring,bitstring).
+event AuthorizationReceived(party,bitstring,policy,bitstring).
+event AuthorizationSignatureChecked(party,bitstring,policy,bitstring).
+event AuthorizationSelfChecked(party,bitstring,policy,bitstring).
+event AuthorizationAccepted(party,bitstring,policy,bitstring,bitstring).
+event AuthorizedPolicyDeclared(party,bitstring,policy).
+
+(* The policy's claimed self signer, not an assumed owner identity, selects
+   the honest authority. A malicious owner signing with its own key is allowed. *)
+
+
+(* Q1 Agreement: same collaboration, distinct completed RPEs. *)
+
+(* Q2 Authenticity: original correspondence, now after endpoint authentication. *)
+
+(* Q3 Completeness: original query and names retained. *)
+
+
+(* Q4 Issuance: same correspondence with explicit subject/key/challenge/attributes. *)
+
+
+
+free collabOut,quoteInbox,policyInbox,confirmationInbox,quoteFrom1,quoteFrom2,quoteFrom3,initTo1,initFrom1,ceKey1,ceQuote1,ceChallenge1,ceCert1,ready1,initTo2,initFrom2,ceKey2,ceQuote2,ceChallenge2,ceCert2,ready2,initTo3,initFrom3,ceKey3,ceQuote3,ceChallenge3,ceCert3,ready3:channel [private].
+
+event ControlQuoteReceived(party,party).
+event ControlPolicyReceived(party,party).
+event ControlConfirmationReceived(party,party).
+event ControlInitialHashRequested.
+event ControlAllAuthorized.
+query k:bitstring,h:bitstring; event(EvidenceChecked(P1,P2,k,h)).
+query event(QuotesComplete(P1)).
+query event(ControlQuoteReceived(P1,P3)).
+
+(* Stage 3: shared verifier, invoked only after this RPE's Confirm event. *)
+let attest(a: party, e: entity, skR: skey, pistar: polstar, c: entry, pkAK: bitstring, keyIn:channel, quoteIn:channel, challengeOut:channel, certOut:channel) =
+  in(keyIn, pkE: bitstring);
+  new challenge: bitstring;
+  event ChallengeSent(a,pkE,challenge);
+  out(challengeOut, challenge);
+  in(quoteIn, qe: bitstring);
+  event QuoteReceived(a,e,pkE,challenge);
+  let teeQuote(actual: identity, status: tcbstatus, binding: bitstring) = checksign(qe,pkAK) in
+  event QuoteSignatureChecked(a,e,pkE,challenge,actual,status);
+  if binding = H((pkE,challenge)) then
+  event QuoteVerified(a,e,pkE,challenge,actual,status);
+  let allowed = checkentry(c,a,actual,status) in
+  if allowed = true then
+  event QuoteSatisfied(a,e,pk(skR),pkE,challenge,actual,status,pistar);
+  let body = H((pkE,pk(skR),H(starBytes(pistar)))) in
+  let certificate = sign(body,skR) in
+  event CertIssued(a,e,pk(skR),pkE,challenge,actual,status,pistar,body);
+  out(certOut,(pkE,pk(skR),H(starBytes(pistar)),certificate)).
+let earlyDelivery()=
+  in(quoteFrom1,ownEvidence:bitstring);
+  in(quoteFrom2,peerEvidence:bitstring);
+  out(quoteInbox,peerEvidence);
+  in(quoteFrom3,thirdEvidence:bitstring);
+  out(quoteInbox,thirdEvidence).
+
+(* Owner 3 learns the RPE key only through the public Quote exchange. *)
+let owner3(pkAKR:bitstring) =
+  let rho=pol(P3, E3, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3))) in
+  new n:bitstring;
+  event OwnerChallenge(pk(skO3),n);
+  out(initTo3,(P3,n));
+  in(initFrom3,(=P3,candidate:bitstring,q:bitstring));
+  let rpeQuote(=mRPE,status:tcbstatus,binding:bitstring)=checksign(q,pkAKR) in
+  if binding=H((candidate,n)) then
+  let platformOK=matchtcb(rpeTcb3(rho),status) in
+  if platformOK=true then
+  event OwnerAttested(pk(skO3),candidate,rho,n);
+  let authorization=sign((candidate,H(policyBytes(rho))),skO3) in
+  event OwnerSigned(pk(skO3),candidate,H(policyBytes(rho)));
+  out(initTo3,(P3,candidate,rho,authorization,pk(skO3)));
+  in(ready3,=P3);
+  event ControlAllAuthorized; earlyDelivery().
+
+(* Owner 2 learns the RPE key only through the public Quote exchange. *)
+let owner2(pkAKR:bitstring) =
+  let rho=pol(P2, E2, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3))) in
+  new n:bitstring;
+  event OwnerChallenge(pk(skO2),n);
+  out(initTo2,(P2,n));
+  in(initFrom2,(=P2,candidate:bitstring,q:bitstring));
+  let rpeQuote(=mRPE,status:tcbstatus,binding:bitstring)=checksign(q,pkAKR) in
+  if binding=H((candidate,n)) then
+  let platformOK=matchtcb(rpeTcb2(rho),status) in
+  if platformOK=true then
+  event OwnerAttested(pk(skO2),candidate,rho,n);
+  let authorization=sign((candidate,H(policyBytes(rho))),skO2) in
+  event OwnerSigned(pk(skO2),candidate,H(policyBytes(rho)));
+  out(initTo2,(P2,candidate,rho,authorization,pk(skO2)));
+  in(ready2,=P2);
+  owner3(pkAKR).
+
+(* Owner 1 learns the RPE key only through the public Quote exchange. *)
+let owner1(pkAKR:bitstring) =
+  let rho=pol(P1, E1, Members3, OnlyGood, OnlyGood, OnlyGood, Req(exact(mE1), exact(H(pk(skO1))), exact(prodA), V1, OnlyGood, Assign(P1)), Req(exact(mE2), exact(H(pk(skO2))), exact(prodA), V1, OnlyGood, Assign(P2)), Req(exact(mE3), exact(H(pk(skO3))), exact(prodA), V1, OnlyGood, Assign(P3))) in
+  new n:bitstring;
+  event OwnerChallenge(pk(skO1),n);
+  out(initTo1,(P1,n));
+  in(initFrom1,(=P1,candidate:bitstring,q:bitstring));
+  let rpeQuote(=mRPE,status:tcbstatus,binding:bitstring)=checksign(q,pkAKR) in
+  if binding=H((candidate,n)) then
+  let platformOK=matchtcb(rpeTcb1(rho),status) in
+  if platformOK=true then
+  event OwnerAttested(pk(skO1),candidate,rho,n);
+  let authorization=sign((candidate,H(policyBytes(rho))),skO1) in
+  event OwnerSigned(pk(skO1),candidate,H(policyBytes(rho)));
+  out(initTo1,(P1,candidate,rho,authorization,pk(skO1)));
+  in(ready1,=P1);
+  owner2(pkAKR).
+
+let rpe1(akR:skey,pkAKR:bitstring,pkAKE:bitstring) =
+  new sk1:skey;
+  let pk1=pk(sk1) in
+  out(initFrom1,(P1,pk1));
+  (
+    (* An initial Quote is obtainable for any requested bitstring, even after
+       authorization. Its payload is NOT separated from Stage 2 by a tag. *)
+    (!in(initTo1,(=P1,requested:bitstring));
+      out(initFrom1,(P1,pk1,sign(rpeQuote(mRPE,Good,H((pk1,requested))),akR))))
+  |
+    in(initTo1,(=P1,=pk1,rho1:policy,authorization:bitstring,ownerKey:bitstring)) [precise];
+    event AuthorizationReceived(P1,pk1,rho1,ownerKey);
+    let (signedKey:bitstring,signedHash:bitstring)=checksign(authorization,ownerKey) in
+    if signedKey=pk1 && signedHash=H(policyBytes(rho1)) then
+    event AuthorizationSignatureChecked(P1,pk1,rho1,ownerKey);
+    if policySelf(rho1)=P1 && policySelfTEE(rho1)=E1 then
+    event AuthorizationSelfChecked(P1,pk1,rho1,ownerKey);
+    let Req(cm:ident,exact(selfSigner:bitstring),cp:ident,cv:svn,ct:tcbreq,ca:attreq)=starEntry1(constraints(rho1)) in
+    if selfSigner=H(ownerKey) && ca=Assign(P1) then
+    event AuthorizationAccepted(P1,pk1,rho1,ownerKey,selfSigner);
+    out(ready1,P1);
+    event AuthorizedPolicyDeclared(P1,pk1,rho1);
+    event PolicyDeclared(P1,rho1);
+  let q1 = sign(rpeQuote(mRPE,Good,H((pk1,H(policyBytes(rho1))))),akR) in
+  out(quoteFrom1,(P1,q1,pk1,H(policyBytes(rho1))));
+  in(quoteInbox,(=P2,q2: bitstring,pk2: bitstring,hb2: bitstring));
+  let rpeQuote(=mRPE,ts2: tcbstatus,d2: bitstring) = checksign(q2,pkAKR) in
+  if d2 = H((pk2,hb2)) then
+  let tcbok2 = matchtcb(rpeTcb2(rho1),ts2) in
+  if tcbok2 = true then
+  if pk2 <> pk1 then
+  event EvidenceChecked(P1,P2,pk2,hb2);
+  in(quoteInbox,(=P3,q3: bitstring,pk3: bitstring,hb3: bitstring));
+  event ControlQuoteReceived(P1,P3);
+  let rpeQuote(=mRPE,ts3: tcbstatus,d3: bitstring) = checksign(q3,pkAKR) in
+  if d3 = H((pk3,hb3)) then
+  let tcbok3 = matchtcb(rpeTcb3(rho1),ts3) in
+  if tcbok3 = true then
+  if pk3 <> pk1 && pk3 <> pk2 then
+  event EvidenceChecked(P1,P3,pk3,hb3);
+  event QuotesComplete(P1);
+  0
+  ).
+
+let rpe2(akR:skey,pkAKR:bitstring,pkAKE:bitstring) =
+  new sk2:skey;
+  let pk2=pk(sk2) in
+  out(initFrom2,(P2,pk2));
+  (
+    (* An initial Quote is obtainable for any requested bitstring, even after
+       authorization. Its payload is NOT separated from Stage 2 by a tag. *)
+    (!in(initTo2,(=P2,requested:bitstring));
+      out(initFrom2,(P2,pk2,sign(rpeQuote(mRPE,Good,H((pk2,requested))),akR))))
+  |
+    in(initTo2,(=P2,=pk2,rho2:policy,authorization:bitstring,ownerKey:bitstring)) [precise];
+    event AuthorizationReceived(P2,pk2,rho2,ownerKey);
+    let (signedKey:bitstring,signedHash:bitstring)=checksign(authorization,ownerKey) in
+    if signedKey=pk2 && signedHash=H(policyBytes(rho2)) then
+    event AuthorizationSignatureChecked(P2,pk2,rho2,ownerKey);
+    if policySelf(rho2)=P2 && policySelfTEE(rho2)=E2 then
+    event AuthorizationSelfChecked(P2,pk2,rho2,ownerKey);
+    let Req(cm:ident,exact(selfSigner:bitstring),cp:ident,cv:svn,ct:tcbreq,ca:attreq)=starEntry2(constraints(rho2)) in
+    if selfSigner=H(ownerKey) && ca=Assign(P2) then
+    event AuthorizationAccepted(P2,pk2,rho2,ownerKey,selfSigner);
+    out(ready2,P2);
+    event AuthorizedPolicyDeclared(P2,pk2,rho2);
+    event PolicyDeclared(P2,rho2);
+  let q2 = sign(rpeQuote(mRPE,Good,H((pk2,H(policyBytes(rho2))))),akR) in
+  out(quoteFrom2,(P2,q2,pk2,H(policyBytes(rho2))));
+  0
+  ).
+
+let rpe3(akR:skey,pkAKR:bitstring,pkAKE:bitstring) =
+  new sk3:skey;
+  let pk3=pk(sk3) in
+  out(initFrom3,(P3,pk3));
+  (
+    (* An initial Quote is obtainable for any requested bitstring, even after
+       authorization. Its payload is NOT separated from Stage 2 by a tag. *)
+    (!in(initTo3,(=P3,requested:bitstring));
+      out(initFrom3,(P3,pk3,sign(rpeQuote(mRPE,Good,H((pk3,requested))),akR))))
+  |
+    in(initTo3,(=P3,=pk3,rho3:policy,authorization:bitstring,ownerKey:bitstring)) [precise];
+    event AuthorizationReceived(P3,pk3,rho3,ownerKey);
+    let (signedKey:bitstring,signedHash:bitstring)=checksign(authorization,ownerKey) in
+    if signedKey=pk3 && signedHash=H(policyBytes(rho3)) then
+    event AuthorizationSignatureChecked(P3,pk3,rho3,ownerKey);
+    if policySelf(rho3)=P3 && policySelfTEE(rho3)=E3 then
+    event AuthorizationSelfChecked(P3,pk3,rho3,ownerKey);
+    let Req(cm:ident,exact(selfSigner:bitstring),cp:ident,cv:svn,ct:tcbreq,ca:attreq)=starEntry3(constraints(rho3)) in
+    if selfSigner=H(ownerKey) && ca=Assign(P3) then
+    event AuthorizationAccepted(P3,pk3,rho3,ownerKey,selfSigner);
+    out(ready3,P3);
+    event AuthorizedPolicyDeclared(P3,pk3,rho3);
+    event PolicyDeclared(P3,rho3);
+  let q3 = sign(rpeQuote(mRPE,Revoked,H((pk3,H(policyBytes(rho3))))),akR) in
+  out(quoteFrom3,(P3,q3,pk3,H(policyBytes(rho3))));
+  0
+  ).
+
+let inst1(akTEE:skey,akADV:skey)=
+  new skE:skey;
+  new other:skey;
+  new stale:bitstring;
+  out(ceKey1,pk(skE));
+  in(ceChallenge1,challenge:bitstring);
+  event QuoteProduced(pk(skE),challenge,Identity(mE1,H(pk(skO1)),prodA,V2),Good);
+  out(ceQuote1,sign(teeQuote(Identity(mE1,H(pk(skO1)),prodA,V2),Good,H((pk(skE),challenge))),akTEE)).
+
+let inst2(akTEE:skey,akADV:skey)=
+  new skE:skey;
+  new other:skey;
+  new stale:bitstring;
+  out(ceKey2,pk(skE));
+  in(ceChallenge2,challenge:bitstring);
+  event QuoteProduced(pk(skE),challenge,Identity(mE2,H(pk(skO2)),prodA,V2),Good);
+  out(ceQuote2,sign(teeQuote(Identity(mE2,H(pk(skO2)),prodA,V2),Good,H((pk(skE),challenge))),akTEE)).
+
+let inst3(akTEE:skey,akADV:skey)=
+  new skE:skey;
+  new other:skey;
+  new stale:bitstring;
+  out(ceKey3,pk(skE));
+  in(ceChallenge3,challenge:bitstring);
+  event QuoteProduced(pk(skE),challenge,Identity(mE3,H(pk(skO3)),prodA,V2),Good);
+  out(ceQuote3,sign(teeQuote(Identity(mE3,H(pk(skO3)),prodA,V2),Good,H((pk(skE),challenge))),akTEE)).
+
+let transport()=
+  in(ready1,=P1);
+  in(ready2,=P2);
+  in(ready3,=P3);
+  event ControlAllAuthorized;
+  !in(collabOut,m:bitstring);
+    let (a:party,q:bitstring,k:bitstring,h:bitstring)=m in
+      (out(quoteInbox,m) | out(quoteInbox,m))
+    else
+      let (sender:party,recipient:party,signed:bitstring)=m in
+      let policyMsg(destination:bitstring,r:policy)=getmess(signed) in
+        out(policyInbox,m)
+      else
+        let confirmMsg(destination:bitstring,h:bitstring)=getmess(signed) in
+        out(confirmationInbox,m).
+process
+  new akRPE:skey;
+  new akTEE:skey;
+  new akADV:skey;
+  event HonestOwner(pk(skO1));
+  event HonestOwner(pk(skO2));
+  (owner1(pk(akRPE)) |
+   rpe1(akRPE,pk(akRPE),pk(akTEE)) |
+   (in(initFrom1,(=P1,k:bitstring));0) |
+   (in(ceCert1,(a:bitstring,b:bitstring,c:bitstring,d:bitstring));0) |
+   rpe2(akRPE,pk(akRPE),pk(akTEE)) |
+   (in(initFrom2,(=P2,k:bitstring));0) |
+   (in(ceCert2,(a:bitstring,b:bitstring,c:bitstring,d:bitstring));0) |
+   rpe3(akRPE,pk(akRPE),pk(akTEE)) |
+   (in(initFrom3,(=P3,k:bitstring));0) |
+   (in(ceCert3,(a:bitstring,b:bitstring,c:bitstring,d:bitstring));0))

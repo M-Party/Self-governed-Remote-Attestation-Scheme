@@ -1,0 +1,25 @@
+﻿序号,实体,字段,代数表示与范围,14份目录输入中的实际取值,组合边界
+1,RPE1,TCB接受集合,"Both={Good,Outdated}; OnlyGood={Good}; OnlyOutdated={Outdated}",Both | OnlyGood | OnlyOutdated,主输入按完整profile选择；不开放这些取值的任意跨字段组合
+2,RPE2,TCB接受集合,"Both={Good,Outdated}; OnlyGood={Good}; OnlyOutdated={Outdated}",Both | OnlyGood,主输入按完整profile选择；不开放这些取值的任意跨字段组合
+3,RPE3,TCB接受集合,"Both={Good,Outdated}; OnlyGood={Good}; OnlyOutdated={Outdated}",Both | OnlyGood,主输入按完整profile选择；不开放这些取值的任意跨字段组合
+4,E1,measurement,Any / exact(bitstring),Any | exact(mBad) | exact(mE1),主输入按完整profile选择；不开放这些取值的任意跨字段组合
+5,E1,signer,Any / exact(bitstring),Any | exact(H(pk(skO1))) | exact(sBad),主输入按完整profile选择；不开放这些取值的任意跨字段组合
+6,E1,product,Any / exact(bitstring),Any | exact(prodA) | exact(prodB),主输入按完整profile选择；不开放这些取值的任意跨字段组合
+7,E1,最低SVN,V0<V1<V2，V0兼作不限制,V0 | V1 | V2,主输入按完整profile选择；不开放这些取值的任意跨字段组合
+8,E1,TCB接受集合,Both / OnlyGood / OnlyOutdated,Both | OnlyGood | OnlyOutdated,主输入按完整profile选择；不开放这些取值的任意跨字段组合
+9,E1,attester,NoAtt / Assign(P1|P2|P3),Assign(P1) | Assign(P3) | NoAtt,主输入按完整profile选择；不开放这些取值的任意跨字段组合
+10,E2,measurement,Any / exact(bitstring),Any | exact(mE2),主输入按完整profile选择；不开放这些取值的任意跨字段组合
+11,E2,signer,Any / exact(bitstring),Any | exact(H(pk(skO2))),主输入按完整profile选择；不开放这些取值的任意跨字段组合
+12,E2,product,Any / exact(bitstring),Any | exact(prodA),主输入按完整profile选择；不开放这些取值的任意跨字段组合
+13,E2,最低SVN,V0<V1<V2，V0兼作不限制,V0 | V1 | V2,主输入按完整profile选择；不开放这些取值的任意跨字段组合
+14,E2,TCB接受集合,Both / OnlyGood / OnlyOutdated,Both | OnlyGood,主输入按完整profile选择；不开放这些取值的任意跨字段组合
+15,E2,attester,NoAtt / Assign(P1|P2|P3),Assign(P2) | NoAtt,主输入按完整profile选择；不开放这些取值的任意跨字段组合
+16,E3,measurement,Any / exact(bitstring),Any | exact(mE3),主输入按完整profile选择；不开放这些取值的任意跨字段组合
+17,E3,signer,Any / exact(bitstring),exact(H(pk(skO3))),主输入按完整profile选择；不开放这些取值的任意跨字段组合
+18,E3,product,Any / exact(bitstring),Any | exact(prodA),主输入按完整profile选择；不开放这些取值的任意跨字段组合
+19,E3,最低SVN,V0<V1<V2，V0兼作不限制,V0 | V1,主输入按完整profile选择；不开放这些取值的任意跨字段组合
+20,E3,TCB接受集合,Both / OnlyGood / OnlyOutdated,Both | OnlyGood,主输入按完整profile选择；不开放这些取值的任意跨字段组合
+21,E3,attester,NoAtt / Assign(P1|P2|P3),Assign(P3),主输入按完整profile选择；不开放这些取值的任意跨字段组合
+Members,协作,成员配置,Members3,Members3,共同静态成员；未验证独立成员配置一致性
+SelfRPE,RPE,Self RPE designation,policySelf: party,P1/P2/P3,实际Stage1比较Pi；目录外错误值用局部控制检查
+SelfTEE,TEE,Self TEE designation,policySelfTEE: entity；独立序列化字段,E1/E2/E3,实际Stage1比较Ei；wrong-self-tee单独篡改该字段
